@@ -13,7 +13,7 @@ final class FileManagerShowed implements SmEvent
     ) {
     }
 
-    public function make(?Authenticatable $user, array $parameters): self
+    public static function make(?Authenticatable $user, array $parameters): self
     {
         return new self();
     }
