@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
+use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 /**
  * Is used in order to determine if a user can
@@ -15,8 +16,17 @@ use Illuminate\Support\Str;
  */
 class AuthService
 {
+    public function __construct(
+        private readonly ConfigRepository $configRepository
+    ) {
+    }
+
     public function check(): bool
     {
+        if (! $this->configRepository->isAuthEnabled()) {
+            return true;
+        }
+
         $routeGuard = $this->getGuardFromCurrentRoute();
 
         if ($routeGuard) {
