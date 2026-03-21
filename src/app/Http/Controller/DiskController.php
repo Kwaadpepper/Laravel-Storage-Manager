@@ -7,7 +7,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Event\DiskSelected;
-use Kwaadpepper\LaravelStorageManager\Http\Request\SelectDiskRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\Disk\SelectDiskRequest;
 use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 use Symfony\Component\HttpFoundation\JsonResponse;

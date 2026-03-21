@@ -37,6 +37,8 @@ Route::group([
             'as'     => 'fm.',
         ], function (): void {
             Route::get('/init', [FileManagerController::class, 'init'])->name('init');
+
+            Route::get('/tree', [FileManagerController::class, 'tree'])->name('tree');
         });
 
         Route::group([

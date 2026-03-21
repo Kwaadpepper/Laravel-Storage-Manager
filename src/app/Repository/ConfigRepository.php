@@ -61,6 +61,27 @@ class ConfigRepository
         );
     }
 
+    public function getDefaultDisk(): ?Disk
+    {
+        $defaultDiskName = $this->getConfig(
+            'filesystems.default',
+            Config::get('filesystems.disks', []) ?
+              array_key_first(Config::get('filesystems.disks', [])) : null
+        );
+
+        if (! is_string($defaultDiskName) || empty(mb_trim($defaultDiskName))) {
+            return null;
+        }
+
+        $disksMap = $this->getDisksMap();
+
+        if (isset($disksMap[$defaultDiskName])) {
+            return $disksMap[$defaultDiskName];
+        }
+
+        return array_values($disksMap)[0] ?? null;
+    }
+
     /**
      * @return array<string,Disk>
      */

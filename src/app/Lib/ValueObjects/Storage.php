@@ -14,10 +14,10 @@ final class Storage
         $this->disk = $disk;
 
         if (empty($this->name)) {
-            throw new \InvalidArgumentException('Storage name cannot be empty.');
+            throw new \DomainException('Storage name cannot be empty.');
         }
         if (empty($this->disk)) {
-            throw new \InvalidArgumentException('Storage disk cannot be empty.');
+            throw new \DomainException('Storage disk cannot be empty.');
         }
     }
 }

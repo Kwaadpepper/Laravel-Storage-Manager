@@ -12,16 +12,11 @@ final class Disk
         public readonly bool $throw,
         public readonly bool $report
     ) {
-        $this->driver = $driver;
-        $this->name   = $name;
-        $this->throw  = $throw;
-        $this->report = $report;
-
         if (empty($this->driver)) {
-            throw new \InvalidArgumentException('Disk driver cannot be empty.');
+            throw new \DomainException('Disk driver cannot be empty.');
         }
         if (empty($this->name)) {
-            throw new \InvalidArgumentException('Disk name cannot be empty.');
+            throw new \DomainException('Disk name cannot be empty.');
         }
     }
 }
