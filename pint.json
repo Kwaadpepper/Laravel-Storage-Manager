@@ -1,0 +1,74 @@
+{
+  "preset": "laravel",
+  "rules": {
+    "indentation_type": true,
+    "single_line_empty_body": false,
+    "types_spaces": {
+      "space": "single",
+      "space_multiple_catch": "single"
+    },
+    "control_structure_braces": true,
+    "new_with_parentheses": {
+      "anonymous_class": true,
+      "named_class": true
+    },
+    "class_definition": {
+      "single_item_single_line": false,
+      "single_line": false,
+      "space_before_parenthesis": true
+    },
+    "curly_braces_position": {
+      "allow_single_line_empty_anonymous_classes": false,
+      "classes_opening_brace": "next_line_unless_newline_at_signature_end",
+      "anonymous_classes_opening_brace": "next_line_unless_newline_at_signature_end",
+      "control_structures_opening_brace": "same_line",
+      "functions_opening_brace": "next_line_unless_newline_at_signature_end",
+      "anonymous_functions_opening_brace": "same_line"
+    },
+    "binary_operator_spaces": {
+      "default": "align_single_space_minimal",
+      "operators": {
+        "=": "align_single_space",
+        "|": "single_space",
+        "=>": "align_single_space",
+        ".=": "align_single_space"
+      }
+    },
+    "concat_space": {
+      "spacing": "one"
+    },
+    "align_multiline_comment": {
+      "comment_type": "all_multiline"
+    },
+    "array_indentation": true,
+    "method_chaining_indentation": true,
+    "statement_indentation": {
+      "stick_comment_to_next_continuous_control_statement": true
+    },
+    "declare_strict_types": {
+      "preserve_existing_declaration": true
+    },
+    "no_unused_imports": true,
+    "visibility_required": {
+      "elements": [
+        "const",
+        "method",
+        "property"
+      ]
+    },
+    "no_useless_else": true,
+    "function_declaration": {
+      "closure_function_spacing": "one",
+      "closure_fn_spacing": "one",
+      "trailing_comma_single_line": false
+    },
+    "single_line_after_imports": true,
+    "combine_consecutive_issets": true,
+    "array_syntax": {
+      "syntax": "short"
+    },
+    "single_quote": true,
+    "blank_line_after_namespace": true,
+    "blank_line_after_opening_tag": true
+  }
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Select Disk
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/disks/select?disk=public
+  body: none
+  auth: inherit
+}
+
+params:query {
+  disk: public
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

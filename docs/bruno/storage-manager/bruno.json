@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Storage Manager",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

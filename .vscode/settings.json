@@ -1,0 +1,79 @@
+{
+  "php.version": "8.5.0",
+  "intelephense.environment.phpVersion": "8.5.0",
+  "intelephense.environment.includePaths": [
+    "./vendor/pestphp",
+    "./vendor/phpunit/phpunit",
+    "./vendor/laravel"
+  ],
+  "laravel-pint.enable": true,
+  "[php]": {
+    "editor.defaultFormatter": "open-southeners.laravel-pint"
+  },
+  "editor.formatOnSave": true,
+  "eslint.validate": ["javascript", "typescript", "html", "vue"],
+  "[html]": {
+    "html.format.enable": false,
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "always"
+    }
+  },
+  "[blade]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false
+  },
+  "[javascript]": {
+    "editor.autoIndent": "full",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "always"
+    },
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.detectIndentation": false,
+    "editor.formatOnSave": true
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "stylelint.vscode-stylelint",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.stylelint": "always"
+    }
+  },
+  "[typescript]": {
+    "editor.autoIndent": "full",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "always"
+    },
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.detectIndentation": false,
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file"
+  },
+  "[vue]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "always"
+    }
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#045a4a",
+    "activityBar.background": "#045a4a",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#d029f5",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#045a4a",
+    "statusBar.background": "#022922",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#045a4a",
+    "statusBarItem.remoteBackground": "#022922",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#022922",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#02292299",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#022922"
+}
