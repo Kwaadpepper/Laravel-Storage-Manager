@@ -10,14 +10,14 @@ use Kwaadpepper\LaravelStorageManager\Http\Request\SelectDiskRequest;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-class DiskController extends Controller
+final class DiskController extends Controller
 {
     public function __construct(
         private readonly DiskService $diskService
     ) {
     }
 
-    public function list()
+    public function list(): JsonResponse
     {
         return Response::json([
             'disks' => $this->diskService->getDiskNamesList(),
