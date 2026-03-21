@@ -23,6 +23,16 @@ class ConfigRepository
         return (bool) $this->getConfig('enabled', true);
     }
 
+    public function isAuthEnabled(): bool
+    {
+        return (bool) $this->getConfig('auth.enabled', true);
+    }
+
+    public function getAuthGuard(): string
+    {
+        return (string) $this->getConfig('auth.guard', 'web');
+    }
+
     public function getRoutePrefix(): string
     {
         $prefix = $this->getConfig(

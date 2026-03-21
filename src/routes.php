@@ -18,7 +18,10 @@ if (! $config->isEnabled()) {
 Route::group([
     'middleware' => array_merge(
         $config->getRouteMiddleware(),
-        [StorageManager::class],
+        [
+            StorageManager::class,
+            $config->isAuthEnabled() ? 'auth:' . $config->getAuthGuard() : null,
+        ],
     ),
     'prefix' => $config->getRoutePrefix(),
     'as'     => 'storage-manager.',

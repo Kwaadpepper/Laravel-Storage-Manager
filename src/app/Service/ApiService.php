@@ -12,7 +12,6 @@ use Symfony\Component\HttpFoundation\Response;
 class ApiService
 {
     public function __construct(
-        private readonly AuthService $authService,
         private readonly ConfigRepository $configRepository
     ) {
     }
@@ -33,11 +32,6 @@ class ApiService
         }
 
         return $request->expectsJson() && $request->routeIs('storage-manager.api.*');
-    }
-
-    public function checkAuth(): bool
-    {
-        return $this->authService->check();
     }
 
     public function wrapResponse(JsonResponse $response): JsonResponse
