@@ -6,7 +6,9 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Response;
+use Kwaadpepper\LaravelStorageManager\Event\DiskSelected;
 use Kwaadpepper\LaravelStorageManager\Http\Request\SelectDiskRequest;
+use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -26,6 +28,8 @@ final class DiskController extends Controller
 
     public function select(SelectDiskRequest $request): JsonResponse
     {
+        EventFactory::dispatch(DiskSelected::class);
+
         $disk = $this->diskService->getDisk($request->string('disk')->value());
 
         return Response::json([
