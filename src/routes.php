@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
+use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManager;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApi;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
@@ -25,11 +26,23 @@ Route::group([
 
     Route::view('/', 'storage-manager::file-manager')->name('file-manager');
 
-    Route::name('api.')
-        ->middleware([StorageManagerApi::class])
-        ->group(function (): void {
-            Route::get('/disks', [DiskController::class, 'list'])->name('disks.list');
-            Route::get('/disks/select', [DiskController::class, 'select'])->name('disks.select');
+    Route::name('api.')->middleware([StorageManagerApi::class])->group(function (): void {
+
+        Route::group([
+            'prefix' => 'fm',
+            'as'     => 'fm.',
+        ], function (): void {
+            Route::get('/init', [FileManagerController::class, 'init'])->name('init');
         });
+
+        Route::group([
+            'prefix' => 'disks',
+            'as'     => 'disks.',
+        ], function (): void {
+            Route::get('/', [DiskController::class, 'list'])->name('list');
+            Route::get('/select', [DiskController::class, 'select'])->name('select');
+        });
+
+    });
 
 });
