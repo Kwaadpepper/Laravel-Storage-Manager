@@ -15,16 +15,17 @@ if (! $config->isEnabled()) {
     return;
 }
 
+$middlewares   = $config->getRouteMiddleware();
+$middlewares[] = StorageManagerMiddleware::class;
+
+if ($config->isAuthEnabled()) {
+    $middlewares[] = 'auth:' . $config->getAuthGuard();
+}
+
 Route::group([
-    'middleware' => array_merge(
-        $config->getRouteMiddleware(),
-        [
-            StorageManagerMiddleware::class,
-            $config->isAuthEnabled() ? 'auth:' . $config->getAuthGuard() : null,
-        ],
-    ),
-    'prefix' => $config->getRoutePrefix(),
-    'as'     => 'storage-manager.',
+    'middleware' => $middlewares,
+    'prefix'     => $config->getRoutePrefix(),
+    'as'         => 'storage-manager.',
 ], function (): void {
 
     Route::view('/', 'storage-manager::file-manager')->name('file-manager');
