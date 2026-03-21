@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Kwaadpepper\LaravelStorageManager\Service\ApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class StorageManagerApi
+final class StorageManagerApiMiddleware
 {
     public function __construct(
         private readonly ApiService $apiService
@@ -26,6 +26,8 @@ final class StorageManagerApi
         if (! ($response instanceof JsonResponse)) {
             throw new \UnexpectedValueException('Expected JsonResponse from API route.');
         }
+
+        $response->headers->set('Cache-Control', 'no-store');
 
         return $this->apiService->wrapResponse($response);
     }

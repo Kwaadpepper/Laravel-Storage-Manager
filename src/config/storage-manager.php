@@ -6,7 +6,7 @@ return [
     'enabled'      => env('STORAGE_MANAGER_ENABLED', true),
 
     'auth' => [
-        'enabled' => env('STORAGE_MANAGER_AUTH_ENABLED', true),
+        'enabled' => env('STORAGE_MANAGER_AUTH_ENABLED', false),
         'guard'   => env('STORAGE_MANAGER_AUTH_GUARD', 'web'),
     ],
 

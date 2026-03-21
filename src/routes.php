@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
-use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApi;
+use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApiMiddleware;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerMiddleware;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
@@ -29,7 +29,7 @@ Route::group([
 
     Route::view('/', 'storage-manager::file-manager')->name('file-manager');
 
-    Route::name('api.')->middleware([StorageManagerApi::class])->group(function (): void {
+    Route::name('api.')->middleware([StorageManagerApiMiddleware::class])->group(function (): void {
 
         Route::group([
             'prefix' => 'fm',
