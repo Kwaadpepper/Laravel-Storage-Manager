@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 use Kwaadpepper\LaravelStorageManager\Service\AuthService;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 
-class SelectDiskRequest extends ApiRequest
+final class SelectDiskRequest extends ApiRequest
 {
     private AuthService $authService;
 
