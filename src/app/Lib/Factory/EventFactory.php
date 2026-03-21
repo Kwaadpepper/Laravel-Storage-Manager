@@ -7,7 +7,7 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\Factory;
 use Kwaadpepper\LaravelStorageManager\Event\SmEvent;
 use Kwaadpepper\LaravelStorageManager\Service\AuthService;
 
-final abstract class EventFactory
+abstract class EventFactory
 {
     /**
      * @param  class-string<SmEvent>  $eventClass
