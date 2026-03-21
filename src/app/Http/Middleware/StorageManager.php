@@ -7,7 +7,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Middleware;
 use Illuminate\Http\Request;
 use Kwaadpepper\LaravelStorageManager\Service\ApiService;
 
-class StorageManager
+final class StorageManager
 {
     public function __construct(
         private readonly ApiService $apiService

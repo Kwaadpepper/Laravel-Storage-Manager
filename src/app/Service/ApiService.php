@@ -40,12 +40,8 @@ class ApiService
         return $this->authService->check();
     }
 
-    public function wrapResponse(Response $response): Response
+    public function wrapResponse(JsonResponse $response): JsonResponse
     {
-        if (! $response instanceof JsonResponse) {
-            return $response;
-        }
-
         $statusCode = $response->getStatusCode();
         $isSuccess  = $statusCode >= 200 && $statusCode < 300;
         $content    = $response->getData(true);
