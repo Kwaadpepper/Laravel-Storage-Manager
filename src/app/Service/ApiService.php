@@ -46,6 +46,10 @@ class ApiService
         $isSuccess  = $statusCode >= 200 && $statusCode < 300;
         $content    = $response->getData(true);
 
+        if ($statusCode === Response::HTTP_NO_CONTENT) {
+            return new JsonResponse([], $statusCode);
+        }
+
         $wrapped = [
             'timestamp' => now()->toIso8601String(),
             'status'    => $statusCode,
