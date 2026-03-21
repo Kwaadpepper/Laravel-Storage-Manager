@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
-use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManager;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApi;
+use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerMiddleware;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 $config = resolve(ConfigRepository::class);
@@ -19,7 +19,7 @@ Route::group([
     'middleware' => array_merge(
         $config->getRouteMiddleware(),
         [
-            StorageManager::class,
+            StorageManagerMiddleware::class,
             $config->isAuthEnabled() ? 'auth:' . $config->getAuthGuard() : null,
         ],
     ),
