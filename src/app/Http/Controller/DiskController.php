@@ -21,7 +21,7 @@ final class DiskController extends Controller
     {
         return Response::json([
             'disks' => $this->diskService->getDiskNamesList(),
-        ]);
+        ], JsonResponse::HTTP_OK);
     }
 
     public function select(SelectDiskRequest $request): JsonResponse
@@ -30,6 +30,6 @@ final class DiskController extends Controller
 
         return Response::json([
             'disk' => $disk,
-        ]);
+        ], JsonResponse::HTTP_OK);
     }
 }
