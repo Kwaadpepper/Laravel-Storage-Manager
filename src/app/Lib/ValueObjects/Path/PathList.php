@@ -7,15 +7,15 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 class PathList
 {
     /**
-     * @param  list<Path>  $paths
+     * @param  list<Path>  $files
      * @param  list<Path>  $directories
      */
     public function __construct(
         public readonly array $files,
         public readonly array $directories,
     ) {
-        foreach ($files as $file) {
-            if (! $file instanceof Path) {
+        foreach ($files as $path) {
+            if (! $path instanceof Path) {
                 throw new \DomainException('All items in files must be instances of Path.');
             }
         }
