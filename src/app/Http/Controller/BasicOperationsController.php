@@ -35,7 +35,11 @@ class BasicOperationsController extends Controller
     {
         $path = $request->getPath();
 
-        $this->fileManager->delete($path);
+        if ($this->fileManager->isDirectory($path)) {
+            $this->fileManager->deleteDirectory($path);
+        } elseif ($this->fileManager->isFile($path)) {
+            $this->fileManager->deleteFile($path);
+        }
 
         return Response::json([], JsonResponse::HTTP_NO_CONTENT);
     }

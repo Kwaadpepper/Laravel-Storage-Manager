@@ -87,7 +87,24 @@ class FileManager
     /**
      * @throws FileOperationException
      */
-    public function delete(Path $path): void
+    public function deleteDirectory(Path $path): void
+    {
+        $filesystem     = $this->getStorage();
+        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+
+        if (! $filesystem->exists($normalizedPath)) {
+            return;
+        }
+
+        if ($filesystem->deleteDirectory($normalizedPath) === false) {
+            throw new FileOperationException("Failed to delete the directory '{$normalizedPath}'.");
+        }
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function deleteFile(Path $path): void
     {
         $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
@@ -97,8 +114,34 @@ class FileManager
         }
 
         if ($filesystem->delete($normalizedPath) === false) {
-            throw new FileOperationException("Failed to delete the path '{$normalizedPath}'.");
+            throw new FileOperationException("Failed to delete the file '{$normalizedPath}'.");
         }
+    }
+
+    public function isDirectory(Path $path): bool
+    {
+        $filesystem     = $this->getStorage();
+        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+
+        if (! empty($filesystem->directories($normalizedPath)) || ! empty($filesystem->files($normalizedPath))) {
+            return true;
+        }
+
+        $withSlash = rtrim($normalizedPath, '/') . '/';
+
+        return $filesystem->exists($withSlash);
+    }
+
+    public function isFile(Path $path): bool
+    {
+        $filesystem     = $this->getStorage();
+        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+
+        if (! $filesystem->exists($normalizedPath)) {
+            return false;
+        }
+
+        return empty($filesystem->directories($normalizedPath)) && empty($filesystem->files($normalizedPath));
     }
 
     private function getStorage(): Filesystem
