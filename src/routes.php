@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Kwaadpepper\LaravelStorageManager\Http\Controller\BasicOperationsController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApiMiddleware;
@@ -36,10 +37,13 @@ Route::group([
             'prefix' => 'fm',
             'as'     => 'fm.',
         ], function (): void {
+            // File Manager routes
             Route::get('/init', [FileManagerController::class, 'init'])->name('init');
-
             Route::get('/tree', [FileManagerController::class, 'tree'])->name('tree');
             Route::get('/content', [FileManagerController::class, 'content'])->name('content');
+
+            // Basic operations routes
+            Route::delete('/delete', [BasicOperationsController::class, 'delete'])->name('delete');
         });
 
         Route::group([

@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList as PathContent;
@@ -64,6 +65,23 @@ class FileManager
                 ! empty($filesystem->directories((string) new Path($dir)))
             ), $directories),
         );
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function delete(Path $path): void
+    {
+        $filesystem     = $this->getStorage();
+        $normalizedPath = $this->normalizePath((string) $path);
+
+        if (! $filesystem->exists($normalizedPath)) {
+            return;
+        }
+
+        if ($filesystem->delete($normalizedPath) === false) {
+            throw new FileOperationException("Failed to delete the path '{$normalizedPath}'.");
+        }
     }
 
     private function normalizePath(string $path): string

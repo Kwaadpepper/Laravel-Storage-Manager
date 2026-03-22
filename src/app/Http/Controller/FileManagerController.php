@@ -7,7 +7,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Event\FileManagerShowed;
-use Kwaadpepper\LaravelStorageManager\Http\Request\FileManager\RequestWithPath;
+use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
 use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList;

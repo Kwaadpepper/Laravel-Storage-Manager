@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Kwaadpepper\LaravelStorageManager\Http\Request\FileManager;
+namespace Kwaadpepper\LaravelStorageManager\Http\Request;
 
-use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithDisk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
 
-final class RequestWithPath extends RequestWithDisk
+class RequestWithPath extends RequestWithDisk
 {
     public function rules(): array
     {
