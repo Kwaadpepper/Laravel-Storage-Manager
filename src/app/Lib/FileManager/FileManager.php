@@ -33,32 +33,42 @@ class FileManager
     public function getContent(?Path $path = null): PathContent
     {
         $filesystem  = $this->getStorage();
-        $directory   = $path ? (string) $path : '/';
-        $files       = $filesystem->files($directory);
-        $directories = $filesystem->directories($directory);
-
-        $directoryPrefix = rtrim($directory, '/') . '/';
+        $directory   = $this->normalizePath($path ? (string) $path : '/');
+        $files       = array_map(
+            fn ($file) => $this->normalizePath($file),
+            $filesystem->files($directory)
+        );
+        $directories = array_map(
+            fn ($dir) => $this->normalizePath($dir),
+            $filesystem->directories($directory)
+        );
 
         return new PathContent(
-            files: array_map(fn ($file) => new Path("{$directoryPrefix}{$file}"), $files),
-            directories: array_map(fn ($dir) => new Path("{$directoryPrefix}{$dir}"), $directories),
+            files: array_map(fn ($file) => new Path($file), $files),
+            directories: array_map(fn ($dir) => new Path($dir), $directories),
         );
     }
 
     public function getPathTree(?Path $path = null): PathTreeLevel
     {
         $filesystem  = $this->getStorage();
-        $directory   = $path ? (string) $path : '/';
-        $directories = $filesystem->directories($directory);
-
-        $directoryPrefix = rtrim($directory, '/') . '/';
+        $directory   = $this->normalizePath($path ? (string) $path : '/');
+        $directories = array_map(
+            fn ($dir) => $this->normalizePath($dir),
+            $filesystem->directories($directory)
+        );
 
         return new PathTreeLevel(
             directories: array_map(fn ($dir) => new PathTreeDirectory(
-                "{$directoryPrefix}{$dir}",
-                ! empty($filesystem->directories("{$directoryPrefix}{$dir}"))
+                (string) new Path($dir),
+                ! empty($filesystem->directories((string) new Path($dir)))
             ), $directories),
         );
+    }
+
+    private function normalizePath(string $path): string
+    {
+        return '/' . ltrim(str_replace('\\', '/', $path), '/');
     }
 
     private function getStorage(): Filesystem
