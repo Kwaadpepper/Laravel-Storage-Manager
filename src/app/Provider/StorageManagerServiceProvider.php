@@ -32,7 +32,6 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerAliases();
         $this->registerDependenciesInjection();
-
     }
 
     private function registerDependenciesInjection(): void

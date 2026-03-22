@@ -48,7 +48,5 @@ Route::group([
             Route::get('/', [DiskController::class, 'list'])->name('list');
             Route::get('/select', [DiskController::class, 'select'])->name('select');
         });
-
     });
-
 });

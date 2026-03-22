@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Rule;
 
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Translation\PotentiallyTranslatedString;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
 class IsValidPath implements ValidationRule

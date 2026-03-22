@@ -8,8 +8,8 @@ final class Storage
 {
     public function __construct(
         public readonly string $name,
-        public readonly string $disk)
-    {
+        public readonly string $disk
+    ) {
         $this->name = $name;
         $this->disk = $disk;
 
