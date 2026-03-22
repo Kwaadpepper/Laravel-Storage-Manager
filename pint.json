@@ -45,10 +45,12 @@
     "statement_indentation": {
       "stick_comment_to_next_continuous_control_statement": true
     },
-    "declare_strict_types": {
-      "preserve_existing_declaration": true
-    },
     "no_unused_imports": true,
+    "fully_qualified_strict_types": {
+      "import_symbols": true,
+      "leading_backslash_in_global_namespace": true,
+      "phpdoc_tags": []
+    },
     "visibility_required": {
       "elements": [
         "const",
@@ -69,6 +71,7 @@
     },
     "single_quote": true,
     "blank_line_after_namespace": true,
-    "blank_line_after_opening_tag": true
+    "blank_line_after_opening_tag": true,
+    "declare_strict_types": true
   }
 }
