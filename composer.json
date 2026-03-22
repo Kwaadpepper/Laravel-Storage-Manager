@@ -23,7 +23,15 @@
   "require-dev": {
     "laravel/pint": "^1.29",
     "orchestra/testbench": "^10.11",
-    "slevomat/coding-standard": "^8.28"
+    "slevomat/coding-standard": "^8.28",
+    "league/flysystem-aws-s3-v3": "^3.32",
+    "league/flysystem-ftp": "^3.31",
+    "league/flysystem-sftp-v3": "^3.31"
+  },
+  "suggest": {
+    "league/flysystem-aws-s3-v3": "Required to use S3 storage",
+    "league/flysystem-ftp": "Required to use FTP storage",
+    "league/flysystem-sftp-v3": "Required to use SFTP storage"
   },
   "extra": {
     "laravel": {
