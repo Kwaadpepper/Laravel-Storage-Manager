@@ -1,0 +1,22 @@
+meta {
+  name: Create directory
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/create-directory?disk=public&path=/&name=new dir
+  body: none
+  auth: inherit
+}
+
+params:query {
+  disk: public
+  path: /
+  name: new dir
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

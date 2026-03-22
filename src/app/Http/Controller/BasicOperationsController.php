@@ -6,8 +6,11 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Response;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirectoryRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathRequest;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
 class BasicOperationsController extends Controller
 {
@@ -16,12 +19,24 @@ class BasicOperationsController extends Controller
     ) {
     }
 
+    public function createDirectory(CreateDirectoryRequest $request): JsonResponse
+    {
+        $path = Path::appendTo(
+            $request->getPath(),
+            $request->string('name')->value()
+        );
+
+        $this->fileManager->createDirectory($path);
+
+        return Response::json([], JsonResponse::HTTP_CREATED);
+    }
+
     public function delete(DeletePathRequest $request): JsonResponse
     {
         $path = $request->getPath();
 
         $this->fileManager->delete($path);
 
-        return JsonResponse::json([], JsonResponse::HTTP_NO_CONTENT);
+        return Response::json([], JsonResponse::HTTP_NO_CONTENT);
     }
 }

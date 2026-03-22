@@ -17,6 +17,14 @@ class Path implements \Stringable
         }
     }
 
+    public static function appendTo(Path $basePath, string $append): self
+    {
+        $normalizedAppend = ltrim($append, '/');
+        $newPath          = rtrim((string) $basePath, '/') . '/' . $normalizedAppend;
+
+        return new self($newPath);
+    }
+
     public function __toString(): string
     {
         return $this->path;

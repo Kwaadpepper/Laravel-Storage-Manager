@@ -1,18 +1,18 @@
 meta {
   name: Delete path
   type: http
-  seq: 1
+  seq: 2
 }
 
 delete {
-  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/delete?disk=public&path=/
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/delete?disk=public&path=/new dir
   body: none
   auth: inherit
 }
 
 params:query {
   disk: public
-  path: /
+  path: /new dir
 }
 
 settings {

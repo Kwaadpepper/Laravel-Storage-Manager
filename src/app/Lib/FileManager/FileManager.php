@@ -15,16 +15,16 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
 
 class FileManager
 {
-    private ?Disk $activeDisk;
-
-    public function __construct(?Disk $disk)
-    {
+    public function __construct(
+        private readonly PathNormalizer $pathNormalizer,
+        private ?Disk $disk
+    ) {
         $this->setActiveDisk($disk);
     }
 
     public function setActiveDisk(?Disk $disk): void
     {
-        $this->activeDisk = $disk;
+        $this->disk = $disk;
 
         if ($disk !== null) {
             $this->assertDiskExists($disk->name);
@@ -34,13 +34,13 @@ class FileManager
     public function getContent(?Path $path = null): PathContent
     {
         $filesystem  = $this->getStorage();
-        $directory   = $this->normalizePath($path ? (string) $path : '/');
+        $directory   = $this->pathNormalizer->normalizePath($path ? (string) $path : '/');
         $files       = array_map(
-            fn ($file) => $this->normalizePath($file),
+            fn ($file) => $this->pathNormalizer->normalizePath($file),
             $filesystem->files($directory)
         );
         $directories = array_map(
-            fn ($dir) => $this->normalizePath($dir),
+            fn ($dir) => $this->pathNormalizer->normalizePath($dir),
             $filesystem->directories($directory)
         );
 
@@ -53,9 +53,9 @@ class FileManager
     public function getPathTree(?Path $path = null): PathTreeLevel
     {
         $filesystem  = $this->getStorage();
-        $directory   = $this->normalizePath($path ? (string) $path : '/');
+        $directory   = $this->pathNormalizer->normalizePath($path ? (string) $path : '/');
         $directories = array_map(
-            fn ($dir) => $this->normalizePath($dir),
+            fn ($dir) => $this->pathNormalizer->normalizePath($dir),
             $filesystem->directories($directory)
         );
 
@@ -70,10 +70,27 @@ class FileManager
     /**
      * @throws FileOperationException
      */
+    public function createDirectory(Path $path): void
+    {
+        $filesystem     = $this->getStorage();
+        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+
+        if ($filesystem->exists($normalizedPath)) {
+            return;
+        }
+
+        if ($filesystem->makeDirectory($normalizedPath) === false) {
+            throw new FileOperationException("Failed to create the directory '{$normalizedPath}'.");
+        }
+    }
+
+    /**
+     * @throws FileOperationException
+     */
     public function delete(Path $path): void
     {
         $filesystem     = $this->getStorage();
-        $normalizedPath = $this->normalizePath((string) $path);
+        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
         if (! $filesystem->exists($normalizedPath)) {
             return;
@@ -82,11 +99,6 @@ class FileManager
         if ($filesystem->delete($normalizedPath) === false) {
             throw new FileOperationException("Failed to delete the path '{$normalizedPath}'.");
         }
-    }
-
-    private function normalizePath(string $path): string
-    {
-        return '/' . ltrim(str_replace('\\', '/', $path), '/');
     }
 
     private function getStorage(): Filesystem
