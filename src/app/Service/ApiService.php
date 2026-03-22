@@ -42,6 +42,10 @@ class ApiService
 
     public function wrapResponse(JsonResponse $response): JsonResponse
     {
+        if ($this->isWrappedResponse($response)) {
+            return $response;
+        }
+
         $statusCode = $response->getStatusCode();
         $isSuccess  = $statusCode >= 200 && $statusCode < 300;
         $content    = $response->getData(true);
@@ -69,5 +73,12 @@ class ApiService
         }
 
         return new JsonResponse($wrapped, $statusCode);
+    }
+
+    public function isWrappedResponse(JsonResponse $response): bool
+    {
+        $data = $response->getData(true);
+
+        return isset($data['timestamp'], $data['status'], $data['message']);
     }
 }
