@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Request;
 
 use Illuminate\Validation\Rule;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Service\AuthService;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 
@@ -41,5 +42,12 @@ abstract class RequestWithDisk extends ApiRequest
         return [
             'disk' => trans('storage-manager::storage-manager.attribute.disk'),
         ];
+    }
+
+    public function getDisk(): Disk
+    {
+        return $this->diskService->getDisk(
+            $this->string('disk')->value()
+        );
     }
 }
