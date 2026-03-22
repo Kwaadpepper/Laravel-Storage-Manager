@@ -4,11 +4,20 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request;
 
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
 
 class RequestWithPath extends RequestWithDisk
 {
+    private PathNormalizer $pathNormalizer;
+
+    public function prepareForValidation()
+    {
+        parent::prepareForValidation();
+        $this->pathNormalizer = resolve(PathNormalizer::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -25,6 +34,9 @@ class RequestWithPath extends RequestWithDisk
 
     public function getPath(): Path
     {
-        return new Path($this->string('path')->value());
+        $path           = $this->string('path')->value();
+        $normalizedPath = $this->pathNormalizer->normalizePath($path);
+
+        return new Path($normalizedPath);
     }
 }
