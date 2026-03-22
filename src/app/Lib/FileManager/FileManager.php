@@ -17,14 +17,14 @@ class FileManager
 {
     public function __construct(
         private readonly PathNormalizer $pathNormalizer,
-        private ?Disk $disk
+        private ?Disk $activeDisk
     ) {
-        $this->setActiveDisk($disk);
+        $this->setActiveDisk($activeDisk);
     }
 
     public function setActiveDisk(?Disk $disk): void
     {
-        $this->disk = $disk;
+        $this->activeDisk = $disk;
 
         if ($disk !== null) {
             $this->assertDiskExists($disk->name);
