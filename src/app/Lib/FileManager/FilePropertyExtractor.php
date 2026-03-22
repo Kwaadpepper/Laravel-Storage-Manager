@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Kwaadpepper\LaravelStorageManager\Lib;
+namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;

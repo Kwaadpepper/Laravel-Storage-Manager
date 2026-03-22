@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
-
 class DirectoryPathProperties implements PathProperties
 {
     public function __construct(

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects;
+namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
 class Path implements \Stringable
 {

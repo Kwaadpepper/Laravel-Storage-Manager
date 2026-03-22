@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
-
 interface PathProperties
 {
     public readonly Path $path;

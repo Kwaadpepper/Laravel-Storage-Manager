@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects;
 
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Storage;
+
 final class Disk
 {
     public function __construct(
@@ -18,5 +21,10 @@ final class Disk
         if (empty($this->name)) {
             throw new \DomainException('Disk name cannot be empty.');
         }
+    }
+
+    public function getStorageDisk(): Filesystem
+    {
+        return Storage::disk($this->name);
     }
 }

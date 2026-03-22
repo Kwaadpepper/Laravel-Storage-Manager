@@ -7,7 +7,7 @@ namespace Kwaadpepper\LaravelStorageManager\Provider;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 class StorageManagerServiceProvider extends ServiceProvider

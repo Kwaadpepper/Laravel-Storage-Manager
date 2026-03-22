@@ -7,7 +7,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Request\FileManager;
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithDisk;
 use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
 
-final class FmTreeRequest extends RequestWithDisk
+final class RequestWithPath extends RequestWithDisk
 {
     public function rules(): array
     {

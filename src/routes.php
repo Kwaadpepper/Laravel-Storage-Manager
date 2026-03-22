@@ -39,6 +39,7 @@ Route::group([
             Route::get('/init', [FileManagerController::class, 'init'])->name('init');
 
             Route::get('/tree', [FileManagerController::class, 'tree'])->name('tree');
+            Route::get('/content', [FileManagerController::class, 'content'])->name('content');
         });
 
         Route::group([

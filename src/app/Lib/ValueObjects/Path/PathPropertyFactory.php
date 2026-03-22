@@ -8,7 +8,6 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use InvalidArgumentException;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
 class PathPropertyFactory
 {

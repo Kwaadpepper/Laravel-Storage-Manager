@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Kwaadpepper\LaravelStorageManager\Lib;
+namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\PathList;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList as PathContent;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
 
 class FileManager
 {
@@ -28,7 +30,7 @@ class FileManager
         }
     }
 
-    public function getFileTree(?Path $path = null): PathList
+    public function getContent(?Path $path = null): PathContent
     {
         $filesystem  = $this->getStorage();
         $directory   = $path ? (string) $path : '/';
@@ -37,9 +39,25 @@ class FileManager
 
         $directoryPrefix = rtrim($directory, '/') . '/';
 
-        return new PathList(
+        return new PathContent(
             files: array_map(fn ($file) => new Path("{$directoryPrefix}{$file}"), $files),
             directories: array_map(fn ($dir) => new Path("{$directoryPrefix}{$dir}"), $directories),
+        );
+    }
+
+    public function getPathTree(?Path $path = null): PathTreeLevel
+    {
+        $filesystem  = $this->getStorage();
+        $directory   = $path ? (string) $path : '/';
+        $directories = $filesystem->directories($directory);
+
+        $directoryPrefix = rtrim($directory, '/') . '/';
+
+        return new PathTreeLevel(
+            directories: array_map(fn ($dir) => new PathTreeDirectory(
+                "{$directoryPrefix}{$dir}",
+                ! empty($filesystem->directories("{$directoryPrefix}{$dir}"))
+            ), $directories),
         );
     }
 

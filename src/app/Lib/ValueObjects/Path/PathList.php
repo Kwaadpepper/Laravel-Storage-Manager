@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects;
+namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
 class PathList
 {
     /**
      * @param  list<Path>  $paths
+     * @param  list<Path>  $directories
      */
     public function __construct(
         public readonly array $files,
