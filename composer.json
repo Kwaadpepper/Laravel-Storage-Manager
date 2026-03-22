@@ -22,7 +22,8 @@
   },
   "require-dev": {
     "laravel/pint": "^1.29",
-    "orchestra/testbench": "^10.11"
+    "orchestra/testbench": "^10.11",
+    "slevomat/coding-standard": "^8.28"
   },
   "extra": {
     "laravel": {
@@ -30,6 +31,11 @@
         "Kwaadpepper\\LaravelStorageManager\\Provider\\StorageManagerServiceProvider"
       ],
       "aliases": {}
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
     }
   }
 }

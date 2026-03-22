@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Php Coding Standard"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/squizlabs/php_codesniffer/phpcs.xsd">
+
+  <description>Standard optimisé : Analyse statique complémentaire à Pint.</description>
+
+  <arg name="colors" />
+  <arg name="extensions" value="php" />
+  <arg name="parallel" value="75" />
+  <file>src/</file>
+
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+  <exclude-pattern>*/tests/*</exclude-pattern>
+
+  <rule ref="PSR12"/>
+
+  <rule ref="Generic.CodeAnalysis.EmptyStatement"/>
+  <rule ref="Generic.CodeAnalysis.UnconditionalIfStatement"/>
+  <rule ref="Generic.CodeAnalysis.UselessOverridingMethod"/>
+  <rule ref="Generic.Metrics.CyclomaticComplexity">
+    <properties>
+      <property name="complexity" value="10"/>
+      <property name="absoluteComplexity" value="20"/>
+    </properties>
+  </rule>
+  <rule ref="Generic.Metrics.NestingLevel"/>
+
+  <rule ref="Generic.PHP.DeprecatedFunctions"/>
+  <rule ref="Generic.PHP.ForbiddenFunctions"/>
+  <rule ref="Generic.PHP.NoSilencedErrors"/>
+  <rule ref="Squiz.PHP.Eval"/>
+  <rule ref="Squiz.PHP.GlobalKeyword"/>
+  <rule ref="Squiz.PHP.NonExecutableCode"/>
+  <rule ref="Squiz.Scope.StaticThisUsage"/>
+
+  <rule ref="Generic.NamingConventions.ConstructorName"/>
+  <rule ref="Generic.NamingConventions.CamelCapsFunctionName"/>
+
+  <rule ref="Generic.Files.LineLength">
+    <properties>
+      <property name="lineLimit" value="150"/>
+      <property name="absoluteLineLimit" value="250"/>
+    </properties>
+  </rule>
+
+  <rule ref="SlevomatCodingStandard.Namespaces.UnusedUses" />
+
+  <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">
+    <properties>
+      <property name="spacesCountAroundEqualsSign" value="0" />
+      <property name="declareOnFirstLine" value="false" />
+      <property name="linesCountBeforeDeclare" value="1" />
+      <property name="linesCountAfterDeclare" value="1" />
+    </properties>
+  </rule>
+
+  <rule ref="PSR1.Classes.ClassDeclaration.MissingNamespace"/>
+
+</ruleset>
