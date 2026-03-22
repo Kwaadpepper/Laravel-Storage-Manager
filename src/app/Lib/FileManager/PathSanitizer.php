@@ -13,21 +13,26 @@ class PathSanitizer
     /** Chars forbidden by most file systems */
     private const ILLEGAL_CHARS = '/[<>:"\/\\|?*\x00-\x1F\x7F\xA0\xAD#\[\]@!$&\'()+,;={}^~`]/u';
 
+    private const WHITESPACE_REGEX = '/\s+/';
+
     public function sanitizeDirectoryName(string $directoryName, bool $beautify = true): string
     {
-        $sanitized = preg_replace(self::ILLEGAL_CHARS, '', $directoryName);
-        $sanitized = trim(preg_replace('/\s+/', ' ', $sanitized));
+        // Replace illegal characters with a single space instead of removing or using hyphens
+        $sanitized = preg_replace(self::ILLEGAL_CHARS, ' ', $directoryName);
+        // Normalize whitespace but preserve spaces
+        $sanitized = trim(preg_replace(self::WHITESPACE_REGEX, ' ', $sanitized));
 
         return $beautify ? $this->beautify($sanitized) : $sanitized;
     }
 
     public function sanitizeFileName(string $filename, bool $beautify = true): string
     {
-        // Replace illegal characters with a hyphen
-        $filename = preg_replace(self::ILLEGAL_CHARS, '-', $filename);
+        // Replace illegal characters with a space to avoid aggressive hyphenation
+        $filename = preg_replace(self::ILLEGAL_CHARS, ' ', $filename);
 
-        // Remove leading dots/hyphens (hidden or invalid files)
-        $filename = ltrim($filename, '.-');
+        // Normalize whitespace and remove leading dots (hidden files) but preserve case
+        $filename = trim(preg_replace(self::WHITESPACE_REGEX, ' ', $filename));
+        $filename = ltrim($filename, '.');
 
         if ($beautify) {
             $filename = $this->beautify($filename);
@@ -39,14 +44,14 @@ class PathSanitizer
 
     private function beautify(string $filename): string
     {
-        // Reduce multiple spaces, underscores, or hyphens to a single hyphen
-        $filename = preg_replace('/[ _-]+/', '-', $filename);
+        // Reduce multiple spaces to a single space but preserve case
+        $filename = preg_replace(self::WHITESPACE_REGEX, ' ', $filename);
 
-        // Clean up sequences of dots (e.g., '...') to a single dot, but preserve valid extensions
-        $filename = preg_replace(['/-*\.-*/', '/\.{2,}/'], '.', $filename);
+        // Convert sequences like '._.' or '-.-' around dots to a single dot where appropriate
+        $filename = preg_replace(['/[-_]*\.[-_]*/', '/\.{2,}/'], '.', $filename);
 
-        // Trim any remaining unwanted characters
-        return trim($filename, '.-');
+        // Trim surrounding spaces and any trailing dots
+        return trim($filename, ' .-_');
     }
 
     private function truncateToBytes(string $filename, int $limit): string
