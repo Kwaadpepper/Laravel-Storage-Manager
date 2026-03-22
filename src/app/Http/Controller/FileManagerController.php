@@ -10,7 +10,9 @@ use Kwaadpepper\LaravelStorageManager\Event\FileManagerShowed;
 use Kwaadpepper\LaravelStorageManager\Http\Request\FileManager\RequestWithPath;
 use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class FileManagerController extends Controller
@@ -29,25 +31,41 @@ final class FileManagerController extends Controller
 
     public function tree(RequestWithPath $request): JsonResponse
     {
-        $currentPath = new Path($request->string('path')->value());
+        $currentPath = $request->getPath();
         $fileTree    = $this->fileManager->getPathTree($currentPath);
 
-        return Response::json([
-            'directories' => array_map(fn ($dir) => [
-                'path'              => (string) $dir->path,
-                'hasSubDirectories' => $dir->hasSubDirectories,
-            ], $fileTree->directories),
-        ], JsonResponse::HTTP_OK);
+        return Response::json(
+            $this->presentTree($fileTree),
+            JsonResponse::HTTP_OK
+        );
     }
 
     public function content(RequestWithPath $request): JsonResponse
     {
-        $currentPath = new Path($request->string('path')->value());
+        $currentPath = $request->getPath();
         $fileTree    = $this->fileManager->getContent($currentPath);
 
-        return Response::json([
+        return Response::json(
+            $this->presentContent($fileTree),
+            JsonResponse::HTTP_OK
+        );
+    }
+
+    private function presentTree(PathTreeLevel $fileTree): array
+    {
+        return [
+            'directories' => array_map(fn (PathTreeDirectory $dir) => [
+                'path'              => $dir->path,
+                'hasSubDirectories' => $dir->hasSubDirectories,
+            ], $fileTree->directories),
+        ];
+    }
+
+    private function presentContent(PathList $fileTree): array
+    {
+        return [
             'files'       => array_map(fn ($file) => (string) $file, $fileTree->files),
             'directories' => array_map(fn ($dir) => (string) $dir, $fileTree->directories),
-        ], JsonResponse::HTTP_OK);
+        ];
     }
 }

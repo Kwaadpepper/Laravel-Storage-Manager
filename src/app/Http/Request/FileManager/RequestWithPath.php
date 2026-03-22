@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\FileManager;
 
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithDisk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
 
 final class RequestWithPath extends RequestWithDisk
@@ -21,5 +22,10 @@ final class RequestWithPath extends RequestWithDisk
         return array_merge(parent::attributes(), [
             'path' => trans('storage-manager::storage-manager.attribute.path'),
         ]);
+    }
+
+    public function getPath(): Path
+    {
+        return new Path($this->string('path')->value());
     }
 }
