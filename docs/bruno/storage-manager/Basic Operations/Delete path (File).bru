@@ -1,0 +1,21 @@
+meta {
+  name: Delete path (File)
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/delete?disk=public&path=/New Text file
+  body: none
+  auth: inherit
+}
+
+params:query {
+  disk: public
+  path: /New Text file
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,11 +1,11 @@
 meta {
-  name: Create directory
+  name: Create Text File
   type: http
-  seq: 1
+  seq: 2
 }
 
 post {
-  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/create-directory
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/create-file
   body: json
   auth: inherit
 }
@@ -14,7 +14,8 @@ body:json {
   {
     "disk": "public",
     "path": "/",
-    "name": "New Directory 20-02"
+    "name": "New Text file",
+    "content": "Hello world"
   }
 }
 
