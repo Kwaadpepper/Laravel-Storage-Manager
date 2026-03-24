@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Exception\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
@@ -76,11 +77,11 @@ class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
         if ($filesystem->exists($normalizedPath)) {
-            throw new FileOperationException("The directory '{$normalizedPath}' already exists.");
+            FileOperationException::throwWith(FileOperationError::DIRECTORY_ALREADY_EXISTS);
         }
 
         if ($filesystem->makeDirectory($normalizedPath) === false) {
-            throw new FileOperationException("Failed to create the directory '{$normalizedPath}'.");
+            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
     }
 
@@ -93,15 +94,15 @@ class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
         if (preg_match('/^\/?$/', $normalizedPath)) {
-            throw new FileOperationException('The root path cannot be deleted.');
+            FileOperationException::throwWith(FileOperationError::INVALID_PATH);
         }
 
         if (! $filesystem->exists($normalizedPath)) {
-            throw new FileOperationException("The directory '{$normalizedPath}' does not exist.");
+            FileOperationException::throwWith(FileOperationError::DIRECTORY_NOT_FOUND);
         }
 
         if ($filesystem->deleteDirectory($normalizedPath) === false) {
-            throw new FileOperationException("Failed to delete the directory '{$normalizedPath}'.");
+            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
     }
 
@@ -111,7 +112,7 @@ class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
         if ($filesystem->exists($normalizedPath)) {
-            throw new FileOperationException("The file '{$normalizedPath}' already exists.");
+            FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
         }
 
         // Create an empty file
@@ -127,11 +128,11 @@ class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
         if (! $filesystem->exists($normalizedPath)) {
-            throw new FileOperationException("The file '{$normalizedPath}' does not exist.");
+            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
         }
 
         if ($filesystem->delete($normalizedPath) === false) {
-            throw new FileOperationException("Failed to delete the file '{$normalizedPath}'.");
+            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
     }
 

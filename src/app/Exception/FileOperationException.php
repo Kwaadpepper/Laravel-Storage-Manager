@@ -10,14 +10,20 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class FileOperationException extends HttpException implements ShouldntReport
 {
-    public function __construct()
-    {
+    public function __construct(
+        FileOperationError $error
+    ) {
         parent::__construct(
             Response::HTTP_UNPROCESSABLE_ENTITY,
-            'File operation failed',
+            $error->message(),
             null,
             [],
-            0
+            $error->httpStatusCode()
         );
+    }
+
+    public static function throwWith(FileOperationError $error): never
+    {
+        throw new self($error);
     }
 }
