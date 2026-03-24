@@ -76,7 +76,7 @@ class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
         if ($filesystem->exists($normalizedPath)) {
-            return;
+            throw new FileOperationException("The directory '{$normalizedPath}' already exists.");
         }
 
         if ($filesystem->makeDirectory($normalizedPath) === false) {
@@ -92,8 +92,12 @@ class FileManager
         $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
+        if (preg_match('/^\/?$/', $normalizedPath)) {
+            throw new FileOperationException('The root path cannot be deleted.');
+        }
+
         if (! $filesystem->exists($normalizedPath)) {
-            return;
+            throw new FileOperationException("The directory '{$normalizedPath}' does not exist.");
         }
 
         if ($filesystem->deleteDirectory($normalizedPath) === false) {
@@ -107,7 +111,7 @@ class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
         if ($filesystem->exists($normalizedPath)) {
-            return;
+            throw new FileOperationException("The file '{$normalizedPath}' already exists.");
         }
 
         // Create an empty file
@@ -123,7 +127,7 @@ class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
         if (! $filesystem->exists($normalizedPath)) {
-            return;
+            throw new FileOperationException("The file '{$normalizedPath}' does not exist.");
         }
 
         if ($filesystem->delete($normalizedPath) === false) {
