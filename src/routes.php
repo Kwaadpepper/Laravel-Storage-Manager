@@ -44,6 +44,7 @@ Route::group([
 
             // Basic operations routes
             Route::post('/create-directory', [BasicOperationsController::class, 'createDirectory'])->name('create-directory');
+            Route::post('/create-file', [BasicOperationsController::class, 'createFile'])->name('create-file');
             Route::delete('/delete', [BasicOperationsController::class, 'delete'])->name('delete');
         });
 

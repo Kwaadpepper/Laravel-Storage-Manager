@@ -101,6 +101,19 @@ class FileManager
         }
     }
 
+    public function createFile(Path $path, string $content = ''): void
+    {
+        $filesystem     = $this->getStorage();
+        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+
+        if ($filesystem->exists($normalizedPath)) {
+            return;
+        }
+
+        // Create an empty file
+        $filesystem->put($normalizedPath, $content);
+    }
+
     /**
      * @throws FileOperationException
      */

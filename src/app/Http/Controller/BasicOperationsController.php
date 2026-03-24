@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirectoryRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateFileRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathRequest;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
@@ -27,6 +28,19 @@ class BasicOperationsController extends Controller
         );
 
         $this->fileManager->createDirectory($path);
+
+        return Response::json([], JsonResponse::HTTP_CREATED);
+    }
+
+    public function createFile(CreateFileRequest $request): JsonResponse
+    {
+        $path = Path::appendTo(
+            $request->getPath(),
+            $request->string('name')->value()
+        );
+        $content = $request->string('content')->value();
+
+        $this->fileManager->createFile($path, $content);
 
         return Response::json([], JsonResponse::HTTP_CREATED);
     }
