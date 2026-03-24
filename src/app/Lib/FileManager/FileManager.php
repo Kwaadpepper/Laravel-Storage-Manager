@@ -32,6 +32,13 @@ class FileManager
         }
     }
 
+    public function exists(Path $path): bool
+    {
+        return $this->getStorage()->exists(
+            $this->pathNormalizer->normalizePath((string) $path)
+        );
+    }
+
     public function getContent(?Path $path = null): PathContent
     {
         $filesystem  = $this->getStorage();

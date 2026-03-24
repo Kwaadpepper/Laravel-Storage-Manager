@@ -49,10 +49,21 @@ class BasicOperationsController extends Controller
     {
         $path = $request->getPath();
 
-        if ($this->fileManager->isDirectory($path)) {
-            $this->fileManager->deleteDirectory($path);
-        } elseif ($this->fileManager->isFile($path)) {
-            $this->fileManager->deleteFile($path);
+        switch (true) {
+            case ! $this->fileManager->exists($path):
+                return Response::json([
+                    'error' => 'The specified path does not exist.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            case $this->fileManager->isDirectory($path):
+                $this->fileManager->deleteDirectory($path);
+                break;
+            case $this->fileManager->isFile($path):
+                $this->fileManager->deleteFile($path);
+                break;
+            default:
+                return Response::json([
+                    'error' => 'The specified path is invalid.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         return Response::json([], JsonResponse::HTTP_NO_CONTENT);
