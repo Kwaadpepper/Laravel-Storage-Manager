@@ -6,13 +6,20 @@ meta {
 
 delete {
   url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/delete?disk=public&path=/New Directory 20-02
-  body: none
+  body: json
   auth: inherit
 }
 
 params:query {
   disk: public
   path: /New Directory 20-02
+}
+
+body:json {
+  {
+    "disk": "public",
+    "path": "/New Directory 20-02"
+  }
 }
 
 settings {

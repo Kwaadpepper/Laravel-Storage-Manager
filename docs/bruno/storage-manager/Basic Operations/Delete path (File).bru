@@ -5,14 +5,16 @@ meta {
 }
 
 delete {
-  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/delete?disk=public&path=/New Text file
-  body: none
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/delete
+  body: json
   auth: inherit
 }
 
-params:query {
-  disk: public
-  path: /New Text file
+body:json {
+  {
+    "disk": "public",
+    "path": "/New Text file"
+  }
 }
 
 settings {
