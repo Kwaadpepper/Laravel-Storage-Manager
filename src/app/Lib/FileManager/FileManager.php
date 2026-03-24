@@ -138,28 +138,27 @@ class FileManager
 
     public function isDirectory(Path $path): bool
     {
-        $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
 
-        if (! empty($filesystem->directories($normalizedPath)) || ! empty($filesystem->files($normalizedPath))) {
+        if ($normalizedPath === '/') {
             return true;
         }
 
-        $withSlash = rtrim($normalizedPath, '/') . '/';
+        $filesystem  = $this->getStorage();
+        $parentDir   = dirname($normalizedPath);
+        $directories = array_map(
+            fn ($dir) => $this->pathNormalizer->normalizePath($dir),
+            $filesystem->directories($parentDir)
+        );
 
-        return $filesystem->exists($withSlash);
+        return in_array($normalizedPath, $directories, true);
     }
 
     public function isFile(Path $path): bool
     {
-        $filesystem     = $this->getStorage();
-        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
-
-        if (! $filesystem->exists($normalizedPath)) {
-            return false;
-        }
-
-        return empty($filesystem->directories($normalizedPath)) && empty($filesystem->files($normalizedPath));
+        return $this->getStorage()->exists(
+            $this->pathNormalizer->normalizePath((string) $path)
+        ) && ! $this->isDirectory($path);
     }
 
     private function getStorage(): Filesystem
