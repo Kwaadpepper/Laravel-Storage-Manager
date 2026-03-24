@@ -1,0 +1,24 @@
+meta {
+  name: Rename path (File)
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/rename
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "disk": "public",
+    "path": "/New Text file",
+    "to": "New Text file.txt"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
