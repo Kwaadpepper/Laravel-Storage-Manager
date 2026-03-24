@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirectoryRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateFileRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\RenamePathRequest;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
@@ -67,5 +68,21 @@ class BasicOperationsController extends Controller
         }
 
         return Response::json([], JsonResponse::HTTP_NO_CONTENT);
+    }
+
+    public function rename(RenamePathRequest $request): JsonResponse
+    {
+        $path    = $request->getPath();
+        $newName = $request->string('to')->value();
+
+        if (! $this->fileManager->exists($path)) {
+            return Response::json([
+                'error' => 'The specified path does not exist.',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        $this->fileManager->rename($path, $newName);
+
+        return Response::json([], JsonResponse::HTTP_OK);
     }
 }

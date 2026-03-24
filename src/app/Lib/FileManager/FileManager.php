@@ -32,13 +32,6 @@ class FileManager
         }
     }
 
-    public function exists(Path $path): bool
-    {
-        return $this->getStorage()->exists(
-            $this->pathNormalizer->normalizePath((string) $path)
-        );
-    }
-
     public function getContent(?Path $path = null): PathContent
     {
         $filesystem  = $this->getStorage();
@@ -141,6 +134,54 @@ class FileManager
         if ($filesystem->delete($normalizedPath) === false) {
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function rename(Path $source, string $newName): void
+    {
+        $filesystem       = $this->getStorage();
+        $normalizedSource = $this->pathNormalizer->normalizePath((string) $source);
+        $sourceIsDir      = $this->isDirectory($source);
+        $sourceIsFile     = $this->isFile($source);
+
+        if (! $sourceIsDir && ! $sourceIsFile) {
+            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
+        }
+
+        $destination          = Path::appendTo(
+            new Path(dirname($normalizedSource)),
+            $this->pathNormalizer->normalizePath($newName)
+        );
+        $normalizedDestination = (string) $destination;
+
+        if ($this->isDirectory($destination) || $this->isFile($destination)) {
+            FileOperationException::throwWith(
+                $sourceIsDir
+                    ? FileOperationError::DIRECTORY_ALREADY_EXISTS
+                    : FileOperationError::FILE_ALREADY_EXISTS
+            );
+        }
+
+        if ($sourceIsDir) {
+            foreach ($filesystem->allFiles($normalizedSource) as $file) {
+                $normalizedFile = $this->pathNormalizer->normalizePath($file);
+                $relative       = substr($normalizedFile, strlen($normalizedSource));
+                $filesystem->move($normalizedFile, $normalizedDestination . $relative);
+            }
+
+            $filesystem->deleteDirectory($normalizedSource);
+        } elseif ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
+            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+        }
+    }
+
+    public function exists(Path $path): bool
+    {
+        return $this->getStorage()->exists(
+            $this->pathNormalizer->normalizePath((string) $path)
+        );
     }
 
     public function isDirectory(Path $path): bool

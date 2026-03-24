@@ -15,5 +15,7 @@ return [
     'attribute' => [
         'disk' => 'disk',
         'path' => 'path',
+        'name' => 'name',
+        'to'   => 'new name',
     ],
 ];
