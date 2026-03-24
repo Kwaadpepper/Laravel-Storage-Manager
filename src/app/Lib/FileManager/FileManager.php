@@ -164,15 +164,7 @@ class FileManager
             );
         }
 
-        if ($sourceIsDir) {
-            foreach ($filesystem->allFiles($normalizedSource) as $file) {
-                $normalizedFile = $this->pathNormalizer->normalizePath($file);
-                $relative       = substr($normalizedFile, strlen($normalizedSource));
-                $filesystem->move($normalizedFile, $normalizedDestination . $relative);
-            }
-
-            $filesystem->deleteDirectory($normalizedSource);
-        } elseif ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
+        if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
     }
