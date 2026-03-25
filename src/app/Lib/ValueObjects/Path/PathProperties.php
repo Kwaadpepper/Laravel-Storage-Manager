@@ -6,13 +6,13 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
 interface PathProperties
 {
-    public readonly Path $path;
+    public Path $path { get; }
 
-    public readonly string $basename;
+    public string $basename { get; }
 
-    public readonly string $dirname;
+    public string $dirname { get; }
 
-    public readonly \DateTimeInterface $timestamp;
+    public \DateTimeInterface $timestamp { get; }
 
-    public readonly PathVisibility $visibility;
+    public PathVisibility $visibility { get; }
 }
