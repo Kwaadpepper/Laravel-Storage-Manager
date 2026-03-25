@@ -9,7 +9,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 /**
  * Interface SmEvent
  *
- * @template TEvent of object
+ * @template TEvent of \Kwaadpepper\LaravelStorageManager\Event\SmEvent
  */
 interface SmEvent
 {
