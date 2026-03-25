@@ -203,7 +203,7 @@ class FileManager
 
     private function getStorage(): Filesystem
     {
-        return Storage::disk($this->activeDisk?->name ?? null);
+        return Storage::disk($this->activeDisk->name);
     }
 
     private function assertDiskExists(string $diskName): void
