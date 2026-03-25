@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Middleware;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Kwaadpepper\LaravelStorageManager\Service\ApiService;
-use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class StorageManagerApiMiddleware
 {
