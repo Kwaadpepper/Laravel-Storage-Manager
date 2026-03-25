@@ -7,11 +7,11 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 class Path implements \Stringable
 {
     public function __construct(
-        private readonly string $path
+        public readonly string $value
     ) {
         if (
-            ! str_starts_with($this->path, '/')
-            || empty(mb_trim($this->path))
+            ! str_starts_with($this->value, '/')
+            || empty(mb_trim($this->value))
         ) {
             throw new \DomainException('Path must start with a \'/\'.');
         }
@@ -27,6 +27,6 @@ class Path implements \Stringable
 
     public function __toString(): string
     {
-        return $this->path;
+        return $this->value;
     }
 }

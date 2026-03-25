@@ -12,7 +12,7 @@ class IsValidPath implements ValidationRule
     /**
      * Run the validation rule.
      *
-     * @param  \Closure(string, ?string=): PotentiallyTranslatedString  $fail
+     * @param  \Closure(string,?string=):\Illuminate\Translation\PotentiallyTranslatedString  $fail
      */
     public function validate(string $attribute, mixed $value, \Closure $fail): void
     {
@@ -24,7 +24,12 @@ class IsValidPath implements ValidationRule
     private function pathIsValid(mixed $value): bool
     {
         try {
-            return new Path($value) instanceof Path;
+            assert(
+                ! empty((new Path($value))->value),
+                'Path must be a non-empty string'
+            );
+
+            return true;
         } catch (\DomainException) {
             return false;
         }
