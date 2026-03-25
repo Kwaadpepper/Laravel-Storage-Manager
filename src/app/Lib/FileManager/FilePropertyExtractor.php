@@ -6,7 +6,6 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\DirectoryPathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathPropertyFactory;
 use League\Flysystem\Ftp\FtpAdapter;
@@ -32,7 +31,7 @@ class FilePropertyExtractor
         ]);
     }
 
-    public function directoryProperties(Disk $disk, string $path): DirectoryPathProperties
+    public function directoryProperties(Disk $disk, string $path): PathProperties
     {
         /** @var \Illuminate\Filesystem\FilesystemAdapter $storageDisk */
         $storageDisk   = $disk->getStorageDisk();
