@@ -10,25 +10,29 @@ use Kwaadpepper\LaravelStorageManager\Service\AuthService;
 abstract class EventFactory
 {
     /**
-     * @param  class-string<SmEvent>  $eventClass
+     * @template TEvent of \Kwaadpepper\LaravelStorageManager\Event\SmEvent
+     *
+     * @param  class-string<TEvent>  $eventClass
      * @param  array<string,mixed>  $parameters
      * @return TEvent
-     *
-     * @template TEvent of SmEvent
      */
     public static function make(string $eventClass, array $parameters): SmEvent
     {
         $authService = app(AuthService::class);
 
+        // On suppose que SmEvent ou ses enfants implémentent une méthode statique make()
         return $eventClass::make($authService->user(), $parameters);
     }
 
     /**
-     * @param  class-string<SmEvent>  $eventClass
+     * @template TEvent of \Kwaadpepper\LaravelStorageManager\Event\SmEvent
+     *
+     * @param  class-string<TEvent>  $eventClass
      * @param  array<string,mixed>  $parameters
      */
     public static function dispatch(string $eventClass, array $parameters = []): void
     {
+        // Ici, PHPStan comprendra que $event est une instance de $eventClass
         $event = self::make($eventClass, $parameters);
 
         event($event);
