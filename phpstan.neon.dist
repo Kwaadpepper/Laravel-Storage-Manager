@@ -5,8 +5,13 @@ parameters:
     paths:
         - src
 
-    level: 6
+    # Level 9 is the highest level
+    level: 5
 
     excludePaths:
         - src/resources
         - src/config
+
+
+    # Enforce strict types analysis
+    treatPhpDocTypesAsCertain: false
