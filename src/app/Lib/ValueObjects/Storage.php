@@ -10,9 +10,6 @@ final class Storage
         public readonly string $name,
         public readonly string $disk
     ) {
-        $this->name = $name;
-        $this->disk = $disk;
-
         if (empty($this->name)) {
             throw new \DomainException('Storage name cannot be empty.');
         }
