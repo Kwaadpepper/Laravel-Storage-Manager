@@ -76,4 +76,4 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Run type coverage
-        run: vendor/bin/pest --type-coverage --min=100
+        run: php -d auto_prepend_file=.type-coverage-bootstrap.php vendor/bin/pest --type-coverage --min=100

@@ -16,11 +16,8 @@
   </testsuites>
   <source>
     <include>
-      <directory>src</directory>
+      <directory>src/app</directory>
     </include>
-    <exclude>
-      <directory>src/resources</directory>
-    </exclude>
   </source>
 
   <php>
