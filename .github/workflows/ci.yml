@@ -178,3 +178,10 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat type-coverage-output.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload type coverage report
+        if: always() && steps.type-coverage.outcome != 'skipped'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: type-coverage-report
+          path: type-coverage-output.txt
