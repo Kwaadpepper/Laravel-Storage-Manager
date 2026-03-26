@@ -94,6 +94,7 @@ jobs:
       - name: Run tests with coverage
         id: tests
         run: |
+          set -o pipefail
           vendor/bin/pest --coverage --min=80 --coverage-clover=clover.xml --coverage-html=coverage-report 2>&1 | tee pest-output.txt
 
       - name: Write coverage to job summary
@@ -166,6 +167,7 @@ jobs:
       - name: Run type coverage
         id: type-coverage
         run: |
+          set -o pipefail
           php -d auto_prepend_file=.type-coverage-bootstrap.php vendor/bin/pest --type-coverage --min=100 2>&1 | tee type-coverage-output.txt
 
       - name: Write type coverage to job summary
