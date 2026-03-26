@@ -34,7 +34,26 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Run PHPCS
-        run: vendor/bin/phpcs -q --report=checkstyle | cs2pr
+        id: phpcs
+        run: |
+          set -o pipefail
+          vendor/bin/phpcs -q --report=checkstyle | tee phpcs-output.txt | cs2pr
+
+      - name: Write PHPCS to job summary
+        if: always() && steps.phpcs.outcome != 'skipped'
+        run: |
+          echo '## PHPCS Report' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          sed 's/\x1b\[[0-9;]*m//g' phpcs-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload PHPCS report
+        if: always() && steps.phpcs.outcome != 'skipped'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: phpcs-report
+          path: phpcs-output.txt
 
   phpstan:
     name: PHPStan
@@ -62,7 +81,26 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Run PHPStan
-        run: vendor/bin/phpstan analyse --error-format=github
+        id: phpstan
+        run: |
+          set -o pipefail
+          vendor/bin/phpstan analyse --error-format=github | tee phpstan-output.txt
+
+      - name: Write PHPStan to job summary
+        if: always() && steps.phpstan.outcome != 'skipped'
+        run: |
+          echo '## PHPStan Report' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          sed 's/\x1b\[[0-9;]*m//g' phpstan-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload PHPStan report
+        if: always() && steps.phpstan.outcome != 'skipped'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: phpstan-report
+          path: phpstan-output.txt
 
   tests:
     name: Tests & Coverage
