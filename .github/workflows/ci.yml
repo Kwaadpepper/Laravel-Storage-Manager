@@ -59,10 +59,21 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Run tests with coverage
-        run: vendor/bin/pest --coverage --min=80 --coverage-clover=clover.xml --coverage-html=coverage-report
+        id: tests
+        run: |
+          vendor/bin/pest --coverage --min=80 --coverage-clover=clover.xml --coverage-html=coverage-report 2>&1 | tee pest-output.txt
+
+      - name: Write coverage to job summary
+        if: always() && steps.tests.outcome != 'skipped'
+        run: |
+          echo '## Tests & Coverage Report' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat pest-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
-        if: always()
+        if: always() && steps.tests.outcome != 'skipped'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: coverage-report
@@ -109,4 +120,15 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Run type coverage
-        run: php -d auto_prepend_file=.type-coverage-bootstrap.php vendor/bin/pest --type-coverage --min=100
+        id: type-coverage
+        run: |
+          php -d auto_prepend_file=.type-coverage-bootstrap.php vendor/bin/pest --type-coverage --min=100 2>&1 | tee type-coverage-output.txt
+
+      - name: Write type coverage to job summary
+        if: always() && steps.type-coverage.outcome != 'skipped'
+        run: |
+          echo '## Type Coverage Report' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat type-coverage-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
