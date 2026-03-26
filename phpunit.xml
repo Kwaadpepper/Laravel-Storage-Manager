@@ -18,6 +18,9 @@
     <include>
       <directory>src</directory>
     </include>
+    <exclude>
+      <directory>resources</directory>
+    </exclude>
   </source>
   <php>
     <env name="APP_ENV" value="testing"/>
