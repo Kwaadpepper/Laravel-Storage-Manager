@@ -103,7 +103,7 @@ jobs:
           echo '## Tests & Coverage Report' >> "$GITHUB_STEP_SUMMARY"
           echo '' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat pest-output.txt >> "$GITHUB_STEP_SUMMARY"
+          sed 's/\x1b\[[0-9;]*m//g' pest-output.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
@@ -176,7 +176,7 @@ jobs:
           echo '## Type Coverage Report' >> "$GITHUB_STEP_SUMMARY"
           echo '' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat type-coverage-output.txt >> "$GITHUB_STEP_SUMMARY"
+          sed 's/\x1b\[[0-9;]*m//g' type-coverage-output.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload type coverage report
