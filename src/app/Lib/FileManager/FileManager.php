@@ -6,7 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
-use Kwaadpepper\LaravelStorageManager\Exception\FileOperationError;
+use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;

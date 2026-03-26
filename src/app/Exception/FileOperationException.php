@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Exception;
 
 use Illuminate\Contracts\Debug\ShouldntReport;
 use Illuminate\Http\Response;
+use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class FileOperationException extends HttpException implements ShouldntReport

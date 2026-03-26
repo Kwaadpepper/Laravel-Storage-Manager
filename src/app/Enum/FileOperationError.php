@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Kwaadpepper\LaravelStorageManager\Exception;
+namespace Kwaadpepper\LaravelStorageManager\Enum;
 
 enum FileOperationError: string
 {

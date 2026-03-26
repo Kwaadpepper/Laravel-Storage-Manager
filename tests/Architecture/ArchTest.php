@@ -19,6 +19,14 @@ describe('naming conventions', function (): void {
     arch('controllers have Controller suffix')
         ->expect('Kwaadpepper\LaravelStorageManager\Http\Controller')
         ->toHaveSuffix('Controller');
+
+    arch('middlewares have Middleware suffix')
+        ->expect('Kwaadpepper\LaravelStorageManager\Http\Middleware')
+        ->toHaveSuffix('Middleware');
+
+    arch('exceptions have Exception suffix')
+        ->expect('Kwaadpepper\LaravelStorageManager\Exception')
+        ->toHaveSuffix('Exception');
 });
 
 describe('inheritance contracts', function (): void {
