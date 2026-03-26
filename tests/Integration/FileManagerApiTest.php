@@ -65,12 +65,13 @@ describe('content listing', function () use (&$disk): void {
         // Given
         $disk->makeDirectory('photos');
         $disk->put('readme.md', '# Readme');
-
-        // When
-        $response = $this->getJson(route('storage-manager.api.fm.content', [
+        $route = route('storage-manager.api.fm.content', [
             'path' => '/',
             'disk' => 'local',
-        ]));
+        ]);
+
+        // When
+        $response = $this->getJson($route);
 
         // Then
         $response->assertSuccessful();
@@ -83,12 +84,13 @@ describe('content listing', function () use (&$disk): void {
         // Given
         $disk->makeDirectory('projects');
         $disk->makeDirectory('projects/laravel');
-
-        // When
-        $response = $this->getJson(route('storage-manager.api.fm.tree', [
+        $route = route('storage-manager.api.fm.tree', [
             'path' => '/',
             'disk' => 'local',
-        ]));
+        ]);
+
+        // When
+        $response = $this->getJson($route);
 
         // Then
         $response->assertSuccessful();
@@ -103,9 +105,10 @@ describe('directory creation', function () use (&$disk): void {
     it('creates a new directory on disk', function () use (&$disk): void {
         // Given
         $payload = ['path' => '/', 'name' => 'documents', 'disk' => 'local'];
+        $route   = route('storage-manager.api.fm.create-directory');
 
         // When
-        $response = $this->postJson(route('storage-manager.api.fm.create-directory'), $payload);
+        $response = $this->postJson($route, $payload);
 
         // Then
         $response->assertCreated();
@@ -115,9 +118,10 @@ describe('directory creation', function () use (&$disk): void {
     it('rejects creating a directory that already exists', function () use (&$disk): void {
         // Given
         $disk->makeDirectory('existing');
+        $route = route('storage-manager.api.fm.create-directory');
 
         // When
-        $response = $this->postJson(route('storage-manager.api.fm.create-directory'), [
+        $response = $this->postJson($route, [
             'path' => '/',
             'name' => 'existing',
             'disk' => 'local',
@@ -137,9 +141,10 @@ describe('file creation', function () use (&$disk): void {
             'content' => 'Hello World',
             'disk'    => 'local',
         ];
+        $route = route('storage-manager.api.fm.create-file');
 
         // When
-        $response = $this->postJson(route('storage-manager.api.fm.create-file'), $payload);
+        $response = $this->postJson($route, $payload);
 
         // Then
         $response->assertCreated();
@@ -150,9 +155,10 @@ describe('file creation', function () use (&$disk): void {
     it('rejects creating a file that already exists', function () use (&$disk): void {
         // Given
         $disk->put('existing.txt', 'data');
+        $route = route('storage-manager.api.fm.create-file');
 
         // When
-        $response = $this->postJson(route('storage-manager.api.fm.create-file'), [
+        $response = $this->postJson($route, [
             'path'    => '/',
             'name'    => 'existing.txt',
             'content' => '',
@@ -168,9 +174,10 @@ describe('rename', function () use (&$disk): void {
     it('renames a file', function () use (&$disk): void {
         // Given
         $disk->put('old-name.txt', 'content');
+        $route = route('storage-manager.api.fm.rename');
 
         // When
-        $response = $this->putJson(route('storage-manager.api.fm.rename'), [
+        $response = $this->putJson($route, [
             'path' => '/old-name.txt',
             'to'   => 'new-name.txt',
             'disk' => 'local',
@@ -185,9 +192,10 @@ describe('rename', function () use (&$disk): void {
     it('renames a directory', function () use (&$disk): void {
         // Given
         $disk->makeDirectory('old-folder');
+        $route = route('storage-manager.api.fm.rename');
 
         // When
-        $response = $this->putJson(route('storage-manager.api.fm.rename'), [
+        $response = $this->putJson($route, [
             'path' => '/old-folder',
             'to'   => 'new-folder',
             'disk' => 'local',
@@ -204,9 +212,10 @@ describe('delete', function () use (&$disk): void {
     it('deletes a file', function () use (&$disk): void {
         // Given
         $disk->put('to-delete.txt', 'bye');
+        $route = route('storage-manager.api.fm.delete');
 
         // When
-        $response = $this->deleteJson(route('storage-manager.api.fm.delete'), [
+        $response = $this->deleteJson($route, [
             'path' => '/to-delete.txt',
             'disk' => 'local',
         ]);
@@ -220,9 +229,10 @@ describe('delete', function () use (&$disk): void {
         // Given
         $disk->makeDirectory('to-remove');
         $disk->put('to-remove/file.txt', 'data');
+        $route = route('storage-manager.api.fm.delete');
 
         // When
-        $response = $this->deleteJson(route('storage-manager.api.fm.delete'), [
+        $response = $this->deleteJson($route, [
             'path' => '/to-remove',
             'disk' => 'local',
         ]);
@@ -237,9 +247,10 @@ describe('validation', function (): void {
     it('returns 422 when required fields are missing', function (): void {
         // Given
         $emptyPayload = [];
+        $route        = route('storage-manager.api.fm.create-directory');
 
         // When
-        $response = $this->postJson(route('storage-manager.api.fm.create-directory'), $emptyPayload);
+        $response = $this->postJson($route, $emptyPayload);
 
         // Then
         $response->assertUnprocessable();
