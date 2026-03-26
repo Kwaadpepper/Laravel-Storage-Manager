@@ -59,7 +59,40 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Run tests with coverage
-        run: vendor/bin/pest --coverage --min=80
+        run: vendor/bin/pest --coverage --min=80 --coverage-clover=clover.xml --coverage-html=coverage-report
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: coverage-report
+          path: coverage-report/
+
+      - name: Extract coverage percentage
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: coverage
+        run: |
+          COVERAGE=$(php -r '
+            $xml = simplexml_load_file("clover.xml");
+            $metrics = $xml->project->metrics;
+            $statements = (int) $metrics["statements"];
+            $covered = (int) $metrics["coveredstatements"];
+            echo $statements > 0 ? round(($covered / $statements) * 100, 2) : 0;
+          ')
+          echo "percentage=$COVERAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Update coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: schneegans/dynamic-badges-action@e9a478b16159b4d31420099ba146cdc50f134483
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ vars.COVERAGE_GIST_ID }}
+          filename: coverage-badge.json
+          label: Coverage
+          message: ${{ steps.coverage.outputs.percentage }}%
+          valColorRange: ${{ steps.coverage.outputs.percentage }}
+          minColorRange: 50
+          maxColorRange: 100
 
   type-coverage:
     name: Type Coverage
