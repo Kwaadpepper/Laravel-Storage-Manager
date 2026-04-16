@@ -15,4 +15,8 @@ interface PathProperties
     public \DateTimeInterface $timestamp { get; }
 
     public PathVisibility $visibility { get; }
+
+    public bool $isFile { get; }
+
+    public bool $isDirectory { get; }
 }

@@ -25,7 +25,7 @@ class PathPropertyFactory
     private static function makeFile(array $data): FilePathProperties
     {
         return new FilePathProperties(
-            path: new Path($data['path']),
+            path: ($data['path'] instanceof Path ? $data['path'] : new Path($data['path'])),
             basename: $data['basename']   ?? basename($data['path']),
             dirname: $data['dirname']     ?? dirname($data['path']),
             extension: $data['extension'] ?? '',
@@ -39,7 +39,7 @@ class PathPropertyFactory
     private static function makeDirectory(array $data): DirectoryPathProperties
     {
         return new DirectoryPathProperties(
-            path: new Path($data['path']),
+            path: ($data['path'] instanceof Path ? $data['path'] : new Path($data['path'])),
             basename: $data['basename'] ?? basename($data['path']),
             dirname: $data['dirname']   ?? dirname($data['path']),
             timestamp: self::parseTimestamp($data['timestamp'] ?? 'now'),

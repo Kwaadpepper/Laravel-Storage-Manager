@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathPropertyFactory;
 use League\Flysystem\Ftp\FtpAdapter;
@@ -13,9 +14,10 @@ use League\Flysystem\PhpseclibV3\SftpAdapter;
 
 class FilePropertyExtractor
 {
-    public function fileProperties(Disk $disk, string $path): PathProperties
+    public function fileProperties(Disk $disk, Path $path): PathProperties
     {
-        $pathInfo    = pathinfo($path);
+        $pathValue   = $path->value;
+        $pathInfo    = pathinfo($pathValue);
         $storageDisk = $disk->getStorageDisk();
 
         return PathPropertyFactory::fromArray([
@@ -25,18 +27,19 @@ class FilePropertyExtractor
             'dirname'    => $pathInfo['dirname'] === '.' ? '' : $pathInfo['dirname'],
             'extension'  => $pathInfo['extension'] ?? '',
             'filename'   => $pathInfo['filename'],
-            'size'       => $storageDisk->size($path),
-            'timestamp'  => $storageDisk->lastModified($path),
-            'visibility' => $storageDisk->getVisibility($path),
+            'size'       => $storageDisk->size($pathValue),
+            'timestamp'  => $storageDisk->lastModified($pathValue),
+            'visibility' => $storageDisk->getVisibility($pathValue),
         ]);
     }
 
-    public function directoryProperties(Disk $disk, string $path): PathProperties
+    public function directoryProperties(Disk $disk, Path $path): PathProperties
     {
         /** @var \Illuminate\Filesystem\FilesystemAdapter $storageDisk */
         $storageDisk   = $disk->getStorageDisk();
         $leagueAdpater = $storageDisk->getAdapter();
-        $pathInfo      = pathinfo($path);
+        $pathValue     = $path->value;
+        $pathInfo      = pathinfo($pathValue);
 
         if (
             $leagueAdpater instanceof AwsS3V3Adapter
@@ -46,8 +49,8 @@ class FilePropertyExtractor
             $timestamp  = null;
             $visibility = null;
         } else {
-            $timestamp  = $storageDisk->lastModified($path);
-            $visibility = $storageDisk->getVisibility($path);
+            $timestamp  = $storageDisk->lastModified($pathValue);
+            $visibility = $storageDisk->getVisibility($pathValue);
         }
 
         return PathPropertyFactory::fromArray([
