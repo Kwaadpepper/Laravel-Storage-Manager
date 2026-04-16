@@ -8,7 +8,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathPropertyFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathVisibility;
 
 describe('PathPropertyFactory', function (): void {
-    describe('fromArray() — type file', function (): void {
+    describe('fromArray() - type file', function (): void {
         it('returns a FilePathProperties for type file with all explicit fields', function (): void {
             // Given
             $metadata = [
