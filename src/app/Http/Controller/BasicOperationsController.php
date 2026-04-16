@@ -7,6 +7,11 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Response;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedFileDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\DeletedDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\RenamedDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirectoryRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateFileRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathRequest;
@@ -30,7 +35,7 @@ class BasicOperationsController extends Controller
 
         $this->fileManager->createDirectory($path);
 
-        return Response::json([], JsonResponse::HTTP_CREATED);
+        return Response::json($this->presentCreatedDirectory(), JsonResponse::HTTP_CREATED);
     }
 
     public function createFile(CreateFileRequest $request): JsonResponse
@@ -43,7 +48,7 @@ class BasicOperationsController extends Controller
 
         $this->fileManager->createFile($path, $content);
 
-        return Response::json([], JsonResponse::HTTP_CREATED);
+        return Response::json($this->presentCreatedFile(), JsonResponse::HTTP_CREATED);
     }
 
     public function delete(DeletePathRequest $request): JsonResponse
@@ -52,9 +57,10 @@ class BasicOperationsController extends Controller
 
         switch (true) {
             case ! $this->fileManager->exists($path):
-                return Response::json([
-                    'error' => 'The specified path does not exist.',
-                ], JsonResponse::HTTP_NOT_FOUND);
+                return Response::json(
+                    $this->presentError('The specified path does not exist.'),
+                    JsonResponse::HTTP_NOT_FOUND
+                );
             case $this->fileManager->isDirectory($path):
                 $this->fileManager->deleteDirectory($path);
                 break;
@@ -62,12 +68,13 @@ class BasicOperationsController extends Controller
                 $this->fileManager->deleteFile($path);
                 break;
             default:
-                return Response::json([
-                    'error' => 'The specified path is invalid.',
-                ], JsonResponse::HTTP_BAD_REQUEST);
+                return Response::json(
+                    $this->presentError('The specified path is invalid.'),
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
         }
 
-        return Response::json([], JsonResponse::HTTP_NO_CONTENT);
+        return Response::json($this->presentDeleted(), JsonResponse::HTTP_NO_CONTENT);
     }
 
     public function rename(RenamePathRequest $request): JsonResponse
@@ -76,13 +83,39 @@ class BasicOperationsController extends Controller
         $newName = $request->string('to')->value();
 
         if (! $this->fileManager->exists($path)) {
-            return Response::json([
-                'error' => 'The specified path does not exist.',
-            ], JsonResponse::HTTP_NOT_FOUND);
+            return Response::json(
+                $this->presentError('The specified path does not exist.'),
+                JsonResponse::HTTP_NOT_FOUND
+            );
         }
 
         $this->fileManager->rename($path, $newName);
 
-        return Response::json([], JsonResponse::HTTP_OK);
+        return Response::json($this->presentRenamed(), JsonResponse::HTTP_OK);
+    }
+
+    private function presentError(string $message): ErrorDto
+    {
+        return new ErrorDto($message);
+    }
+
+    private function presentCreatedDirectory(): CreatedDirectoryDto
+    {
+        return new CreatedDirectoryDto();
+    }
+
+    private function presentCreatedFile(): CreatedFileDto
+    {
+        return new CreatedFileDto();
+    }
+
+    private function presentDeleted(): DeletedDto
+    {
+        return new DeletedDto();
+    }
+
+    private function presentRenamed(): RenamedDto
+    {
+        return new RenamedDto();
     }
 }

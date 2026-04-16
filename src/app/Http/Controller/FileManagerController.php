@@ -7,11 +7,12 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Event\FileManagerShowed;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\FileManager\PathContentDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\FileManager\PathTreeLevelDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
 use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -51,21 +52,13 @@ final class FileManagerController extends Controller
         );
     }
 
-    private function presentTree(PathTreeLevel $fileTree): array
+    private function presentTree(PathTreeLevel $fileTree): PathTreeLevelDto
     {
-        return [
-            'directories' => array_map(fn (PathTreeDirectory $dir) => [
-                'path'              => $dir->path,
-                'hasSubDirectories' => $dir->hasSubDirectories,
-            ], $fileTree->directories),
-        ];
+        return new PathTreeLevelDto($fileTree);
     }
 
-    private function presentContent(PathList $fileTree): array
+    private function presentContent(PathList $fileTree): PathContentDto
     {
-        return [
-            'files'       => array_map(fn ($file) => (string) $file, $fileTree->files),
-            'directories' => array_map(fn ($dir) => (string) $dir, $fileTree->directories),
-        ];
+        return new PathContentDto($fileTree);
     }
 }

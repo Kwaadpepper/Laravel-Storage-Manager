@@ -7,6 +7,8 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Event\DiskSelected;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskListDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\SelectedDiskDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Disk\SelectDiskRequest;
 use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
@@ -40,22 +42,21 @@ final class DiskController extends Controller
         );
     }
 
-    private function presentList(array $diskNames): array
+    /**
+     * @param  list<string>  $diskNames
+     */
+    private function presentList(array $diskNames): DiskListDto
     {
-        return [
-            'disks' => array_map(fn (string $diskName) => $diskName, $diskNames),
-        ];
+        return new DiskListDto($diskNames);
     }
 
-    private function presentSelected(Disk $disk): array
+    private function presentSelected(Disk $disk): SelectedDiskDto
     {
-        return [
-            'disk' => [
-                'driver' => $disk->driver,
-                'name'   => $disk->name,
-                'throw'  => $disk->throw,
-                'report' => $disk->report,
-            ],
-        ];
+        return new SelectedDiskDto(
+            driver: $disk->driver,
+            name: $disk->name,
+            throw: $disk->throw,
+            report: $disk->report
+        );
     }
 }
