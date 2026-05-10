@@ -1,0 +1,21 @@
+meta {
+  name: File properties
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/properties?path=New Text file.txt&disk=public
+  body: none
+  auth: inherit
+}
+
+params:query {
+  path: New Text file.txt
+  disk: public
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

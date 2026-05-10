@@ -1,0 +1,21 @@
+meta {
+  name: Directory properties
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{LaravelAppUrl}}/{{StorageManagerPrefix}}/fm/properties?path=New Directory 20-02&disk=public
+  body: none
+  auth: inherit
+}
+
+params:query {
+  path: New Directory 20-02
+  disk: public
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
