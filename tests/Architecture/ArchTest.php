@@ -6,10 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\ServiceProvider;
 use Kwaadpepper\LaravelStorageManager\Event\SmEvent;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
-use ReflectionClass;
-use ReflectionMethod;
-use ReflectionNamedType;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 $libraryNamespace = 'Kwaadpepper\LaravelStorageManager';
@@ -23,39 +20,56 @@ function controllerClassNames(string $libraryNamespace): array
     $controllerFiles = glob($controllerPath . '/*Controller.php') ?: [];
 
     return array_map(
-        static fn (string $controllerFile): string => $libraryNamespace . '\\Http\\Controller\\' . pathinfo($controllerFile, PATHINFO_FILENAME),
+        static fn (string $controllerFile): string => $libraryNamespace . '\\Http\\Controller\\' .
+          pathinfo($controllerFile, PATHINFO_FILENAME),
         $controllerFiles,
     );
 }
 
-function assertControllerPublicMethodsReturnJsonResponse(string $controllerClass): void
+function assertControllerPublicMethodsReturnApiResponse(string $controllerClass): void
 {
-    $reflection = new ReflectionClass($controllerClass);
+    $reflection = new \ReflectionClass($controllerClass);
 
-    foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+    foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
         if ($method->getDeclaringClass()->getName() !== $controllerClass || $method->isConstructor()) {
             continue;
         }
 
-        assertMethodReturnsJsonResponse($method, $controllerClass);
+        assertMethodReturnsApiResponse($method, $controllerClass);
     }
 }
 
-function assertMethodReturnsJsonResponse(ReflectionMethod $method, string $controllerClass): void
+function assertMethodReturnsApiResponse(\ReflectionMethod $method, string $controllerClass): void
 {
     $returnType = $method->getReturnType();
 
     expect($returnType)
-        ->not->toBeNull(sprintf('%s::%s() must declare a JsonResponse return type.', $controllerClass, $method->getName()));
+        ->not->toBeNull(sprintf(
+            '%s::%s() must declare a ApiResponse return type.',
+            $controllerClass,
+            $method->getName()
+        ));
 
     expect($returnType)
-        ->toBeInstanceOf(ReflectionNamedType::class, sprintf('%s::%s() must not use union/intersection return types.', $controllerClass, $method->getName()));
+        ->toBeInstanceOf(
+            \ReflectionNamedType::class,
+            sprintf(
+                '%s::%s() must not use union/intersection return types.',
+                $controllerClass,
+                $method->getName()
+            )
+        );
 
-    $returnTypeName = $returnType instanceof ReflectionNamedType ? $returnType->getName() : null;
+    $returnTypeName = $returnType instanceof \ReflectionNamedType ? $returnType->getName() : null;
 
     expect(
-        is_string($returnTypeName) && is_a($returnTypeName, JsonResponse::class, true)
-    )->toBeTrue(sprintf('%s::%s() must return %s or a subtype.', $controllerClass, $method->getName(), JsonResponse::class));
+        is_string($returnTypeName) && is_a($returnTypeName, ApiResponse::class, true)
+    )->toBeTrue(sprintf(
+        '%s::%s() must return %s or a subtype.',
+        $controllerClass,
+        $method->getName(),
+        ApiResponse::class
+    ));
 }
 
 describe('coding standards', function () use ($libraryNamespace): void {
@@ -96,7 +110,6 @@ describe('naming conventions', function () use ($libraryNamespace): void {
     arch('services have Service suffix')
         ->expect("{$libraryNamespace}\Service")
         ->toHaveSuffix('Service');
-
 });
 
 describe('inheritance contracts', function () use ($libraryNamespace): void {
@@ -126,9 +139,9 @@ describe('inheritance contracts', function () use ($libraryNamespace): void {
 });
 
 describe('controller contracts', function () use ($libraryNamespace): void {
-    test('all public controller methods return JsonResponse', function () use ($libraryNamespace): void {
+    test('all public controller methods return ApiResponse', function () use ($libraryNamespace): void {
         foreach (controllerClassNames($libraryNamespace) as $controllerClass) {
-            assertControllerPublicMethodsReturnJsonResponse($controllerClass);
+            assertControllerPublicMethodsReturnApiResponse($controllerClass);
         }
     });
 });

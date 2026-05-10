@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Provider;
 
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
@@ -40,8 +41,8 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->app->singleton(
             ConfigRepository::class,
             fn () => new ConfigRepository(
-                Config::get('storage-manager'),
-                Config::get('storage-manager::static-config', [])
+                Arr::wrap(Config::get('storage-manager')),
+                Arr::wrap(Config::get('storage-manager::static-config', []))
             )
         );
         $this->app->singleton(

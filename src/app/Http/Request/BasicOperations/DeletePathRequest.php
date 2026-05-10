@@ -10,9 +10,15 @@ class DeletePathRequest extends RequestWithPath
 {
     public function rules(): array
     {
-        return array_merge(parent::rules(), [
+        $parentRules = parent::rules();
+
+        if (! isset($parentRules['path']) || ! is_array($parentRules['path'])) {
+            throw new \LogicException('Expected parent rules to contain a "path" array.');
+        }
+
+        return array_merge($parentRules, [
             'path' => array_merge(
-                parent::rules()['path'],
+                $parentRules['path'],
                 [
                     function (string $_, $value, callable $fail) {
                         if (preg_match('/^\/?$/', $value)) {

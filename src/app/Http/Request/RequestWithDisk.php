@@ -26,6 +26,9 @@ abstract class RequestWithDisk extends ApiRequest
         return $this->authService->check();
     }
 
+    /**
+     * @return array<string,mixed>
+     */
     public function rules(): array
     {
         return [

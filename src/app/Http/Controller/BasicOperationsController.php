@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedFileDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\DeletedDto;
@@ -16,6 +14,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirecto
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateFileRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\RenamePathRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
@@ -26,7 +25,7 @@ class BasicOperationsController extends Controller
     ) {
     }
 
-    public function createDirectory(CreateDirectoryRequest $request): JsonResponse
+    public function createDirectory(CreateDirectoryRequest $request): ApiResponse
     {
         $path = Path::appendTo(
             $request->getPath(),
@@ -35,10 +34,10 @@ class BasicOperationsController extends Controller
 
         $this->fileManager->createDirectory($path);
 
-        return Response::json($this->presentCreatedDirectory(), JsonResponse::HTTP_CREATED);
+        return ApiResponse::json($this->presentCreatedDirectory(), ApiResponse::HTTP_CREATED);
     }
 
-    public function createFile(CreateFileRequest $request): JsonResponse
+    public function createFile(CreateFileRequest $request): ApiResponse
     {
         $path = Path::appendTo(
             $request->getPath(),
@@ -48,18 +47,18 @@ class BasicOperationsController extends Controller
 
         $this->fileManager->createFile($path, $content);
 
-        return Response::json($this->presentCreatedFile(), JsonResponse::HTTP_CREATED);
+        return ApiResponse::json($this->presentCreatedFile(), ApiResponse::HTTP_CREATED);
     }
 
-    public function delete(DeletePathRequest $request): JsonResponse
+    public function delete(DeletePathRequest $request): ApiResponse
     {
         $path = $request->getPath();
 
         switch (true) {
             case ! $this->fileManager->exists($path):
-                return Response::json(
+                return ApiResponse::json(
                     $this->presentError('The specified path does not exist.'),
-                    JsonResponse::HTTP_NOT_FOUND
+                    ApiResponse::HTTP_NOT_FOUND
                 );
             case $this->fileManager->isDirectory($path):
                 $this->fileManager->deleteDirectory($path);
@@ -68,30 +67,30 @@ class BasicOperationsController extends Controller
                 $this->fileManager->deleteFile($path);
                 break;
             default:
-                return Response::json(
+                return ApiResponse::json(
                     $this->presentError('The specified path is invalid.'),
-                    JsonResponse::HTTP_BAD_REQUEST
+                    ApiResponse::HTTP_BAD_REQUEST
                 );
         }
 
-        return Response::json($this->presentDeleted(), JsonResponse::HTTP_NO_CONTENT);
+        return ApiResponse::json($this->presentDeleted(), ApiResponse::HTTP_NO_CONTENT);
     }
 
-    public function rename(RenamePathRequest $request): JsonResponse
+    public function rename(RenamePathRequest $request): ApiResponse
     {
         $path    = $request->getPath();
         $newName = $request->string('to')->value();
 
         if (! $this->fileManager->exists($path)) {
-            return Response::json(
+            return ApiResponse::json(
                 $this->presentError('The specified path does not exist.'),
-                JsonResponse::HTTP_NOT_FOUND
+                ApiResponse::HTTP_NOT_FOUND
             );
         }
 
         $this->fileManager->rename($path, $newName);
 
-        return Response::json($this->presentRenamed(), JsonResponse::HTTP_OK);
+        return ApiResponse::json($this->presentRenamed(), ApiResponse::HTTP_OK);
     }
 
     private function presentError(string $message): ErrorDto

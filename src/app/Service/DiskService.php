@@ -16,7 +16,7 @@ class DiskService
     }
 
     /**
-     * @return string[]
+     * @return list<string>
      */
     public function getDiskNamesList(): array
     {

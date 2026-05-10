@@ -38,7 +38,8 @@
     "phpstan/phpstan": "^2.1",
     "larastan/larastan": "^3.9",
     "ace-of-aces/intellipest": "^0.3.0",
-    "pestphp/pest-plugin-arch": "^4.0"
+    "pestphp/pest-plugin-arch": "^4.0",
+    "squizlabs/php_codesniffer": "^4.0"
   },
   "suggest": {
     "league/flysystem-aws-s3-v3": "Required to use S3 storage",

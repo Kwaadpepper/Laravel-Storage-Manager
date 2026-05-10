@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Event\FileManagerShowed;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\FileManager\InitDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\FileManager\PathContentDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\FileManager\PathTreeLevelDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
+use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
-use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class FileManagerController extends Controller
 {
@@ -23,33 +23,41 @@ final class FileManagerController extends Controller
     ) {
     }
 
-    public function init(): JsonResponse
+    public function init(): ApiResponse
     {
         EventFactory::dispatch(FileManagerShowed::class);
 
-        return Response::json([], JsonResponse::HTTP_NO_CONTENT);
+        return ApiResponse::json(
+            $this->presentInit(),
+            ApiResponse::HTTP_NO_CONTENT
+        );
     }
 
-    public function tree(RequestWithPath $request): JsonResponse
+    public function tree(RequestWithPath $request): ApiResponse
     {
         $currentPath = $request->getPath();
         $fileTree    = $this->fileManager->getPathTree($currentPath);
 
-        return Response::json(
+        return ApiResponse::json(
             $this->presentTree($fileTree),
-            JsonResponse::HTTP_OK
+            ApiResponse::HTTP_OK
         );
     }
 
-    public function content(RequestWithPath $request): JsonResponse
+    public function content(RequestWithPath $request): ApiResponse
     {
         $currentPath = $request->getPath();
         $fileTree    = $this->fileManager->getContent($currentPath);
 
-        return Response::json(
+        return ApiResponse::json(
             $this->presentContent($fileTree),
-            JsonResponse::HTTP_OK
+            ApiResponse::HTTP_OK
         );
+    }
+
+    private function presentInit(): InitDto
+    {
+        return new InitDto();
     }
 
     private function presentTree(PathTreeLevel $fileTree): PathTreeLevelDto

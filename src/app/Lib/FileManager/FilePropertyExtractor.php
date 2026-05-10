@@ -17,16 +17,22 @@ class FilePropertyExtractor
     public function fileProperties(Disk $disk, Path $path): PathProperties
     {
         $pathValue   = $path->value;
-        $pathInfo    = pathinfo($pathValue);
         $storageDisk = $disk->getStorageDisk();
+        /** @var array<string,string> $pathInfo */
+        $pathInfo    = pathinfo($pathValue);
+
+        $dirname   = $pathInfo['dirname'] === '.' ? '' : $pathInfo['dirname'];
+        $basename  = $pathInfo['basename'];
+        $extension = $pathInfo['extension'] ?? '';
+        $filename  = $pathInfo['filename'];
 
         return PathPropertyFactory::fromArray([
             'type'       => 'file',
             'path'       => $path,
-            'basename'   => $pathInfo['basename'],
-            'dirname'    => $pathInfo['dirname'] === '.' ? '' : $pathInfo['dirname'],
-            'extension'  => $pathInfo['extension'] ?? '',
-            'filename'   => $pathInfo['filename'],
+            'basename'   => $basename,
+            'dirname'    => $dirname,
+            'extension'  => $extension,
+            'filename'   => $filename,
             'size'       => $storageDisk->size($pathValue),
             'timestamp'  => $storageDisk->lastModified($pathValue),
             'visibility' => $storageDisk->getVisibility($pathValue),
@@ -39,7 +45,10 @@ class FilePropertyExtractor
         $storageDisk   = $disk->getStorageDisk();
         $leagueAdpater = $storageDisk->getAdapter();
         $pathValue     = $path->value;
-        $pathInfo      = pathinfo($pathValue);
+        /** @var array<string,string> $pathInfo */
+        $pathInfo = pathinfo($pathValue);
+        $dirname  = $pathInfo['dirname'] === '.' ? '' : $pathInfo['dirname'];
+        $basename = $pathInfo['basename'];
 
         if (
             $leagueAdpater instanceof AwsS3V3Adapter
@@ -56,8 +65,8 @@ class FilePropertyExtractor
         return PathPropertyFactory::fromArray([
             'type'       => 'dir',
             'path'       => $path,
-            'basename'   => $pathInfo['basename'],
-            'dirname'    => $pathInfo['dirname'] === '.' ? '' : $pathInfo['dirname'],
+            'basename'   => $basename,
+            'dirname'    => $dirname,
             'timestamp'  => $timestamp,
             'visibility' => $visibility,
         ]);

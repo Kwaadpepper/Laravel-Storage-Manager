@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Service;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
+use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class ApiService
 {
@@ -40,45 +41,36 @@ class ApiService
         return $request->expectsJson() && $request->routeIs('storage-manager.api.*');
     }
 
-    public function wrapResponse(JsonResponse $response): JsonResponse
+    public function wrapResponse(JsonResponse $response): ApiResponse
     {
         if ($this->isWrappedResponse($response)) {
+            /** @var ApiResponse $response */
             return $response;
         }
 
         $statusCode = $response->getStatusCode();
-        $isSuccess  = $statusCode >= 200 && $statusCode < 300;
-        $content    = $response->getData(true);
+        $content    = json_decode($response->getContent() ?: '[]', true) ?: [];
+        $content    = Arr::wrap($content);
 
-        if ($statusCode === Response::HTTP_NO_CONTENT) {
-            return new JsonResponse([], $statusCode);
-        }
+        $dto = new class ($content) implements Dto
+        {
+            /** @param  array<string,mixed>  $content */
+            public function __construct(
+                private readonly array $content
+            ) {
+            }
 
-        $message = Response::$statusTexts[$statusCode] ?? trans('storage-manager::storage-manager.error.unknown');
+            public function jsonSerialize(): mixed
+            {
+                return $this->content;
+            }
+        };
 
-        if ($statusCode === Response::HTTP_UNAUTHORIZED) {
-            Arr::forget($content, 'message');
-        }
-
-        $wrapped = [
-            'timestamp' => now()->toIso8601String(),
-            'status'    => $statusCode,
-            'message'   => $message,
-        ];
-
-        if ($isSuccess) {
-            $wrapped['data'] = $content;
-        } else {
-            $wrapped['errors'] = $content['errors'] ?? $content;
-        }
-
-        return new JsonResponse($wrapped, $statusCode);
+        return new ApiResponse($dto, $statusCode);
     }
 
     public function isWrappedResponse(JsonResponse $response): bool
     {
-        $data = $response->getData(true);
-
-        return isset($data['timestamp'], $data['status'], $data['message']);
+        return $response instanceof ApiResponse;
     }
 }

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
+use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
@@ -45,9 +47,12 @@ class FileManager
             $filesystem->directories($directory)
         );
 
+        $files       = array_map(fn ($file) => new Path($file), $files);
+        $directories = array_map(fn ($dir) => new Path($dir), $directories);
+
         return new PathContent(
-            files: array_map(fn ($file) => new Path($file), $files),
-            directories: array_map(fn ($dir) => new Path($dir), $directories),
+            array_values($files),
+            array_values($directories),
         );
     }
 
@@ -60,11 +65,13 @@ class FileManager
             $filesystem->directories($directory)
         );
 
+        $directories = array_map(fn ($dir) => new PathTreeDirectory(
+            (string) new Path($dir),
+            ! empty($filesystem->directories((string) new Path($dir)))
+        ), $directories);
+
         return new PathTreeLevel(
-            directories: array_map(fn ($dir) => new PathTreeDirectory(
-                (string) new Path($dir),
-                ! empty($filesystem->directories((string) new Path($dir)))
-            ), $directories),
+            array_values($directories),
         );
     }
 
@@ -203,15 +210,19 @@ class FileManager
 
     private function getStorage(): Filesystem
     {
+        if ($this->activeDisk === null) {
+            throw new \LogicException('No active disk set for FileManager.');
+        }
+
         return Storage::disk($this->activeDisk->name);
     }
 
     private function assertDiskExists(string $diskName): void
     {
-        $disks = config('filesystems.disks');
+        $disks = Arr::wrap(config('filesystems.disks', []));
 
         if (! isset($disks[$diskName])) {
-            throw new \InvalidArgumentException("Disk '{$diskName}' does not exist.");
+            throw new DomainException("Disk '{$diskName}' does not exist.");
         }
     }
 }

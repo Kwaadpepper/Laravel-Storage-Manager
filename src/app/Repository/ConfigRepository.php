@@ -12,6 +12,10 @@ class ConfigRepository
 {
     private const DEFAULT_PREFIX = 'sm';
 
+    /**
+     * @param  array<string,mixed>  $config
+     * @param  array<string,mixed>  $staticConfig
+     */
     public function __construct(
         private array $config,
         private array $staticConfig
@@ -30,44 +34,40 @@ class ConfigRepository
 
     public function getAuthGuard(): string
     {
-        return (string) $this->getConfig('auth.guard', 'web');
+        $guard = $this->getConfig('auth.guard', 'web');
+
+        return is_string($guard) && $guard !== '' ? $guard : 'web';
     }
 
     public function getRoutePrefix(): string
     {
-        $prefix = $this->getConfig(
-            'route.prefix',
-            self::DEFAULT_PREFIX
-        );
+        $prefix = $this->getConfig('route.prefix', self::DEFAULT_PREFIX);
 
-        if (! is_string($prefix) || empty(mb_trim($prefix))) {
-            return self::DEFAULT_PREFIX;
-        }
-
-        return $prefix;
+        return is_string($prefix) && $prefix !== '' ? $prefix : self::DEFAULT_PREFIX;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getRouteMiddleware(): array
     {
-        $middleware = $this->getConfig('route.middleware', []);
+        $middleware = Arr::wrap($this->getConfig('route.middleware', []));
 
-        if (! is_array($middleware)) {
-            return [];
-        }
-
-        return array_filter(
+        return array_values(array_filter(
             $middleware,
-            fn (mixed $item): bool => is_string($item) && ! empty(mb_trim($item))
-        );
+            static fn (mixed $item): bool => is_string($item) && ! empty(mb_trim($item))
+        ));
     }
 
     public function getDefaultDisk(): ?Disk
     {
-        $defaultDiskName = $this->getConfig(
-            'filesystems.default',
-            Config::get('filesystems.disks', []) ?
-              array_key_first(Config::get('filesystems.disks', [])) : null
-        );
+        $disksConfigRaw = Config::get('filesystems.disks', []);
+        $disksConfig    = is_array($disksConfigRaw) ? $disksConfigRaw : [];
+
+        /** @var int|string|null $fallbackDefaultDiskName */
+        $fallbackDefaultDiskName = array_key_first($disksConfig);
+
+        $defaultDiskName = $this->getConfig('filesystems.default', $fallbackDefaultDiskName);
 
         if (! is_string($defaultDiskName) || empty(mb_trim($defaultDiskName))) {
             return null;
@@ -87,34 +87,29 @@ class ConfigRepository
      */
     public function getDisksMap(): array
     {
-        $fsConfig = Arr::wrap(Config::get('filesystems.disks', []));
+        $fsConfig          = Arr::wrap(Config::get('filesystems.disks', []));
+        $disksAvailableRaw = Arr::wrap($this->getConfig('disks.available', []));
 
-        return collect($this->getConfig('disks.available', []))
-            ->map(fn (string $diskName): array => Arr::has($fsConfig, $diskName) ? [
-                'name'   => $diskName,
-                'driver' => Arr::get($fsConfig, "{$diskName}.driver"),
-                'throw'  => Arr::get($fsConfig, "{$diskName}.throw", false),
-                'report' => Arr::get($fsConfig, "{$diskName}.report", false),
-            ] : null)
-            ->filter()
+        /** @var list<string> $disksAvailable */
+        $disksAvailable = array_values(array_filter(
+            $disksAvailableRaw,
+            static fn (mixed $disk): bool => is_string($disk) && $disk !== ''
+        ));
+
+        return collect($disksAvailable)
+            ->filter(fn (string $diskName): bool => Arr::has($fsConfig, $diskName))
             ->mapWithKeys(
-                fn (array $diskConfig) => [
-                    $diskConfig['name'] => $this->mapConfigDisk(
-                        name: $diskConfig['name'],
-                        diskConfig: $diskConfig
+                fn (string $diskName): array => [
+                    $diskName => new Disk(
+                        driver: is_string($driver = Arr::get($fsConfig, "{$diskName}.driver")) ? $driver : '',
+                        name: $diskName,
+                        throw: (bool) Arr::get($fsConfig, "{$diskName}.throw", false),
+                        report: (bool) Arr::get($fsConfig, "{$diskName}.report", false),
                     ),
                 ]
-            )->toArray();
-    }
-
-    private function mapConfigDisk(string $name, array $diskConfig): Disk
-    {
-        return new Disk(
-            driver: $diskConfig['driver'],
-            name: $name,
-            throw: $diskConfig['throw']   ?? false,
-            report: $diskConfig['report'] ?? false
-        );
+            )
+            ->toBase()
+            ->all();
     }
 
     public function getStaticConfig(string $key): mixed
@@ -122,6 +117,9 @@ class ConfigRepository
         return Arr::get($this->staticConfig, $key);
     }
 
+    /**
+     * @param  string|int|float|bool|array<mixed>|null  $default
+     */
     private function getConfig(
         string $key,
         string | int | float | bool | array | null $default = null

@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Response;
 use Kwaadpepper\LaravelStorageManager\Event\DiskSelected;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskListDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\SelectedDiskDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Disk\SelectDiskRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
-use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class DiskController extends Controller
 {
@@ -22,23 +21,23 @@ final class DiskController extends Controller
     ) {
     }
 
-    public function list(): JsonResponse
+    public function list(): ApiResponse
     {
-        return Response::json(
+        return ApiResponse::json(
             $this->presentList($this->diskService->getDiskNamesList()),
-            JsonResponse::HTTP_OK
+            ApiResponse::HTTP_OK
         );
     }
 
-    public function select(SelectDiskRequest $request): JsonResponse
+    public function select(SelectDiskRequest $request): ApiResponse
     {
         EventFactory::dispatch(DiskSelected::class);
 
         $disk = $request->getDisk();
 
-        return Response::json(
+        return ApiResponse::json(
             $this->presentSelected($disk),
-            JsonResponse::HTTP_OK
+            ApiResponse::HTTP_OK
         );
     }
 

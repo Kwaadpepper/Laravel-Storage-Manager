@@ -75,5 +75,9 @@
     "titleBar.inactiveBackground": "#02292299",
     "titleBar.inactiveForeground": "#e7e7e799"
   },
-  "peacock.color": "#022922"
+  "peacock.color": "#022922",
+  "phpcs.ignorePatterns": [
+    "*.xml"
+  ],
+  "phpcs.phpcbfOnSave": true,
 }

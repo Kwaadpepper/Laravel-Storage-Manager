@@ -6,16 +6,10 @@ namespace Kwaadpepper\LaravelStorageManager\Event;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 
-/**
- * Interface SmEvent
- *
- * @template TEvent of \Kwaadpepper\LaravelStorageManager\Event\SmEvent
- */
 interface SmEvent
 {
     /**
      * @param  array<string,mixed>  $parameters
-     * @return TEvent
      */
     public static function make(?Authenticatable $user, array $parameters): self;
 }

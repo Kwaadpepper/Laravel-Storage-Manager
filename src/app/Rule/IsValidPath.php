@@ -24,6 +24,10 @@ class IsValidPath implements ValidationRule
     private function pathIsValid(mixed $value): bool
     {
         try {
+            if (! is_string($value)) {
+                return false;
+            }
+
             assert(
                 ! empty((new Path($value))->value),
                 'Path must be a non-empty string'

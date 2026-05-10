@@ -16,9 +16,11 @@ final class DiskSelected implements SmEvent
 
     public static function make(?Authenticatable $user, array $parameters): self
     {
+        $disk = $parameters['disk'] ?? '';
+
         return new self(
             user: $user,
-            disk: $parameters['disk'] ?? '',
+            disk: is_string($disk) ? $disk : '',
         );
     }
 }
