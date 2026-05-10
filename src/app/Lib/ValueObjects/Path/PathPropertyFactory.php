@@ -11,6 +11,18 @@ use InvalidArgumentException;
 
 class PathPropertyFactory
 {
+    /**
+     * @param  array{
+     * type:string,
+     * path:\Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path|string,
+     * basename?:string,
+     * dirname?:string,
+     * extension?:string,
+     * filename?:string,
+     * size?:int,
+     * timestamp?:string|int|null,
+     * visibility?:string|null}  $metadata
+     */
     public static function fromArray(array $metadata): PathProperties
     {
         $type = $metadata['type'] ?? throw new InvalidArgumentException("Le champ 'type' est obligatoire.");
@@ -22,12 +34,25 @@ class PathPropertyFactory
         };
     }
 
+    /**
+     * @param  array{
+     * path:\Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path|string,
+     * basename?:string,
+     * dirname?:string,
+     * extension?:string,
+     * filename?:string,
+     * size?:int,
+     * timestamp?:string|int|null,
+     * visibility?:string|null}  $data
+     */
     private static function makeFile(array $data): FilePathProperties
     {
+        $path = $data['path'] instanceof Path ? $data['path'] : new Path($data['path']);
+
         return new FilePathProperties(
-            path: ($data['path'] instanceof Path ? $data['path'] : new Path($data['path'])),
-            basename: $data['basename']   ?? basename($data['path']),
-            dirname: $data['dirname']     ?? dirname($data['path']),
+            path: $path,
+            basename: $data['basename']   ?? basename($path->value),
+            dirname: $data['dirname']     ?? dirname($path->value),
             extension: $data['extension'] ?? '',
             filename: $data['filename']   ?? '',
             size: $data['size']           ?? 0,
@@ -36,12 +61,25 @@ class PathPropertyFactory
         );
     }
 
+    /**
+     * @param  array{
+     * path:\Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path|string,
+     * basename?:string,
+     * dirname?:string,
+     * extension?:string,
+     * filename?:string,
+     * size?:int,
+     * timestamp?:string|int|null,
+     * visibility?:string|null}  $data
+     */
     private static function makeDirectory(array $data): DirectoryPathProperties
     {
+        $path = $data['path'] instanceof Path ? $data['path'] : new Path($data['path']);
+
         return new DirectoryPathProperties(
-            path: ($data['path'] instanceof Path ? $data['path'] : new Path($data['path'])),
-            basename: $data['basename'] ?? basename($data['path']),
-            dirname: $data['dirname']   ?? dirname($data['path']),
+            path: $path,
+            basename: $data['basename'] ?? basename($path->value),
+            dirname: $data['dirname']   ?? dirname($path->value),
             timestamp: self::parseTimestamp($data['timestamp'] ?? 'now'),
             visibility: self::parseVisibility($data['visibility'] ?? Filesystem::VISIBILITY_PRIVATE)
         );
