@@ -24,6 +24,8 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 
 class BasicOperationsController extends Controller
 {
+    private const ERROR_PATH_NOT_FOUND = 'The specified path does not exist.';
+
     public function __construct(
         private readonly FileManager $fileManager
     ) {
@@ -35,7 +37,7 @@ class BasicOperationsController extends Controller
 
         if (! $this->fileManager->exists($path)) {
             return ApiResponse::json(
-                $this->presentError('The specified path does not exist.'),
+                $this->presentError(self::ERROR_PATH_NOT_FOUND),
                 ApiResponse::HTTP_NOT_FOUND
             );
         }
@@ -77,7 +79,7 @@ class BasicOperationsController extends Controller
         switch (true) {
             case ! $this->fileManager->exists($path):
                 return ApiResponse::json(
-                    $this->presentError('The specified path does not exist.'),
+                    $this->presentError(self::ERROR_PATH_NOT_FOUND),
                     ApiResponse::HTTP_NOT_FOUND
                 );
             case $this->fileManager->isDirectory($path):
@@ -103,7 +105,7 @@ class BasicOperationsController extends Controller
 
         if (! $this->fileManager->exists($path)) {
             return ApiResponse::json(
-                $this->presentError('The specified path does not exist.'),
+                $this->presentError(self::ERROR_PATH_NOT_FOUND),
                 ApiResponse::HTTP_NOT_FOUND
             );
         }
