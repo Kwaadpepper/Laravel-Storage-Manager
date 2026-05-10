@@ -8,21 +8,41 @@ use Illuminate\Routing\Controller;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedFileDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\DeletedDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\PropertiesDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\RenamedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirectoryRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateFileRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\PropertiesPathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\RenamePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 
 class BasicOperationsController extends Controller
 {
     public function __construct(
         private readonly FileManager $fileManager
     ) {
+    }
+
+    public function properties(PropertiesPathRequest $request): ApiResponse
+    {
+        $path = $request->getPath();
+
+        if (! $this->fileManager->exists($path)) {
+            return ApiResponse::json(
+                $this->presentError('The specified path does not exist.'),
+                ApiResponse::HTTP_NOT_FOUND
+            );
+        }
+
+        $fileProperties = $this->fileManager->getProperties($path);
+
+        return ApiResponse::json($this->presentProperties($fileProperties), ApiResponse::HTTP_OK);
     }
 
     public function createDirectory(CreateDirectoryRequest $request): ApiResponse
@@ -96,6 +116,21 @@ class BasicOperationsController extends Controller
     private function presentError(string $message): ErrorDto
     {
         return new ErrorDto($message);
+    }
+
+    private function presentProperties(PathProperties $properties): PropertiesDto
+    {
+        return new PropertiesDto(
+            path: (string) $properties->path,
+            basename: $properties->basename,
+            dirname: $properties->dirname,
+            timestamp: $properties->timestamp,
+            visibility: $properties->visibility->value,
+            isFile: $properties->isFile,
+            isDirectory: $properties->isDirectory,
+            extension: $properties instanceof FilePathProperties ? $properties->extension : null,
+            size: $properties instanceof FilePathProperties ? $properties->size : null,
+        );
     }
 
     private function presentCreatedDirectory(): CreatedDirectoryDto

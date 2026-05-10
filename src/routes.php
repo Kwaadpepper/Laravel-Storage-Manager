@@ -43,6 +43,7 @@ Route::group([
             Route::get('/content', [FileManagerController::class, 'content'])->name('content');
 
             // Basic operations routes
+            Route::get('/properties', [BasicOperationsController::class, 'properties'])->name('properties');
             Route::post('/create-directory', [BasicOperationsController::class, 'createDirectory'])->name('create-directory');
             Route::post('/create-file', [BasicOperationsController::class, 'createFile'])->name('create-file');
             Route::delete('/delete', [BasicOperationsController::class, 'delete'])->name('delete');

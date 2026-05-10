@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
@@ -48,10 +49,15 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->app->singleton(
             FileManager::class,
             function (Application $app) {
-                $configRepository = $app->make(ConfigRepository::class);
-                $pathNormalizer   = new PathNormalizer();
+                $configRepository      = $app->make(ConfigRepository::class);
+                $pathNormalizer        = $app->make(PathNormalizer::class);
+                $filePropertyExtractor = $app->make(FilePropertyExtractor::class);
 
-                return new FileManager($pathNormalizer, $configRepository->getDefaultDisk());
+                return new FileManager(
+                    $pathNormalizer,
+                    $filePropertyExtractor,
+                    $configRepository->getDefaultDisk()
+                );
             }
         );
     }

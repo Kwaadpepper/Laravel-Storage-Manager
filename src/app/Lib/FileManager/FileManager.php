@@ -13,6 +13,7 @@ use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList as PathContent;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
 
@@ -20,6 +21,7 @@ class FileManager
 {
     public function __construct(
         private readonly PathNormalizer $pathNormalizer,
+        private readonly FilePropertyExtractor $filePropertyExtractor,
         private ?Disk $activeDisk
     ) {
         $this->setActiveDisk($activeDisk);
@@ -32,6 +34,24 @@ class FileManager
         if ($disk !== null) {
             $this->assertDiskExists($disk->name);
         }
+    }
+
+    public function getProperties(Path $path): PathProperties
+    {
+        $disk             = $this->getDisk();
+        $normalizedPath   = $this->pathNormalizer->normalizePath((string) $path);
+        $sourceIsDir      = $this->isDirectory($path);
+        $sourceIsFile     = $this->isFile($path);
+
+        if (! $sourceIsDir && ! $sourceIsFile) {
+            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
+        }
+
+        $normalizedPath = new Path($normalizedPath);
+
+        return $sourceIsDir
+            ? $this->filePropertyExtractor->directoryProperties($disk, $normalizedPath)
+            : $this->filePropertyExtractor->fileProperties($disk, $normalizedPath);
     }
 
     public function getContent(?Path $path = null): PathContent
@@ -208,13 +228,20 @@ class FileManager
         ) && ! $this->isDirectory($path);
     }
 
-    private function getStorage(): Filesystem
+    private function getDisk(): Disk
     {
         if ($this->activeDisk === null) {
             throw new \LogicException('No active disk set for FileManager.');
         }
 
-        return Storage::disk($this->activeDisk->name);
+        return $this->activeDisk;
+    }
+
+    private function getStorage(): Filesystem
+    {
+        $disk = $this->getDisk();
+
+        return Storage::disk($disk->name);
     }
 
     private function assertDiskExists(string $diskName): void
