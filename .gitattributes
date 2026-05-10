@@ -1,0 +1,31 @@
+# Binary files
+bun.lockb binary
+
+# Ignore tests
+/tests/ export-ignore
+phpunit.xml export-ignore
+
+# Ignore TS sources
+/src/ts/ export-ignore
+
+# Ignore CSS sources
+/src/css/ export-ignore
+
+# Ignore dev files
+/.github/ export-ignore
+/.vscode/ export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/phpstan.neon.dist export-ignore
+/.editorconfig export-ignore
+/.type-coverage-bootstrap.php export-ignore
+/phpunit.xml export-ignore
+/pint.json export-ignore
+
+/tsconfig.json export-ignore
+/tsconfig.app.json export-ignore
+/tsconfig.node.json export-ignore
+/vite.config.ts export-ignore
+/eslint.config.js export-ignore
+/package.json export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore

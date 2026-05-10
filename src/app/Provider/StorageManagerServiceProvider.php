@@ -24,6 +24,7 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->loadConfig();
         $this->loadViews();
         $this->loadRoutes();
+        $this->publishAssets();
     }
 
     /**
@@ -120,6 +121,17 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->loadViewsFrom(
             __DIR__ . '/../../resources/view',
             'storage-manager'
+        );
+    }
+
+    private function publishAssets(): void
+    {
+        $this->publishes(
+            [
+                __DIR__ . '/../../resources/js'  => public_path('vendor/storage-manager/js'),
+                __DIR__ . '/../../resources/css' => public_path('vendor/storage-manager/css'),
+            ],
+            'storage-manager:assets'
         );
     }
 }

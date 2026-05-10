@@ -3,3 +3,4 @@
 /.phpunit.cache/
 /.intellipest/
 phpstan.neon
+/node_modules/
