@@ -15,7 +15,7 @@ class PathNormalizer
      */
     public function normalizePath(string $path): string
     {
-        $segments = preg_split('#[\\\\/]+#', trim($path), -1, PREG_SPLIT_NO_EMPTY);
+        $segments = preg_split('#[\\\\/]+#', trim($path), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $stack    = [];
 
         foreach ($segments as $segment) {
