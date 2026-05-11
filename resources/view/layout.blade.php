@@ -7,15 +7,6 @@
 
   <title>{{ app('storage-manager.config')->getStaticConfig('packageName') }}</title>
 
-  <style>
-    body {
-      width: 100%;
-      height: 100vh;
-      margin: 0;
-      padding: 0;
-    }
-  </style>
-
   @stack('styles')
 </head>
 

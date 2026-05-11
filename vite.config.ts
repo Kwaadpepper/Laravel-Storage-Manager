@@ -15,7 +15,7 @@ export default defineConfig({
         tailwindcss(),
     ],
     build: {
-        outDir: 'src/resources',
+        outDir: 'resources',
         emptyOutDir: false,
         rollupOptions: {
             input: {

@@ -94,7 +94,7 @@ class StorageManagerServiceProvider extends ServiceProvider
     private function loadTranslations(): void
     {
         $this->loadTranslationsFrom(
-            __DIR__ . '/../../resources/lang',
+            __DIR__ . '/../../../resources/lang',
             'storage-manager'
         );
     }
@@ -103,7 +103,7 @@ class StorageManagerServiceProvider extends ServiceProvider
     {
         $this->publishes(
             [
-                __DIR__ . '/../../resources/lang' => $this->app->langPath('vendor/storage-manager'),
+                __DIR__ . '/../../../resources/lang' => $this->app->langPath('vendor/storage-manager'),
             ],
             'storage-manager:translations'
         );
@@ -119,7 +119,7 @@ class StorageManagerServiceProvider extends ServiceProvider
     private function loadViews(): void
     {
         $this->loadViewsFrom(
-            __DIR__ . '/../../resources/view',
+            __DIR__ . '/../../../resources/view',
             'storage-manager'
         );
     }
@@ -128,8 +128,8 @@ class StorageManagerServiceProvider extends ServiceProvider
     {
         $this->publishes(
             [
-                __DIR__ . '/../../resources/js'  => public_path('vendor/storage-manager/js'),
-                __DIR__ . '/../../resources/css' => public_path('vendor/storage-manager/css'),
+                __DIR__ . '/../../../resources/js'  => public_path('vendor/storage-manager/js'),
+                __DIR__ . '/../../../resources/css' => public_path('vendor/storage-manager/css'),
             ],
             'storage-manager:assets'
         );
