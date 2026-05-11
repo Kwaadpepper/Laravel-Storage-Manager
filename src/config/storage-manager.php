@@ -19,6 +19,11 @@ return [
 
     ],
 
+    'frontend' => [
+        'use_dev_server' => env('STORAGE_MANAGER_USE_DEV_SERVER', false),
+        'dev_server_url' => env('STORAGE_MANAGER_DEV_SERVER_URL', 'http://localhost:5173'),
+    ],
+
     'disks'      => [
         'default'       => env('STORAGE_MANAGER_DEFAULT_DISK', 'local'),
         'available'     => str(env('STORAGE_MANAGER_DISKS', ''))
