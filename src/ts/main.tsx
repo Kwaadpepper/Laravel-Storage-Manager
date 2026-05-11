@@ -5,10 +5,12 @@ import App from './App.tsx';
 
 const rootEl = document.getElementById('file-manager')
 
-if (rootEl) {
-    createRoot(rootEl).render(
-        <StrictMode>
-            <App />
-        </StrictMode>,
-    )
+if (rootEl === null) {
+    throw new Error('Root element not found');
 }
+
+createRoot(rootEl).render(
+    <StrictMode>
+        <App />
+    </StrictMode>,
+)
