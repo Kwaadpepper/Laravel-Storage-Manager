@@ -7,9 +7,16 @@ import { configs } from 'typescript-eslint';
 /** @type {import('eslint').Linter.Config[]} */
 export default [
     { ignores: ['src/resources', 'vendor', 'node_modules'] },
-    js.configs.recommended,
-    ...configs.recommended,
-    reactHooks.configs['recommended-latest'],
+    {
+        files: ['src/ts/**/*.{ts,tsx}'],
+        ...js.configs.recommended,
+    },
+    ...configs.recommended.map((c) => ({ ...c, files: ['src/ts/**/*.{ts,tsx}'] })),
+    {
+        files: ['src/ts/**/*.{ts,tsx}'],
+        plugins: { 'react-hooks': reactHooks },
+        rules: reactHooks.configs['recommended-latest'].rules,
+    },
     {
         files: ['src/ts/**/*.{ts,tsx}'],
         languageOptions: {
