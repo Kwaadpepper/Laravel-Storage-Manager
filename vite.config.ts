@@ -14,6 +14,9 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    optimizeDeps: {
+        rolldownOptions: {},
+    },
     build: {
         outDir: 'resources',
         emptyOutDir: false,
