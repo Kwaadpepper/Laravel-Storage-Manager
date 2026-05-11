@@ -9,6 +9,7 @@ export default [
     { ignores: ['src/resources', 'vendor', 'node_modules'] },
     js.configs.recommended,
     ...configs.recommended,
+    reactHooks.configs['recommended-latest'],
     {
         files: ['src/ts/**/*.{ts,tsx}'],
         languageOptions: {
@@ -16,11 +17,9 @@ export default [
             globals: globals.browser,
         },
         plugins: {
-            'react-hooks': reactHooks,
             'react-refresh': reactRefresh,
         },
         rules: {
-            ...reactHooks.configs.recommended.rules,
             'react-refresh/only-export-components': [
                 'warn',
                 { allowConstantExport: true },
