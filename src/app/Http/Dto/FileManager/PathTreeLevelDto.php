@@ -26,7 +26,7 @@ final readonly class PathTreeLevelDto implements Dto
             'files'       => array_map(fn (PathTreeFile $file) => [
                 'path'      => $file->path->value,
                 'size'      => $file->size,
-                'extension' => $file->extension,
+                'extension' => empty($file->extension) ? null : $file->extension,
             ], $this->fileTree->files),
         ];
     }
