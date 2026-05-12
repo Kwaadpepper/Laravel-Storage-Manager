@@ -20,8 +20,10 @@ return [
     ],
 
     'frontend' => [
-        'use_dev_server' => env('STORAGE_MANAGER_USE_DEV_SERVER', false),
-        'dev_server_url' => env('STORAGE_MANAGER_DEV_SERVER_URL', 'http://localhost:5173'),
+        'dev_server' => [
+            'enabled' => env('STORAGE_MANAGER_USE_DEV_SERVER', false),
+            'url'     => env('STORAGE_MANAGER_DEV_SERVER_URL', 'http://localhost:5173'),
+        ],
     ],
 
     'disks'      => [

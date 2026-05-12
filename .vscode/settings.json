@@ -46,7 +46,7 @@
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "always"
     },
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.defaultFormatter": "TypeScriptTeam.native-preview",
     "editor.detectIndentation": false,
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file"

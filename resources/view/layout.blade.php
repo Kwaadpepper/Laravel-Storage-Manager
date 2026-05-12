@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>{{ app('storage-manager.config')->getStaticConfig('packageName') }}</title>
+  <meta name="storage-manager-url" content="{{ url('/') }}">
 
   @stack('styles')
 </head>
