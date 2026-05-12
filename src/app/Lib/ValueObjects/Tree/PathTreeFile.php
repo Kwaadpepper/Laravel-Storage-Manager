@@ -6,11 +6,12 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree;
 
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
-class PathTreeDirectory
+class PathTreeFile
 {
     public function __construct(
         public readonly Path $path,
-        public readonly bool $hasSubDirectories
+        public readonly int $size,
+        public readonly string $extension,
     ) {
     }
 }
