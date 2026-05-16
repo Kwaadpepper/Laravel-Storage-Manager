@@ -34,7 +34,6 @@ export class HttpClient {
    * @returns a new URL with to make calls within HTTP client
    */
   public pathUrl(path: string): URL {
-    console.log('Creating URL with path', path, 'and endpoint host', this.#endpointHost)
     return new URL(path, this.#endpointHost)
   }
 

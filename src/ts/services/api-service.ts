@@ -47,8 +47,6 @@ export class ApiService {
 
   private async reponseToData<T extends z.ZodTypeAny>(response: Response, schema: T): Promise<z.output<T>> {
     const dataResponse = await this.reponseToJson(response)
-
-    console.log('API response', dataResponse)
     const apiResponse = apiResponseSchema.parse(dataResponse)
     const result = schema.safeParse(apiResponse.data)
 

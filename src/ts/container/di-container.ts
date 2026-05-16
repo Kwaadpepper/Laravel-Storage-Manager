@@ -1,13 +1,14 @@
 import { HttpClient } from '@ts/clients';
-import { ApiService } from '@ts/services';
+import { ApiService, NavigationService } from '@ts/services';
 import { FileManagerService } from '@ts/services/file-manager-service';
-import { asClass, asValue, createContainer, InjectionMode } from 'awilix';
+import { useFileManagerStore } from '@ts/stores';
+import { asFunction, createContainer, InjectionMode } from 'awilix';
 
 export type AppContainer = {
   fileManagerService: FileManagerService
+  navigationService: NavigationService
   apiService: ApiService
   httpClient: HttpClient
-  apiBaseUrl: string
 }
 
 const apiBaseUrl: URL =
@@ -31,25 +32,15 @@ export function buildDiContainer() {
 
   // * ContainerContext
   const container = createContainer<AppContainer>({
-    injectionMode: InjectionMode.CLASSIC,
+    injectionMode: InjectionMode.PROXY,
   })
 
   // * HttpClient
   container.register({
-    endpointHost: asValue(apiBaseUrl),
-    httpClient: asClass(HttpClient).singleton(),
-  })
-
-  // * ApiService
-  container.register({
-    httpClient: asValue(container.resolve('httpClient')),
-    apiService: asClass(ApiService).singleton(),
-  })
-
-  // * FileManagerService
-  container.register({
-    apiService: asValue(container.resolve('apiService')),
-    fileManagerService: asClass(FileManagerService).singleton(),
+    httpClient: asFunction(() => new HttpClient(apiBaseUrl)).singleton(),
+    apiService: asFunction(({ httpClient }) => new ApiService(httpClient)).singleton(),
+    fileManagerService: asFunction(({ apiService }) => new FileManagerService(apiService)).singleton(),
+    navigationService: asFunction(({ fileManagerService }) => new NavigationService(useFileManagerStore, fileManagerService)).singleton(),
   })
 
   return container
