@@ -148,9 +148,13 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $composerPackageName = Arr::get($composer, 'name', $packageName);
                 $composerPackageName = is_string($composerPackageName) ? $composerPackageName : $packageName;
                 $version             = InstalledVersions::getVersion($composerPackageName);
+
+                $packageLogo = route('storage-manager.assets', ['dir' => 'images', 'file' => 'favicon.svg']);
+
                 $view->with('storageManagerConfig', [
                     'packageName'         => $packageName,
                     'packageVersion'      => $version,
+                    'packageLogo'         => $packageLogo,
                     'composerPackageName' => $composerPackageName,
                     'appDescription'      => Arr::get($composer, 'description'),
                     'appAuthors'          => Arr::get($composer, 'authors'),

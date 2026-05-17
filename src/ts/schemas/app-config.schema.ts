@@ -4,6 +4,7 @@ import z from 'zod/v4';
 export const appConfigSchema = z.object({
   packageName: z.string().nonempty(),
   packageVersion: z.string().nonempty(),
+  packageLogo: z.url(),
   composerPackageName: z.string().nonempty(),
   appDescription: z.string().nonempty(),
   appAuthors: z.array(

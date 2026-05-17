@@ -8,7 +8,7 @@ type AboutModalProps = {
 export default function AboutModal(_: AboutModalProps) {
 
   const { aboutModal, setAboutModal } = useUiStore()
-  const { packageName, packageVersion, composerPackageName, appDescription, appAuthors } = useConfigStore()
+  const { packageName, packageVersion, packageLogo, composerPackageName, appDescription, appAuthors } = useConfigStore()
 
   const dialogRef = useRef<HTMLDialogElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
@@ -40,13 +40,15 @@ export default function AboutModal(_: AboutModalProps) {
           <X size={16} />
         </button>
         <h3 className="font-bold text-lg">À propos</h3>
-        <p className="py-4 list-group">
+        <div className="flex items-center justify-center py-4">
+          <img src={packageLogo} alt={`${packageName} logo`} className="w-16 h-16" />
+        </div>
+        <p className="py-4">
           <span className="font-bold">
             <span className="text-sm">{packageName}</span>
             <span className="text-sm text-base-content/40"> ({composerPackageName})</span>
           </span><br />
-          <span className="text-sm">
-            <span className="italic">Version&nbsp;:&nbsp;</span>{packageVersion}</span>
+          <span className="text-sm"><span className="italic">Version&nbsp;:&nbsp;</span>{packageVersion}</span><br />
         </p>
         <p className="py-2">{appDescription}</p>
         <em className="ms-5 pb-4 block">
