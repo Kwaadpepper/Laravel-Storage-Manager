@@ -32,7 +32,7 @@ export default function ContentView(_: ContentViewProps) {
               <td>
                 <span className="flex items-center gap-2">
                   <Folder size={16} className="text-warning" />
-                  {d.path === rootPath() ? 'root' : d.path}
+                  {d.path === rootPath() ? 'root' : d.name}
                 </span>
               </td>
               <td><span className="badge badge-ghost badge-sm">Dossier</span></td>
@@ -45,7 +45,7 @@ export default function ContentView(_: ContentViewProps) {
               <td>
                 <span className="flex items-center gap-2">
                   <FileIcon size={16} className="text-info" />
-                  {f.path}
+                  {f.name}
                 </span>
               </td>
               <td><span className="badge badge-ghost badge-sm">Fichier</span></td>

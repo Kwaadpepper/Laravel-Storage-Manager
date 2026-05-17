@@ -55,7 +55,11 @@ export class NavigationService {
     return this.navigationIndex > 0
   }
 
-
+  public refreshCurrentPath(): void {
+    const currentPath = this.getCurrentPath()
+    this.loadedPath = null
+    this.fileManagerStore.setState({ currentPath })
+  }
 
   public navigateTo(path: Path): void {
     const currentHistoryPath = this.navigationHistory.at(this.navigationIndex)

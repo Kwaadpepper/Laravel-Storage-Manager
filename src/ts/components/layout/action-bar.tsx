@@ -1,13 +1,13 @@
 import { useContainer } from "@ts/container";
-import { useFileManagerStore } from "@ts/stores";
-import { ArrowLeft, ArrowRight, ArrowUp } from "lucide-react";
+import { ModalState, useUiStore } from "@ts/stores";
+import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FileUp, FolderPlus } from "lucide-react";
 
 type ActionBarProps = {
 }
 
 export default function ActionBar(_: ActionBarProps) {
   const container = useContainer()
-  const { setAboutModal } = useUiStore()
+  const { setAboutModal, setNewDirectoryModal, setUploadFileModal } = useUiStore()
 
   const navigationService = container.cradle.navigationService
   const canNavigatePrevious = navigationService.canNavigatePrevious()
@@ -26,28 +26,50 @@ export default function ActionBar(_: ActionBarProps) {
     navigationService.navigateToParent()
   }
 
+  function onNewDirectoryClick() {
+    setNewDirectoryModal(ModalState.Opened)
+  }
+
+  function onUploadFileClick() {
+    setUploadFileModal(ModalState.Opened)
+  }
+
   function onAboutClick() {
     setAboutModal(ModalState.Opened)
   }
 
   return (
     <div className="flex">
-      <div className="flex-1">
-        <button className="btn btn-ghost btn-sm" onClick={onBackClick} disabled={!canNavigatePrevious}>
-          <ArrowLeft size={16} />Back
+      <div className="flex justify-start gap-2">
+        <button className="btn btn-ghost btn-sm" title="Back" onClick={onBackClick} disabled={!canNavigatePrevious}>
+          <ArrowLeft size={16} />
+          <span className="hidden md:inline">Back</span>
         </button>
-        <button className="btn btn-ghost btn-sm" onClick={onForwardClick} disabled={!canNavigateNext}>
-          <ArrowRight size={16} />Forward
+        <button className="btn btn-ghost btn-sm" title="Forward" onClick={onForwardClick} disabled={!canNavigateNext}>
+          <ArrowRight size={16} />
+          <span className="hidden md:inline">Forward</span>
         </button>
-        <button className="btn btn-ghost btn-sm" onClick={onUpClick} disabled={!canNavigateUp}>
-          <ArrowUp size={16} />Up
+        <button className="btn btn-ghost btn-sm" title="Up" onClick={onUpClick} disabled={!canNavigateUp}>
+          <ArrowUp size={16} />
+          <span className="hidden md:inline">Up</span>
         </button>
       </div>
 
-      <div className="flex-1 ms-auto">
-      <div className="flex-1 ms-auto">
+      <div className="mx-auto flex justify-center gap-2">
+        <button className="btn btn-ghost btn-sm" title="New Directory" onClick={onNewDirectoryClick}>
+          <FolderPlus size={16} />
+          <span className="hidden md:inline">New Directory</span>
+        </button>
+        <button className="btn btn-ghost btn-sm" title="Upload File" onClick={onUploadFileClick}>
+          <FileUp size={16} />
+          <span className="hidden md:inline">Upload File</span>
+        </button>
+      </div>
+
+      <div className="flex justify-end gap-2">
         <button className="btn btn-ghost btn-sm" title="About" onClick={onAboutClick}>
           <CircleQuestionMark size={16} />
+          <span className="hidden md:inline">About</span>
         </button>
       </div>
     </div>
