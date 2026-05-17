@@ -39,7 +39,7 @@ export default function AboutModal(_: AboutModalProps) {
         <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" ref={closeInnerButtonRef}>
           <X size={16} />
         </button>
-        <h3 className="font-bold text-lg">À propos</h3>
+        <h3 className="font-bold text-lg">About</h3>
         <div className="flex items-center justify-center py-4">
           <img src={packageLogo} alt={`${packageName} logo`} className="w-16 h-16" />
         </div>
@@ -52,7 +52,7 @@ export default function AboutModal(_: AboutModalProps) {
         </p>
         <p className="py-2">{appDescription}</p>
         <em className="ms-5 pb-4 block">
-          <span className="italic">Développé par</span>
+          <span className="italic">Contributors</span>
           <ul>
             {appAuthors.map((author, index) => (
               <li key={`author-${author.email}-${index}`}>
@@ -67,7 +67,7 @@ export default function AboutModal(_: AboutModalProps) {
 
       {/* Form to control the modal */}
       <form method="dialog" className="modal-backdrop">
-        <button ref={closeButtonRef}>close</button>
+        <button ref={closeButtonRef}>Close</button>
       </form>
     </dialog>
   );
