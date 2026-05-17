@@ -1,5 +1,5 @@
 import { HttpClient } from '@ts/clients';
-import { ApiService, NavigationService, ToastService } from '@ts/services';
+import { ApiService, ErrorHandlerService, NavigationService, ToastService } from '@ts/services';
 import { FileManagerService } from '@ts/services/file-manager-service';
 import { useFileManagerStore, useToastStore } from '@ts/stores';
 import { asFunction, createContainer, InjectionMode } from 'awilix';
@@ -10,6 +10,7 @@ export type AppContainer = {
   apiService: ApiService
   httpClient: HttpClient
   toastService: ToastService
+  errorHandlerService: ErrorHandlerService
 }
 
 const apiBaseUrl: URL =
@@ -43,6 +44,7 @@ export function buildDiContainer() {
     fileManagerService: asFunction(({ apiService }) => new FileManagerService(apiService)).singleton(),
     navigationService: asFunction(({ fileManagerService }) => new NavigationService(useFileManagerStore, fileManagerService)).singleton(),
     toastService: asFunction(() => new ToastService(useToastStore)).singleton(),
+    errorHandlerService: asFunction(({ toastService }) => new ErrorHandlerService(toastService)).singleton(),
   })
 
   return container
