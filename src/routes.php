@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Kwaadpepper\LaravelStorageManager\Http\Controller\AssetController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\BasicOperationsController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
@@ -30,6 +31,7 @@ Route::group([
 ], function (): void {
 
     Route::view('/', 'storage-manager::file-manager')->name('file-manager');
+    Route::get('/assets/{dir}/{file}', AssetController::class)->name('assets');
 
     Route::name('api.')->middleware([StorageManagerApiMiddleware::class])->group(function (): void {
 
