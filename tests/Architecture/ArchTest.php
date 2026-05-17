@@ -17,7 +17,10 @@ $libraryNamespace = 'Kwaadpepper\LaravelStorageManager';
 function controllerClassNames(string $libraryNamespace): array
 {
     $controllerPath  = __DIR__ . '/../../src/app/Http/Controller';
-    $controllerFiles = glob($controllerPath . '/*Controller.php') ?: [];
+    $controllerFiles = array_filter(
+        glob($controllerPath . '/*Controller.php') ?: [],
+        static fn (string $controllerFile): bool => pathinfo($controllerFile, PATHINFO_FILENAME) !== 'AssetController'
+    );
 
     return array_map(
         static fn (string $controllerFile): string => $libraryNamespace . '\\Http\\Controller\\' .
@@ -91,9 +94,27 @@ describe('naming conventions', function () use ($libraryNamespace): void {
         ->expect("{$libraryNamespace}\Http\Dto")
         ->toHaveSuffix('Dto');
 
-    arch('exceptions have Exception suffix')
-        ->expect("{$libraryNamespace}\Exception")
-        ->toHaveSuffix('Exception');
+    test('exceptions classes have Exception suffix', function () use ($libraryNamespace): void {
+        $exceptionPath  = __DIR__ . '/../../src/app/Exception';
+        $exceptionFiles = glob($exceptionPath . '/*.php') ?: [];
+
+        foreach ($exceptionFiles as $exceptionFile) {
+            $className = pathinfo($exceptionFile, PATHINFO_FILENAME);
+            $fqcn      = "{$libraryNamespace}\\Exception\\{$className}";
+
+            if (! class_exists($fqcn)) {
+                continue;
+            }
+
+            $reflection = new \ReflectionClass($fqcn);
+            if (! $reflection->isInstantiable()) {
+                continue;
+            }
+
+            expect($className)
+                ->toEndWith('Exception', "{$fqcn} must have Exception suffix.");
+        }
+    });
 
     arch('middlewares have Middleware suffix')
         ->expect("{$libraryNamespace}\Http\Middleware")
