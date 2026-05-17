@@ -6,11 +6,13 @@ namespace Kwaadpepper\LaravelStorageManager\Provider;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 class StorageManagerServiceProvider extends ServiceProvider
@@ -36,6 +38,7 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerAliases();
         $this->registerDependenciesInjection();
+        $this->registerViewSharedData();
     }
 
     private function registerDependenciesInjection(): void
@@ -121,6 +124,49 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->loadViewsFrom(
             __DIR__ . '/../../../resources/view',
             'storage-manager'
+        );
+    }
+
+    public function registerViewSharedData(): void
+    {
+
+        view()->composer(
+            'storage-manager::*',
+            function ($view) {
+                $composerJsonPath = __DIR__ . '/../../../composer.json';
+                $composer         = Arr::wrap(Cache::remember(
+                    'storage-manager-composer',
+                    now()->addDay(),
+                    fn () => json_decode(
+                        file_get_contents($composerJsonPath) ?: '{}',
+                        true
+                    )
+                ));
+                $configRepository = app()->make(ConfigRepository::class);
+                $view->with('storageManagerConfig', [
+                    'packageName'         => $configRepository->getStaticConfig('packageName'),
+                    'composerPackageName' => Arr::get($composer, 'name'),
+                    'appDescription'      => Arr::get($composer, 'description'),
+                    'appAuthors'          => Arr::get($composer, 'authors'),
+                    'disks'               => Arr::map(
+                        $configRepository->getDisksMap(),
+                        fn (Disk $_, string $diskName) => $diskName
+                    ),
+                    'routes'         => [
+                        'fm.init'            => route('storage-manager.api.fm.init'),
+                        'fm.tree'            => route('storage-manager.api.fm.tree'),
+                        'fm.content'         => route('storage-manager.api.fm.content'),
+                        'fm.properties'      => route('storage-manager.api.fm.properties'),
+                        'fm.createDirectory' => route('storage-manager.api.fm.create-directory'),
+                        'fm.createFile'      => route('storage-manager.api.fm.create-file'),
+                        'fm.delete'          => route('storage-manager.api.fm.delete'),
+                        'fm.rename'          => route('storage-manager.api.fm.rename'),
+
+                        'disks.list'         => route('storage-manager.api.disks.list'),
+                        'disks.select'       => route('storage-manager.api.disks.select'),
+                    ],
+                ]);
+            }
         );
     }
 

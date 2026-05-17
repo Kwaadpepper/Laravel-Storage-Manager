@@ -21,3 +21,9 @@
 @else
   @include('storage-manager::partials.sm-runtime')
 @endif
+
+@push('scripts')
+  <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
+    window.__STORAGE_MANAGER_CONFIG__ = @json($storageManagerConfig);
+  </script>
+@endpush

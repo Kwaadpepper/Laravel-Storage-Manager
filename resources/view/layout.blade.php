@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>{{ app('storage-manager.config')->getStaticConfig('packageName') }}</title>
+  <title>{{ $storageManagerConfig['packageName'] }}</title>
   <meta name="storage-manager-url" content="{{ url('/') }}">
 
   <link type="image/png" href="{{ route('storage-manager.assets', ['dir' => 'images', 'file' => 'favicon-96x96.png']) }}" rel="icon"
