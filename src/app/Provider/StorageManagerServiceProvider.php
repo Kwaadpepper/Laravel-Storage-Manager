@@ -153,17 +153,17 @@ class StorageManagerServiceProvider extends ServiceProvider
                         fn (Disk $_, string $diskName) => $diskName
                     ),
                     'routes'         => [
-                        'fm.init'            => route('storage-manager.api.fm.init'),
-                        'fm.tree'            => route('storage-manager.api.fm.tree'),
-                        'fm.content'         => route('storage-manager.api.fm.content'),
-                        'fm.properties'      => route('storage-manager.api.fm.properties'),
-                        'fm.createDirectory' => route('storage-manager.api.fm.create-directory'),
-                        'fm.createFile'      => route('storage-manager.api.fm.create-file'),
-                        'fm.delete'          => route('storage-manager.api.fm.delete'),
-                        'fm.rename'          => route('storage-manager.api.fm.rename'),
+                        'fmInit'            => route('storage-manager.api.fm.init'),
+                        'fmTree'            => route('storage-manager.api.fm.tree'),
+                        'fmContent'         => route('storage-manager.api.fm.content'),
+                        'fmProperties'      => route('storage-manager.api.fm.properties'),
+                        'fmCreateDirectory' => route('storage-manager.api.fm.create-directory'),
+                        'fmCreateFile'      => route('storage-manager.api.fm.create-file'),
+                        'fmDelete'          => route('storage-manager.api.fm.delete'),
+                        'fmRename'          => route('storage-manager.api.fm.rename'),
 
-                        'disks.list'         => route('storage-manager.api.disks.list'),
-                        'disks.select'       => route('storage-manager.api.disks.select'),
+                        'disksList'         => route('storage-manager.api.disks.list'),
+                        'disksSelect'       => route('storage-manager.api.disks.select'),
                     ],
                 ]);
             }

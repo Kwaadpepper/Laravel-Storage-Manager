@@ -1,5 +1,11 @@
 @extends('storage-manager::layout')
 
+@push('scripts')
+  <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
+    window.__STORAGE_MANAGER_CONFIG__ = @json($storageManagerConfig);
+  </script>
+@endpush
+
 @php
   $useDevServer = (bool) config('storage-manager.frontend.dev_server.enabled', false);
   $devServerUrl = rtrim((string) config('storage-manager.frontend.dev_server.url', 'http://localhost:5173'), '/');
@@ -21,9 +27,3 @@
 @else
   @include('storage-manager::partials.sm-runtime')
 @endif
-
-@push('scripts')
-  <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
-    window.__STORAGE_MANAGER_CONFIG__ = @json($storageManagerConfig);
-  </script>
-@endpush

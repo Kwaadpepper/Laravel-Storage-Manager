@@ -1,3 +1,4 @@
+export * from './domain/disk.type';
 export * from './domain/path.type';
 export * from './domain/tree-node-directory.type';
 export * from './domain/tree-node-file.type';
