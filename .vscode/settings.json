@@ -80,4 +80,5 @@
     "*.xml"
   ],
   "phpcs.phpcbfOnSave": true,
+  "js/ts.experimental.useTsgo": true
 }
