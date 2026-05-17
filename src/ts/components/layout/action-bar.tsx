@@ -45,8 +45,9 @@ export default function ActionBar(_: ActionBarProps) {
       </div>
 
       <div className="flex-1 ms-auto">
-        <button className="btn btn-ghost btn-sm" onClick={onAboutClick}>
-          About
+      <div className="flex-1 ms-auto">
+        <button className="btn btn-ghost btn-sm" title="About" onClick={onAboutClick}>
+          <CircleQuestionMark size={16} />
         </button>
       </div>
     </div>
