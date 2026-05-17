@@ -17,32 +17,79 @@ export class ApiService {
   async get(path: string, schema?: null): Promise<void>;
   async get<T extends z.ZodTypeAny>(path: string, schema?: T | null): Promise<z.output<T> | void> {
     const response = await this.httpClient.get(path)
-    return schema ? this.reponseToData(response, schema) : undefined
+    if (schema) {
+      return this.reponseToData(response, schema)
+    }
+
+    await this.throwForErrorStatus(response)
+    return undefined
   }
 
   async post(path: string, data: RequestParameters): Promise<void>;
   async post<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema: T): Promise<z.output<T>>;
   async post<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema?: T): Promise<z.output<T> | void> {
     const response = await this.httpClient.post(path, data)
-    return schema ? this.reponseToData(response, schema) : undefined
+    if (schema) {
+      return this.reponseToData(response, schema)
+    }
+
+    await this.throwForErrorStatus(response)
+    return undefined
   }
 
   async put(path: string, data: RequestParameters): Promise<void>;
   async put<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema: T): Promise<z.output<T>>;
   async put<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema?: T): Promise<z.output<T> | void> {
     const response = await this.httpClient.put(path, data)
-    return schema ? this.reponseToData(response, schema) : undefined
+    if (schema) {
+      return this.reponseToData(response, schema)
+    }
+
+    await this.throwForErrorStatus(response)
+    return undefined
   }
 
   async patch(path: string, data: RequestParameters): Promise<void>;
   async patch<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema: T): Promise<z.output<T>>;
   async patch<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema?: T): Promise<z.output<T> | void> {
     const response = await this.httpClient.patch(path, data)
-    return schema ? this.reponseToData(response, schema) : undefined
+    if (schema) {
+      return this.reponseToData(response, schema)
+    }
+
+    await this.throwForErrorStatus(response)
+    return undefined
   }
 
   async delete(path: string, data?: RequestParameters): Promise<void> {
     await this.httpClient.delete(path, data)
+  }
+
+  private async throwForErrorStatus(response: Response): Promise<void> {
+    if (response.ok) {
+      return
+    }
+
+    if (response.status === 403) {
+      const message = 'Not authorized, CODE ' + response.status
+      const dataResponse = await this.reponseToJson(response)
+      const authorizationError = authorizationErrorSchema.safeParse(dataResponse)
+      throw new AuthorizationError(authorizationError.data?.reason ?? 'Unauthorized', message)
+    }
+
+    if (response.status === 404) {
+      const message = 'Not found, CODE ' + response.status
+      throw new NotFoundError(message)
+    }
+
+    if (response.status === 422) {
+      const message = 'Invalid request, CODE ' + response.status
+      const dataResponse = await this.reponseToJson(response)
+      const jsonErrors = validationErrors.safeParse(dataResponse)
+      throw new ValidationError(jsonErrors.data?.errors ?? {}, message)
+    }
+
+    throw new ServerError('Request failed, CODE ' + response.status)
   }
 
   private async reponseToData<T extends z.ZodTypeAny>(response: Response, schema: T): Promise<z.output<T>> {
