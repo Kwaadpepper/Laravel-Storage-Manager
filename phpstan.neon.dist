@@ -9,7 +9,6 @@ parameters:
     level: 9
 
     excludePaths:
-        - src/resources
         - src/config
 
 
