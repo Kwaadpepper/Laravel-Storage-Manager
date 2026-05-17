@@ -43,6 +43,7 @@ export default function DirectoryModal(_: DirectoryModalProps) {
     handleSubmit,
     formState: { errors },
     setError,
+    reset
   } = useForm<FormData>({
     resolver: zodResolver(formSchema)
   });
@@ -72,6 +73,7 @@ export default function DirectoryModal(_: DirectoryModalProps) {
       setNewDirectoryModal(ModalState.Closed)
       navigationService.refreshCurrentPath()
       toastService.pushToast({ message: 'Directory created successfully.', type: 'success' })
+      reset()
     }).catch(() => {
       toastService.pushToast({ message: 'Error creating directory. Please try again.', type: 'error' })
     })
