@@ -112,18 +112,51 @@ class ConfigRepository
             ->all();
     }
 
-    public function getStaticConfig(string $key): mixed
+    public function getStaticConfig(string $key): string | int
     {
-        return Arr::get($this->staticConfig, $key);
+        $value = $this->getConfigValueFrom($key, $this->staticConfig);
+
+        if (! is_string($value) && ! is_int($value)) {
+            throw new \UnexpectedValueException(
+                "Invalid static config value for key '{$key}'. Expected string or int."
+            );
+        }
+
+        return $value;
     }
 
     /**
-     * @param  string|int|float|bool|array<mixed>|null  $default
+     * @param  string|int|float|bool|array<mixed,mixed>|null  $default
+     * @return string|int|float|bool|array<mixed,mixed>|null
      */
-    private function getConfig(
+    public function getConfig(
         string $key,
         string | int | float | bool | array | null $default = null
-    ): mixed {
-        return Arr::get($this->config, $key, $default);
+    ): string | int | float | bool | array | null {
+        return $this->getConfigValueFrom(
+            $key,
+            $this->config
+        ) ?? $default;
+    }
+
+    /**
+     * @param  array<string,mixed>  $from
+     * @return string|int|float|bool|array<mixed,mixed>|null
+     */
+    private function getConfigValueFrom(
+        string $key,
+        array $from
+    ): string | int | float | bool | array | null {
+        $value = Arr::get($from, $key);
+
+        if (
+            is_string($value) || is_int($value) || is_float($value) || is_bool($value) || is_array($value) || $value === null
+        ) {
+            return $value;
+        }
+
+        throw new \UnexpectedValueException(
+            "Invalid config value for key '{$key}'. Expected string, int, float, bool, array or null."
+        );
     }
 }

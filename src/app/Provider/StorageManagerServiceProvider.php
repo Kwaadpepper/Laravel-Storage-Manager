@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Provider;
 
+use Composer\InstalledVersions;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
@@ -133,6 +134,7 @@ class StorageManagerServiceProvider extends ServiceProvider
         view()->composer(
             'storage-manager::*',
             function ($view) {
+                $configRepository = $this->app->make(ConfigRepository::class);
                 $composerJsonPath = __DIR__ . '/../../../composer.json';
                 $composer         = Arr::wrap(Cache::remember(
                     'storage-manager-composer',
@@ -142,10 +144,14 @@ class StorageManagerServiceProvider extends ServiceProvider
                         true
                     )
                 ));
-                $configRepository = app()->make(ConfigRepository::class);
+                $packageName         = strval($configRepository->getStaticConfig('packageName'));
+                $composerPackageName = Arr::get($composer, 'name', $packageName);
+                $composerPackageName = is_string($composerPackageName) ? $composerPackageName : $packageName;
+                $version             = InstalledVersions::getVersion($composerPackageName);
                 $view->with('storageManagerConfig', [
-                    'packageName'         => $configRepository->getStaticConfig('packageName'),
-                    'composerPackageName' => Arr::get($composer, 'name'),
+                    'packageName'         => $packageName,
+                    'packageVersion'      => $version,
+                    'composerPackageName' => $composerPackageName,
                     'appDescription'      => Arr::get($composer, 'description'),
                     'appAuthors'          => Arr::get($composer, 'authors'),
                     'disks'               => Arr::map(
