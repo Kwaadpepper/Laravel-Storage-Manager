@@ -7,9 +7,9 @@ type ActionBarProps = {
 
 export default function ActionBar(_: ActionBarProps) {
   const container = useContainer()
-  const navigationService = container.cradle.navigationService
-  useFileManagerStore(state => state.currentPath)
+  const { setAboutModal } = useUiStore()
 
+  const navigationService = container.cradle.navigationService
   const canNavigatePrevious = navigationService.canNavigatePrevious()
   const canNavigateNext = navigationService.canNavigateNext()
   const canNavigateUp = navigationService.canNavigateUp()
@@ -26,6 +26,10 @@ export default function ActionBar(_: ActionBarProps) {
     navigationService.navigateToParent()
   }
 
+  function onAboutClick() {
+    setAboutModal(ModalState.Opened)
+  }
+
   return (
     <div className="flex">
       <div className="flex-1">
@@ -37,6 +41,12 @@ export default function ActionBar(_: ActionBarProps) {
         </button>
         <button className="btn btn-ghost btn-sm" onClick={onUpClick} disabled={!canNavigateUp}>
           <ArrowUp size={16} />Up
+        </button>
+      </div>
+
+      <div className="flex-1 ms-auto">
+        <button className="btn btn-ghost btn-sm" onClick={onAboutClick}>
+          About
         </button>
       </div>
     </div>

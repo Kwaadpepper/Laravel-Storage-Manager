@@ -9,6 +9,7 @@ interface AppAuthor {
 
 interface ConfigState {
   packageName: string
+  packageVersion: string
   composerPackageName: string
   appDescription: string
   appAuthors: AppAuthor[]
@@ -30,6 +31,7 @@ interface ConfigState {
 
 export const useConfigStore = create<ConfigState>((set) => ({
   packageName: '',
+  packageVersion: '',
   composerPackageName: '',
   appDescription: '',
   appAuthors: [],

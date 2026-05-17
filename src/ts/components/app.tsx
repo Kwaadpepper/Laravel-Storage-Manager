@@ -5,6 +5,7 @@ import ActionBar from './layout/action-bar';
 import Breadcrumb from './layout/breadcrumb';
 import ContentView from './layout/content-view';
 import TreeView from './layout/tree-view';
+import AboutModal from './modals/about-modal';
 
 
 function App() {
@@ -48,6 +49,9 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <AboutModal />
     </div>
   )
 }
