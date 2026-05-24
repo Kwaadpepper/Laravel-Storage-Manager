@@ -1,7 +1,7 @@
-type TreeViewProps = {
+interface TreeViewProps {
 }
 
-export default function TreeView(_: TreeViewProps) {
+export default function TreeView(_: Readonly<TreeViewProps>) {
 
   return (
     <ul className="menu bg-base-100 rounded-box shadow-sm w-full">

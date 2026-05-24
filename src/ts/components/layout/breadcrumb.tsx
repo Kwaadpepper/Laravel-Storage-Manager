@@ -3,15 +3,15 @@ import { useFileManagerStore } from '@ts/stores';
 import { Path, rootPath } from '@ts/types';
 import { useMemo } from 'react';
 
-type BreadcrumbViewProps = {
+interface BreadcrumbViewProps {
 }
 
-type BreadcrumbPathPart = {
+interface BreadcrumbPathPart {
   readonly name: string
   readonly path: Path
 }
 
-export default function Breadcrumb({ }: Readonly<BreadcrumbViewProps>) {
+export default function Breadcrumb(_: Readonly<BreadcrumbViewProps>) {
   const container = useContainer()
   const navigationService = container.cradle.navigationService
   const { currentPath } = useFileManagerStore()

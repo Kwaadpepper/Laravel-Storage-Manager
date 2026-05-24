@@ -4,10 +4,10 @@ import { Path } from "@ts/types";
 import { FolderOpen } from "lucide-react";
 import ContentWrapper from "./content/content-wrapper";
 
-type ContentViewProps = {
+interface ContentViewProps {
 }
 
-export default function ContentView(_: ContentViewProps) {
+export default function ContentView(_: Readonly<ContentViewProps>) {
   const { directories, files } = useFileManagerStore()
   const container = useContainer()
   const navigationService = container.cradle.navigationService

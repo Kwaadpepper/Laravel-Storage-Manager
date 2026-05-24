@@ -1,14 +1,14 @@
 import { useToastStore } from "@ts/stores";
 import { X } from "lucide-react";
 
-type ToastProps = {
-  readonly top?: boolean
-  readonly bottom?: boolean
-  readonly left?: boolean
-  readonly right?: boolean
+interface ToastProps {
+  top?: boolean
+  bottom?: boolean
+  left?: boolean
+  right?: boolean
 }
 
-export default function ToastContainer({ top, bottom, left, right }: ToastProps) {
+export default function ToastContainer({ top, bottom, left, right }: Readonly<ToastProps>) {
 
   const { toasts, pullToast } = useToastStore()
 
@@ -30,7 +30,7 @@ export default function ToastContainer({ top, bottom, left, right }: ToastProps)
             toast.type === 'info' ? 'alert-info' : '',
             toast.type === 'warning' ? 'alert-warning' : '',
           ].join(' ')}>
-            { toast.persistent ? null : <button className="btn btn-sm btn-ghost" onClick={() => pullToast(toast.id)} title="Close"><X size={16} /></button> }
+            {toast.persistent ? null : <button className="btn btn-sm btn-ghost" onClick={() => pullToast(toast.id)} title="Close"><X size={16} /></button>}
             {toast.title && <span className="font-bold">{toast.title}</span>}
             <span>{toast.message}</span>
           </div>
