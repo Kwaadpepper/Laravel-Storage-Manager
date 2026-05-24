@@ -1,10 +1,10 @@
 import { FieldError as ReactHookFormFieldError } from "react-hook-form";
 
-type FieldErrorProps = {
-  readonly fieldError: ReactHookFormFieldError | undefined
+interface FieldErrorProps {
+  fieldError: ReactHookFormFieldError | undefined
 }
 
-export default function FieldError({ fieldError }: FieldErrorProps) {
+export default function FieldError({ fieldError }: Readonly<FieldErrorProps>) {
 
   return (
     <>

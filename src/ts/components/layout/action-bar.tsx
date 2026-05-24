@@ -2,10 +2,10 @@ import { useContainer } from "@ts/container";
 import { ModalState, useUiStore } from "@ts/stores";
 import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FileUp, FolderPlus } from "lucide-react";
 
-type ActionBarProps = {
+interface ActionBarProps {
 }
 
-export default function ActionBar(_: ActionBarProps) {
+export default function ActionBar(_: Readonly<ActionBarProps>) {
   const container = useContainer()
   const { setAboutModal, setNewDirectoryModal, setUploadFileModal } = useUiStore()
 

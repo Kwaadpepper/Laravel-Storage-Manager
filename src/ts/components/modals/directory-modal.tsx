@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import FieldError from "../shared/field-error";
 
-type DirectoryModalProps = {
+interface DirectoryModalProps {
 }
 
 interface FormData {
@@ -24,7 +24,7 @@ const formSchema = z.object({
   directoryName: z.string().min(directoryNameMinLength).max(directoryNameMaxLength)
 })
 
-export default function DirectoryModal(_: DirectoryModalProps) {
+export default function DirectoryModal(_: Readonly<DirectoryModalProps>) {
   const { currentPath } = useFileManagerStore()
   const { newDirectoryModal, setNewDirectoryModal } = useUiStore()
 

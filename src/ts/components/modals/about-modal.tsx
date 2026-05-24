@@ -2,10 +2,10 @@ import { ModalState, useConfigStore, useUiStore } from "@ts/stores";
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-type AboutModalProps = {
+interface AboutModalProps {
 }
 
-export default function AboutModal(_: AboutModalProps) {
+export default function AboutModal(_: Readonly<AboutModalProps>) {
 
   const { aboutModal, setAboutModal } = useUiStore()
   const { packageName, packageVersion, packageLogo, composerPackageName, appDescription, appAuthors } = useConfigStore()
