@@ -1,7 +1,8 @@
 import { HttpClient } from '@ts/clients';
 import { ApiService, ErrorHandlerService, NavigationService, ToastService } from '@ts/services';
+import { ContextualMenuService } from '@ts/services/contextual-menu-service';
 import { FileManagerService } from '@ts/services/file-manager-service';
-import { useFileManagerStore, useToastStore } from '@ts/stores';
+import { useContextualMenuStore, useFileManagerStore, useToastStore } from '@ts/stores';
 import { asFunction, createContainer, InjectionMode } from 'awilix';
 
 export type AppContainer = {
@@ -10,6 +11,7 @@ export type AppContainer = {
   apiService: ApiService
   httpClient: HttpClient
   toastService: ToastService
+  contextualMenuService: ContextualMenuService
   errorHandlerService: ErrorHandlerService
 }
 
@@ -45,6 +47,7 @@ export function buildDiContainer() {
     navigationService: asFunction(({ fileManagerService }) => new NavigationService(useFileManagerStore, fileManagerService)).singleton(),
     toastService: asFunction(() => new ToastService(useToastStore)).singleton(),
     errorHandlerService: asFunction(({ toastService }) => new ErrorHandlerService(toastService)).singleton(),
+    contextualMenuService: asFunction(() => new ContextualMenuService(useContextualMenuStore)).singleton(),
   })
 
   return container
