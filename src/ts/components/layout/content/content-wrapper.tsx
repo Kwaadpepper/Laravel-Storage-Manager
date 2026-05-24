@@ -5,11 +5,11 @@ import ContentFile from "./content-file";
 
 type Item = TreeNodeDirectory | TreeNodeFile
 
-type ContentWrapperProps = {
+interface ContentWrapperProps {
   readonly item: Item
 }
 
-export default function ContentWrapper({ item }: ContentWrapperProps) {
+export default function ContentWrapper({ item }: Readonly<ContentWrapperProps>) {
   const container = useContainer()
   const navigationService = container.cradle.navigationService
 
@@ -22,7 +22,13 @@ export default function ContentWrapper({ item }: ContentWrapperProps) {
   }
 
   return (
-    <div className="table-row hover:cursor-pointer hover:bg-accent/30" title={item.name} role="row" tabIndex={0} onClick={() => onItemClick(item)}>
+    <div
+      className="table-row hover:cursor-pointer hover:bg-accent/30"
+      title={item.name}
+      role="row"
+      tabIndex={0}
+      onClick={() => onItemClick(item)}
+    >
       {isDirectory(item) ? (
         <ContentDirectory item={item} />
       ) : (
