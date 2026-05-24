@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations;
 
-use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 
 final readonly class PropertiesDto implements Dto
@@ -21,7 +20,7 @@ final readonly class PropertiesDto implements Dto
         public ?int $size = null,
     ) {
         if ($this->isFile && ($this->extension === null || $this->size === null)) {
-            throw new DomainException('For files, extension and size must be provided.');
+            throw new \InvalidArgumentException('For files, extension and size must be provided.');
         }
     }
 

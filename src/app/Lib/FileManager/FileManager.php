@@ -8,6 +8,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
+use Kwaadpepper\LaravelStorageManager\Enum\GenericDomainError;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
@@ -272,7 +273,7 @@ class FileManager
         $disks = Arr::wrap(config('filesystems.disks', []));
 
         if (! isset($disks[$diskName])) {
-            throw new DomainException("Disk '{$diskName}' does not exist.");
+            throw new DomainException(GenericDomainError::DISK_NOT_FOUND);
         }
     }
 }

@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Kwaadpepper\LaravelStorageManager\Http\Exception\ApiExceptionHandler;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Service\ApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Throwable;
 
 final class StorageManagerApiMiddleware
 {
     public function __construct(
-        private readonly ApiService $apiService
+        private readonly ApiService $apiService,
+        private readonly ApiExceptionHandler $apiExceptionHandler,
     ) {
     }
 
@@ -22,10 +25,15 @@ final class StorageManagerApiMiddleware
             abort(403);
         }
 
-        $response = $next($request);
+        try {
+            $response = $next($request);
+        } catch (Throwable $exception) {
+            $response = $this->apiExceptionHandler->toApiResponse($exception);
+        }
 
         if ($response instanceof JsonResponse) {
-            $response = $this->apiService->wrapResponse($response);
+            $normalizedErrorResponse = $this->apiExceptionHandler->toApiResponseFromRenderedJsonResponse($response);
+            $response = $normalizedErrorResponse ?? $this->apiService->wrapResponse($response);
         }
 
         $response->headers->set('Cache-Control', 'no-store');

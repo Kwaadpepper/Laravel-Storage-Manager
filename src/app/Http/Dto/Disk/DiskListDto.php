@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Dto\Disk;
 
-use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 
 final readonly class DiskListDto implements Dto
@@ -17,7 +16,7 @@ final readonly class DiskListDto implements Dto
     ) {
         foreach ($diskNames as $diskName) {
             if (! is_string($diskName)) {
-                throw new DomainException('All disk names must be strings.');
+                throw new \InvalidArgumentException('All disk names must be strings.');
             }
         }
     }

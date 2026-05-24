@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\ServiceProvider;
 use Kwaadpepper\LaravelStorageManager\Event\SmEvent;
+use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -138,9 +139,9 @@ describe('inheritance contracts', function () use ($libraryNamespace): void {
         ->expect("{$libraryNamespace}\Exception\AuthenticationException")
         ->toExtend(HttpException::class);
 
-    arch('FileOperationException extends HttpException')
+    arch('FileOperationException extends DomainException')
         ->expect("{$libraryNamespace}\Exception\FileOperationException")
-        ->toExtend(HttpException::class);
+        ->toExtend(DomainException::class);
 
     arch('service provider extends base ServiceProvider')
         ->expect("{$libraryNamespace}\Provider")

@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Enum;
 
-enum FileOperationError: string
+use Kwaadpepper\LaravelStorageManager\Exception\DomainErrorCode;
+
+enum FileOperationError: int implements DomainErrorCode
 {
-    case DIRECTORY_ALREADY_EXISTS = 'directory_already_exists';
-    case DIRECTORY_NOT_FOUND      = 'directory_not_found';
-    case FILE_ALREADY_EXISTS      = 'file_already_exists';
-    case FILE_NOT_FOUND           = 'file_not_found';
-    case INVALID_PATH             = 'invalid_path';
-    case PERMISSION_DENIED        = 'permission_denied';
-    case UNKNOWN_ERROR            = 'unknown_error';
+    case DIRECTORY_ALREADY_EXISTS = 1001;
+    case DIRECTORY_NOT_FOUND      = 1002;
+    case FILE_ALREADY_EXISTS      = 1003;
+    case FILE_NOT_FOUND           = 1004;
+    case INVALID_PATH             = 1005;
+    case PERMISSION_DENIED        = 1006;
+    case UNKNOWN_ERROR            = 1007;
 
     public function message(): string
     {
@@ -27,16 +29,8 @@ enum FileOperationError: string
         };
     }
 
-    public function httpStatusCode(): int
+    public function code(): int
     {
-        return match ($this) {
-            self::DIRECTORY_ALREADY_EXISTS => 1,
-            self::DIRECTORY_NOT_FOUND      => 2,
-            self::FILE_ALREADY_EXISTS      => 3,
-            self::FILE_NOT_FOUND           => 4,
-            self::INVALID_PATH             => 5,
-            self::PERMISSION_DENIED        => 6,
-            self::UNKNOWN_ERROR            => 7,
-        };
+        return $this->value;
     }
 }
