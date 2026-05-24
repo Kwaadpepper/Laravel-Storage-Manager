@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 
 final class Disk
 {
@@ -16,10 +17,10 @@ final class Disk
         public readonly bool $report
     ) {
         if (empty($this->driver)) {
-            throw new \DomainException('Disk driver cannot be empty.');
+            throw new IllegalDomainStateException('Disk driver cannot be empty.');
         }
         if (empty($this->name)) {
-            throw new \DomainException('Disk name cannot be empty.');
+            throw new IllegalDomainStateException('Disk name cannot be empty.');
         }
     }
 

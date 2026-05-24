@@ -31,7 +31,7 @@ describe('Disk', function (): void {
 
         // When / Then
         expect(fn () => new Disk($emptyDriver, $name, $throw, $report))
-            ->toThrow(\DomainException::class, 'Disk driver cannot be empty.');
+                ->toThrow(\Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException::class, 'Disk driver cannot be empty.');
     });
 
     it('throws a DomainException when name is empty', function (): void {
@@ -43,6 +43,6 @@ describe('Disk', function (): void {
 
         // When / Then
         expect(fn () => new Disk($driver, $emptyName, $throw, $report))
-            ->toThrow(\DomainException::class, 'Disk name cannot be empty.');
+                ->toThrow(\Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException::class, 'Disk name cannot be empty.');
     });
 });

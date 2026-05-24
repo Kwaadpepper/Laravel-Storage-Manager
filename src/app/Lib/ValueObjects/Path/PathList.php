@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
+use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
+
 class PathList
 {
     /**
@@ -16,13 +18,13 @@ class PathList
     ) {
         foreach ($files as $path) {
             if (! $path instanceof Path) {
-                throw new \DomainException('All items in files must be instances of Path.');
+                throw new IllegalDomainStateException('All items in files must be instances of Path.');
             }
         }
 
         foreach ($directories as $directory) {
             if (! $directory instanceof Path) {
-                throw new \DomainException('All items in directories must be instances of Path.');
+                throw new IllegalDomainStateException('All items in directories must be instances of Path.');
             }
         }
     }

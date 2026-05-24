@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
+use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
+
 class Path implements \Stringable
 {
     public function __construct(
@@ -13,7 +15,7 @@ class Path implements \Stringable
             ! str_starts_with($this->value, '/')
             || empty(mb_trim($this->value))
         ) {
-            throw new \DomainException('Path must start with a \'/\'.');
+            throw new IllegalDomainStateException('Path must start with a \'/\'.');
         }
     }
 

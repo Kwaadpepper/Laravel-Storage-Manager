@@ -24,7 +24,7 @@ describe('Storage', function (): void {
 
         // When / Then
         expect(fn () => new Storage($emptyName, 'local'))
-            ->toThrow(\DomainException::class, 'Storage name cannot be empty.');
+                ->toThrow(\Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException::class, 'Storage name cannot be empty.');
     });
 
     it('throws a DomainException when disk is empty', function (): void {
@@ -33,6 +33,6 @@ describe('Storage', function (): void {
 
         // When / Then
         expect(fn () => new Storage('my-storage', $emptyDisk))
-            ->toThrow(\DomainException::class, 'Storage disk cannot be empty.');
+                ->toThrow(\Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException::class, 'Storage disk cannot be empty.');
     });
 });

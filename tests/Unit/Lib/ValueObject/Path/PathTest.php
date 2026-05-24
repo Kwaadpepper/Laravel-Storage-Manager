@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
 describe('Path', function (): void {
@@ -34,7 +35,7 @@ describe('Path', function (): void {
 
         // When / Then
         expect(fn () => new Path($invalidPath))
-            ->toThrow(\DomainException::class, "Path must start with a '/'.");
+            ->toThrow(IllegalDomainStateException::class, "Path must start with a '/'.");
     });
 
     it('throws a DomainException when path is empty', function (): void {
@@ -43,7 +44,7 @@ describe('Path', function (): void {
 
         // When / Then
         expect(fn () => new Path($emptyPath))
-            ->toThrow(\DomainException::class, "Path must start with a '/'.");
+            ->toThrow(IllegalDomainStateException::class, "Path must start with a '/'.");
     });
 
     it('appends a segment without a leading slash to a base path', function (): void {

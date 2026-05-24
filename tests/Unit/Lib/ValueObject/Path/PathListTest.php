@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList;
 
@@ -34,7 +35,7 @@ describe('PathList', function (): void {
 
         // When / Then
         expect(fn () => new PathList($invalidFiles, []))
-            ->toThrow(\DomainException::class, 'All items in files must be instances of Path.');
+            ->toThrow(IllegalDomainStateException::class, 'All items in files must be instances of Path.');
     });
 
     it('throws a DomainException when directories contains a non-Path item', function (): void {
@@ -43,6 +44,6 @@ describe('PathList', function (): void {
 
         // When / Then
         expect(fn () => new PathList([], $invalidDirs))
-            ->toThrow(\DomainException::class, 'All items in directories must be instances of Path.');
+            ->toThrow(IllegalDomainStateException::class, 'All items in directories must be instances of Path.');
     });
 });
