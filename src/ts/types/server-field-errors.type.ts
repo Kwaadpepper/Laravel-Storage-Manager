@@ -1,1 +1,1 @@
-export type ServerFieldsErrors = Record<string, string>
+export type ServerFieldsErrors<TFieldName extends string = string> = Record<TFieldName, string>

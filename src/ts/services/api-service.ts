@@ -1,7 +1,7 @@
 
 import { HttpClient, RequestParameters } from '@ts/clients';
-import { AuthorizationError, NotFoundError, ServerError, UnexpectedError, ValidationError } from '@ts/errors';
-import { apiResponseSchema, authorizationErrorSchema, validationErrors } from '@ts/schemas';
+import { AuthorizationError, DomainValidationError, NotFoundError, ServerError, UnexpectedError, ValidationError } from '@ts/errors';
+import { apiResponseSchema, authorizationErrorSchema, domainValidationErrorSchema, validationErrors } from '@ts/schemas';
 import { Str } from '@ts/tools';
 import { JsonValue } from '@ts/types';
 import z from 'zod/v4';
@@ -65,37 +65,12 @@ export class ApiService {
     await this.httpClient.delete(path, data)
   }
 
-  private async throwForErrorStatus(response: Response): Promise<void> {
+  private async throwForErrorStatus<T extends z.ZodTypeAny>(response: Response, schema?: T): Promise<void> {
     if (response.ok) {
       return
     }
 
-    if (response.status === 403) {
-      const message = 'Not authorized, CODE ' + response.status
-      const dataResponse = await this.reponseToJson(response)
-      const authorizationError = authorizationErrorSchema.safeParse(dataResponse)
-      throw new AuthorizationError(authorizationError.data?.reason ?? 'Unauthorized', message)
-    }
-
-    if (response.status === 404) {
-      const message = 'Not found, CODE ' + response.status
-      throw new NotFoundError(message)
-    }
-
-    if (response.status === 422) {
-      const message = 'Invalid request, CODE ' + response.status
-      const dataResponse = await this.reponseToJson(response)
-      const jsonErrors = validationErrors.safeParse(dataResponse)
-      throw new ValidationError(jsonErrors.data?.errors ?? {}, message)
-    }
-
-    throw new ServerError('Request failed, CODE ' + response.status)
-  }
-
-  private async reponseToData<T extends z.ZodTypeAny>(response: Response, schema: T): Promise<z.output<T>> {
     const dataResponse = await this.reponseToJson(response)
-    const apiResponse = apiResponseSchema.parse(dataResponse)
-    const result = schema.safeParse(apiResponse.data)
 
     if (response.status === 403) {
       const message = 'Not authorized, CODE ' + response.status
@@ -105,20 +80,17 @@ export class ApiService {
 
     if (response.status === 404) {
       const message = 'Not found, CODE ' + response.status
-
       throw new NotFoundError(message)
     }
 
-    if (response.status === 422) {
+    if (response.status === 400) {
       const message = 'Invalid request, CODE ' + response.status
+
+      const jsonErrors = validationErrors.safeParse(dataResponse)
+      const errors: Record<string, string> = jsonErrors.data?.errors ?? {}
 
       if (schema instanceof z.ZodObject) {
-
-
-        // Try to map response error field to our schema
         const propertyNames = Object.keys(schema.shape)
-        const jsonErrors = validationErrors.safeParse(dataResponse)
-        const errors: Record<string, string> = jsonErrors.data?.errors ?? {}
         const mappedErrors: Record<string, string> = {}
 
         for (const [key, value] of Object.entries(errors)) {
@@ -128,11 +100,31 @@ export class ApiService {
             ?? Str.toKebabCase(key)
           mappedErrors[matchingPropertyName] = value
         }
-        throw new ValidationError(mappedErrors ?? {}, message)
+
+        throw new ValidationError(mappedErrors, message)
       }
 
-      throw new ValidationError(dataResponse?.['errors' as keyof typeof dataResponse] ?? {}, message)
+      throw new ValidationError(errors, message)
     }
+
+    if (response.status === 422) {
+      const message = 'Business rule failed, CODE ' + response.status
+      const domainError = domainValidationErrorSchema.safeParse(dataResponse)
+      throw new DomainValidationError(
+        domainError.data?.errors.code ?? 0,
+        domainError.data?.errors.message ?? message,
+      )
+    }
+
+    throw new ServerError('Request failed, CODE ' + response.status)
+  }
+
+  private async reponseToData<T extends z.ZodTypeAny>(response: Response, schema: T): Promise<z.output<T>> {
+    await this.throwForErrorStatus(response, schema)
+
+    const dataResponse = await this.reponseToJson(response)
+    const apiResponse = apiResponseSchema.parse(dataResponse)
+    const result = schema.safeParse(apiResponse.data)
 
     if (!result.success) {
       const message = 'Failed to validate server response, CODE ' + response.status

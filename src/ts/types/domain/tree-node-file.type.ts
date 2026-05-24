@@ -6,3 +6,7 @@ export interface TreeNodeFile extends TreeNode {
   size: number
   extension: string | null
 }
+
+export function isFile(node: TreeNode): node is TreeNodeFile {
+  return (node as TreeNodeFile).extension !== undefined
+}

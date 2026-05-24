@@ -1,4 +1,5 @@
 export * from './authorization-error';
+export * from './domain-validation-error';
 export * from './not-found-error';
 export * from './server-error';
 export * from './unexpected-error';

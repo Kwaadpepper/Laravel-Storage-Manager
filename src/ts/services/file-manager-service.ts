@@ -1,6 +1,9 @@
+import { isValidationError, ValidationError } from "@ts/errors";
 import { treeResponseSchema } from "@ts/schemas";
 import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { ApiService } from "./api-service";
+
+export type CreateDirectoryValidationField = 'directoryName'
 
 export class FileManagerService {
   private readonly prefix: string = '/sm/fm'
@@ -41,6 +44,31 @@ export class FileManagerService {
       disk: 'public',
       path,
       name,
+    }).catch((error: unknown) => {
+      if (isValidationError(error)) {
+        throw this.remapValidationError(error, {
+          name: 'directoryName',
+        })
+      }
+
+      throw error
     })
+  }
+
+  private remapValidationError<TFieldName extends string>(
+    error: ValidationError,
+    fieldMap: Record<string, TFieldName>
+  ): ValidationError<TFieldName> {
+    const mappedErrors = {} as Record<TFieldName, string>
+
+    for (const [fieldName, message] of Object.entries(error.getFieldErrors())) {
+      const mappedFieldName = fieldMap[fieldName]
+
+      if (mappedFieldName) {
+        mappedErrors[mappedFieldName] = message
+      }
+    }
+
+    return new ValidationError(mappedErrors, error.message)
   }
 }

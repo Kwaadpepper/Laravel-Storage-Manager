@@ -5,3 +5,7 @@ export interface TreeNodeDirectory extends TreeNode {
   name: string
   hasSubDirectories: boolean
 }
+
+export function isDirectory(node: TreeNode): node is TreeNodeDirectory {
+  return (node as TreeNodeDirectory).hasSubDirectories !== undefined
+}

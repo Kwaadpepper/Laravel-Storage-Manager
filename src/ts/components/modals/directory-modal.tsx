@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useContainer } from "@ts/container";
+import { isDomainValidationError, isValidationError } from "@ts/errors";
+import { CreateDirectoryValidationField } from "@ts/services";
 import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
 import { FolderPlus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -15,7 +17,7 @@ interface FormData {
 }
 
 const directoryNameInputName = 'directoryName'
-const directoryNameMinLength = 2
+const directoryNameMinLength = 1
 const directoryNameMaxLength = 255
 
 const formSchema = z.object({
@@ -31,7 +33,7 @@ export default function DirectoryModal(_: DirectoryModalProps) {
   const fileManagerService = container.cradle.fileManagerService
   const toastService = container.cradle.toastService
 
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null)
 
   const dialogRef = useRef<HTMLDialogElement | null>(null)
   const directoryNameInputRef = useRef<HTMLInputElement | null>(null)
@@ -66,21 +68,38 @@ export default function DirectoryModal(_: DirectoryModalProps) {
   }, [newDirectoryModal])
 
   const onFormSubmit = async (data: FormData) => {
+    setFormErrorMessage(null)
 
-    setError('directoryName', { message: 'test error message' })
-
-    fileManagerService.createDirectory(currentPath, data.directoryName).then(() => {
+    try {
+      await fileManagerService.createDirectory(currentPath, data.directoryName)
       setNewDirectoryModal(ModalState.Closed)
       navigationService.refreshCurrentPath()
       toastService.pushToast({ message: 'Directory created successfully.', type: 'success' })
       reset()
-    }).catch(() => {
-      toastService.pushToast({ message: 'Error creating directory. Please try again.', type: 'error' })
-    })
+    } catch (error: unknown) {
+      if (isDomainValidationError(error)) {
+        setFormErrorMessage(error.message)
+        return
+      }
+
+      if (isValidationError<CreateDirectoryValidationField>(error)) {
+        const fieldErrors = error.getFieldErrors()
+        const directoryError = fieldErrors[directoryNameInputName]
+
+        if (directoryError) {
+          setError(directoryNameInputName, { message: directoryError })
+          return
+        }
+      }
+
+      throw error
+    }
   }
 
   function onInnerCloseButtonClick() {
     closeButtonRef.current?.click()
+    reset()
+    setFormErrorMessage(null)
   }
 
   return (
@@ -91,7 +110,7 @@ export default function DirectoryModal(_: DirectoryModalProps) {
         </button>
         <h3 className="font-bold text-lg">Create New Directory</h3>
 
-        {errorMessage && <p className="text-red-500 text-center">{errorMessage}</p>}
+        {formErrorMessage && <p className="text-error text-center mt-2">{formErrorMessage}</p>}
 
         <form className="fieldset flex flex-col justify-center gap-4 py-4" onSubmit={handleSubmit(onFormSubmit)}>
 
@@ -128,7 +147,7 @@ export default function DirectoryModal(_: DirectoryModalProps) {
       </div>
 
       {/* Form to control the modal */}
-      <form method="dialog" className="modal-backdrop">
+      <form method="dialog" className="modal-backdrop" onSubmit={onInnerCloseButtonClick}>
         <button ref={closeButtonRef}>Close</button>
       </form>
     </dialog>
