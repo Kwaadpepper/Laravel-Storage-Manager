@@ -1,30 +1,23 @@
-import { useContainer } from '@ts/container';
-import { rootPath } from '@ts/types';
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import ActionBar from './layout/action-bar';
 import Breadcrumb from './layout/breadcrumb';
 import ContentView from './layout/content-view';
 import TreeView from './layout/tree-view';
 import AboutModal from './modals/about-modal';
 import DirectoryModal from './modals/directory-modal';
+import { ContextualMenuContainer } from './shared/contextual-menu-container';
 import ToastContainer from './shared/toast-container';
+import { useAppInitialization } from './shared/use-app-initialization';
+import { useContextMenuTrigger } from './shared/use-contextual-menu-trigger';
 
 
 function App() {
-  const container = useContainer()
-  const fileApiService = container.cradle.fileManagerService
-  const navigationService = container.cradle.navigationService
-
-  useEffect(() => {
-    fileApiService.initialize().then(() => {
-      navigationService.navigateTo(rootPath())
-    }).catch(() => {
-      console.error('Error initializing file manager')
-    })
-  }, [fileApiService, navigationService])
+  const appRef = useRef<HTMLDivElement | null>(null)
+  useAppInitialization()
+  useContextMenuTrigger(appRef)
 
   return (
-    <div className="min-h-screen bg-base-200">
+    <div ref={appRef} className="min-h-screen bg-base-200">
       {/* Navbar */}
       <div className="navbar bg-base-100 shadow-sm px-4">
         <div className="navbar-start">
@@ -53,6 +46,7 @@ function App() {
       </div>
 
       <ToastContainer top right />
+      <ContextualMenuContainer />
 
       {/* Modals */}
       <AboutModal />
