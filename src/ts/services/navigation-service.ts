@@ -70,6 +70,7 @@ export class NavigationService {
 
     this.pushHistory(path)
     this.fileManagerStore.setState({ currentPath: path })
+    this.updateNavigationCapabilities()
     this.emit(NavigationEvent.NavigateTo)
   }
 
@@ -103,6 +104,7 @@ export class NavigationService {
     this.navigationIndex++
     this.updateUrl(nextPath)
     this.fileManagerStore.setState({ currentPath: nextPath })
+    this.updateNavigationCapabilities()
     this.emit(NavigationEvent.NavigateNext)
   }
 
@@ -120,6 +122,7 @@ export class NavigationService {
     this.navigationIndex--
     this.updateUrl(previousPath)
     this.fileManagerStore.setState({ currentPath: previousPath })
+    this.updateNavigationCapabilities()
     this.emit(NavigationEvent.NavigatePrevious)
   }
 
@@ -139,6 +142,14 @@ export class NavigationService {
     globalThis.history.pushState({}, '', url.toString())
     this.navigationHistory.push(path)
     this.navigationIndex = this.navigationHistory.length - 1
+  }
+
+  private updateNavigationCapabilities(): void {
+    this.fileManagerStore.setState({
+      canNavigatePrevious: this.canNavigatePrevious(),
+      canNavigateNext: this.canNavigateNext(),
+      canNavigateUp: this.canNavigateUp(),
+    })
   }
 
   private getCurrentPath(): Path {

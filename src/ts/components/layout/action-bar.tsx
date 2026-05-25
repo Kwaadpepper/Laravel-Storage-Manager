@@ -1,5 +1,5 @@
 import { useContainer } from "@ts/container";
-import { ModalState, useUiStore } from "@ts/stores";
+import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
 import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FileUp, FolderPlus } from "lucide-react";
 
 interface ActionBarProps {
@@ -8,11 +8,9 @@ interface ActionBarProps {
 export default function ActionBar(_: Readonly<ActionBarProps>) {
   const container = useContainer()
   const { setAboutModal, setNewDirectoryModal, setUploadFileModal } = useUiStore()
+  const { canNavigatePrevious, canNavigateNext, canNavigateUp } = useFileManagerStore()
 
   const navigationService = container.resolve('navigationService')
-  const canNavigatePrevious = navigationService.canNavigatePrevious()
-  const canNavigateNext = navigationService.canNavigateNext()
-  const canNavigateUp = navigationService.canNavigateUp()
 
   function onBackClick() {
     navigationService.navigatePrevious()

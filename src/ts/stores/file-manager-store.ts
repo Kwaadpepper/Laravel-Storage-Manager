@@ -6,6 +6,9 @@ type FileManagerState = {
   directories: TreeNodeDirectory[]
   files: TreeNodeFile[]
   selectedFile: TreeNode | null
+  canNavigatePrevious: boolean
+  canNavigateNext: boolean
+  canNavigateUp: boolean
   setCurrentPath: (path: Path) => void
   setFiles: (files: TreeNodeFile[]) => void
   selectNode: (file: TreeNode | null) => void
@@ -16,6 +19,9 @@ export const useFileManagerStore = create<FileManagerState>((set) => ({
   directories: [],
   files: [],
   selectedFile: null,
+  canNavigatePrevious: false,
+  canNavigateNext: false,
+  canNavigateUp: false,
   setCurrentPath: (path) => set({ currentPath: path, selectedFile: null }),
   setFiles: (files) => set({ files }),
   selectNode: (file) => set({ selectedFile: file }),
