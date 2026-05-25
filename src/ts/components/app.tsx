@@ -4,7 +4,7 @@ import Breadcrumb from './layout/breadcrumb';
 import ContentView from './layout/content-view';
 import TreeView from './layout/tree-view';
 import AboutModal from './modals/about-modal';
-import DirectoryModal from './modals/directory-modal';
+import DirectoryModal from './modals/directory/create-modal';
 import { ContextualMenuContainer } from './shared/contextual-menu-container';
 import ToastContainer from './shared/toast-container';
 import { useAppInitialization } from './shared/use-app-initialization';
