@@ -4,9 +4,11 @@ import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import FieldError from "../../shared/field-error";
 import {
-  fileNameInputName,
-  fileNameMaxLength,
-  fileNameMinLength,
+  baseNameInputName,
+  baseNameMaxLength,
+  baseNameMinLength,
+  extensionInputName,
+  extensionMaxLength,
   FormData,
   formSchema,
   useRenameFileViewModel,
@@ -19,7 +21,7 @@ export default function RenameFileModal(_: Readonly<RenameFileModalProps>) {
   const vm = useRenameFileViewModel()
 
   const dialogRef = useRef<HTMLDialogElement | null>(null)
-  const fileNameInputRef = useRef<HTMLInputElement | null>(null)
+  const baseNameInputRef = useRef<HTMLInputElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const {
@@ -30,25 +32,27 @@ export default function RenameFileModal(_: Readonly<RenameFileModalProps>) {
     reset,
   } = useForm<FormData>({ resolver: zodResolver(formSchema) })
 
-  const { ref: registerRef, ...registerRest } = register(fileNameInputName)
+  const { ref: baseNameRegisterRef, ...baseNameRegisterRest } = register(baseNameInputName)
+  const { ref: extensionRegisterRef, ...extensionRegisterRest } = register(extensionInputName)
 
   useEffect(() => {
     if (vm.isOpen) {
+      reset({ baseName: vm.targetBaseName, extension: vm.targetExtension })
       dialogRef.current?.showModal()
-      fileNameInputRef.current?.focus()
+      baseNameInputRef.current?.focus()
     } else {
       dialogRef.current?.close()
     }
   }, [vm.isOpen])
 
   useEffect(() => {
-    if (vm.fileNameFieldError) {
-      setError(fileNameInputName, { message: vm.fileNameFieldError })
+    if (vm.baseNameFieldError) {
+      setError(baseNameInputName, { message: vm.baseNameFieldError })
     }
-  }, [vm.fileNameFieldError])
+  }, [vm.baseNameFieldError])
 
   const onFormSubmit = async (data: FormData) => {
-    const success = await vm.submit(data.fileName)
+    const success = await vm.submit(data.baseName, data.extension)
     if (success) reset()
   }
 
@@ -73,26 +77,49 @@ export default function RenameFileModal(_: Readonly<RenameFileModalProps>) {
 
         <form className="fieldset flex flex-col justify-center gap-4 py-4" onSubmit={handleSubmit(onFormSubmit)}>
 
-          <label className="input validator mx-auto">
-            <Pencil className="h-[1em] opacity-50" />
-            <input
-              className="grow"
-              type="text"
-              placeholder={vm.targetName}
-              autoFocus
-              autoComplete="off"
-              minLength={fileNameMinLength}
-              maxLength={fileNameMaxLength}
-              required
-              aria-invalid={errors.fileName ? 'true' : 'false'}
-              ref={(el) => {
-                registerRef(el)
-                fileNameInputRef.current = el
-              }}
-              {...registerRest}
-            />
-          </label>
-          <FieldError fieldError={errors.fileName} />
+          <div className="flex items-start gap-1 mx-auto">
+            <div className="flex flex-col gap-1">
+              <label className="input validator">
+                <Pencil className="h-[1em] opacity-50" />
+                <input
+                  className="grow"
+                  type="text"
+                  placeholder={vm.targetBaseName}
+                  autoFocus
+                  autoComplete="off"
+                  minLength={baseNameMinLength}
+                  maxLength={baseNameMaxLength}
+                  required
+                  aria-invalid={errors.baseName ? 'true' : 'false'}
+                  ref={(el) => {
+                    baseNameRegisterRef(el)
+                    baseNameInputRef.current = el
+                  }}
+                  {...baseNameRegisterRest}
+                />
+              </label>
+              <FieldError fieldError={errors.baseName} />
+            </div>
+
+            <span className="self-center px-1 text-base-content/60 select-none">.</span>
+
+            <div className="flex flex-col gap-1">
+              <label className="input">
+                <input
+                  className="grow w-24"
+                  type="text"
+                  placeholder={vm.targetExtension || 'ext'}
+                  autoComplete="off"
+                  maxLength={extensionMaxLength}
+                  aria-label="Extension"
+                  aria-invalid={errors.extension ? 'true' : 'false'}
+                  ref={extensionRegisterRef}
+                  {...extensionRegisterRest}
+                />
+              </label>
+              <FieldError fieldError={errors.extension} />
+            </div>
+          </div>
 
           <label className="input mx-auto">
             <span>Rename</span>

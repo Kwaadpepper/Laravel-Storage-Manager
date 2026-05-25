@@ -5,16 +5,20 @@ import { ModalState, useUiStore } from "@ts/stores";
 import { useState } from "react";
 import { z } from "zod/v4";
 
-export const fileNameInputName = 'fileName' as const
-export const fileNameMinLength = 1
-export const fileNameMaxLength = 255
+export const baseNameInputName = 'baseName' as const
+export const extensionInputName = 'extension' as const
+export const baseNameMinLength = 1
+export const baseNameMaxLength = 255
+export const extensionMaxLength = 255
 
 export interface FormData {
-  fileName: string
+  baseName: string
+  extension: string
 }
 
 export const formSchema = z.object({
-  fileName: z.string().min(fileNameMinLength).max(fileNameMaxLength)
+  baseName: z.string().min(baseNameMinLength).max(baseNameMaxLength),
+  extension: z.string().max(extensionMaxLength),
 })
 
 export function useRenameFileViewModel() {
@@ -26,15 +30,21 @@ export function useRenameFileViewModel() {
   const toastService = container.resolve('toastService')
 
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null)
-  const [fileNameFieldError, setFileNameFieldError] = useState<string | null>(null)
+  const [baseNameFieldError, setBaseNameFieldError] = useState<string | null>(null)
 
   const isOpen = renameFileModal === ModalState.Opened
   const targetName = targetFilePath?.split('/').pop() ?? ''
+  const lastDot = targetName.lastIndexOf('.')
+  const targetBaseName = lastDot > 0 ? targetName.slice(0, lastDot) : targetName
+  const targetExtension = lastDot > 0 ? targetName.slice(lastDot + 1) : ''
 
-  async function submit(newName: string): Promise<boolean> {
+  async function submit(baseName: string, extension: string): Promise<boolean> {
     if (!targetFilePath) return false
     setFormErrorMessage(null)
-    setFileNameFieldError(null)
+    setBaseNameFieldError(null)
+
+    const trimmedExtension = extension.trim()
+    const newName = trimmedExtension ? `${baseName}.${trimmedExtension}` : baseName
 
     try {
       await fileManagerService.renameFile(targetFilePath, newName)
@@ -50,10 +60,10 @@ export function useRenameFileViewModel() {
 
       if (isValidationError<RenameFileValidationField>(error)) {
         const fieldErrors = error.getFieldErrors()
-        const fileError = fieldErrors[fileNameInputName]
+        const fileError = fieldErrors['fileName']
 
         if (fileError) {
-          setFileNameFieldError(fileError)
+          setBaseNameFieldError(fileError)
           return false
         }
       }
@@ -69,9 +79,10 @@ export function useRenameFileViewModel() {
   return {
     isOpen,
     targetFilePath,
-    targetName,
+    targetBaseName,
+    targetExtension,
     formErrorMessage,
-    fileNameFieldError,
+    baseNameFieldError,
     submit,
     close,
   }
