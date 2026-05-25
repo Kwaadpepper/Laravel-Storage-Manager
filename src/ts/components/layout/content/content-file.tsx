@@ -1,5 +1,5 @@
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
-import { toAnchorName } from "@ts/stores";
+import { ModalState, toAnchorName, useUiStore } from "@ts/stores";
 import { TreeNodeFile } from "@ts/types";
 import { FileIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -9,12 +9,13 @@ interface ContentFileProps {
 }
 
 export default function ContentFile({ item }: Readonly<ContentFileProps>) {
+  const { setRenameFileModal, setDeleteFileModal, setTargetFilePath } = useUiStore()
   const anchorName = toAnchorName(item.path)
 
   const entries = useMemo(() => [
     { label: 'Download', onClick: () => console.log(`Download ${item.path}`) },
-    { label: 'Rename', onClick: () => console.log(`Rename ${item.path}`) },
-    { label: 'Delete', onClick: () => console.log(`Delete ${item.path}`) },
+    { label: 'Rename', onClick: () => { setTargetFilePath(item.path); setRenameFileModal(ModalState.Opened) } },
+    { label: 'Delete', onClick: () => { setTargetFilePath(item.path); setDeleteFileModal(ModalState.Opened) } },
   ], [item.path])
 
   useContextualMenuRegistration(anchorName, entries)
