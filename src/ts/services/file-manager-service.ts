@@ -5,6 +5,7 @@ import { ApiService } from "./api-service";
 
 export type CreateDirectoryValidationField = 'directoryName'
 export type RenameDirectoryValidationField = 'directoryName'
+export type RenameFileValidationField = 'fileName'
 
 export class FileManagerService {
   private readonly prefix: string = '/sm/fm'
@@ -73,6 +74,30 @@ export class FileManagerService {
   }
 
   async deleteDirectory(path: Path): Promise<void> {
+    return this.deleteAtPath(path)
+  }
+
+  async renameFile(path: Path, newName: string): Promise<void> {
+    return this.apiService.put(`${this.prefix}/rename`, {
+      disk: 'public',
+      path,
+      to: newName,
+    }).catch((error: unknown) => {
+      if (isValidationError(error)) {
+        throw this.remapValidationError(error, {
+          to: 'fileName',
+        })
+      }
+
+      throw error
+    })
+  }
+
+  async deleteFile(path: Path): Promise<void> {
+    return this.deleteAtPath(path)
+  }
+
+  private async deleteAtPath(path: Path): Promise<void> {
     return this.apiService.delete(`${this.prefix}/delete`, {
       disk: 'public',
       path,
