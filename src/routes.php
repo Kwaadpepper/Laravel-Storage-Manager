@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\AssetController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\BasicOperationsController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
+use Kwaadpepper\LaravelStorageManager\Http\Controller\DownloadController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApiMiddleware;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerMiddleware;
@@ -32,6 +33,8 @@ Route::group([
 
     Route::view('/', 'storage-manager::file-manager')->name('file-manager');
     Route::get('/assets/{dir}/{file}', AssetController::class)->name('assets');
+
+    Route::get('/download/{disk}/{path}', DownloadController::class)->name('download');
 
     Route::name('api.')->middleware([StorageManagerApiMiddleware::class])->group(function (): void {
 
