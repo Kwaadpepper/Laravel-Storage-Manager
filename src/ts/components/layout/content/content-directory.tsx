@@ -1,4 +1,5 @@
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
+import { useContainer } from "@ts/container";
 import { toAnchorName } from "@ts/stores";
 import { rootPath, TreeNodeDirectory } from "@ts/types";
 import { Folder, FolderOpen } from "lucide-react";
@@ -9,12 +10,16 @@ interface ContentDirectoryProps {
 }
 
 export default function ContentDirectory({ item }: Readonly<ContentDirectoryProps>) {
+  const container = useContainer()
+  const navigationService = container.resolve('navigationService')
+  const fileManagerService = container.resolve('fileManagerService')
+
   const anchorName = toAnchorName(item.path)
 
   const entries = useMemo(() => [
-    { label: 'Open', onClick: () => console.log(`Open ${item.path}`) },
-    { label: 'Rename', onClick: () => console.log(`Rename ${item.path}`) },
-    { label: 'Delete', onClick: () => console.log(`Delete ${item.path}`) },
+    { label: 'Open', onClick: () => navigationService.navigateTo(item.path) },
+    { label: 'Rename', onClick: () => fileManagerService.rename(item.path) },
+    { label: 'Delete', onClick: () => fileManagerService.deleteDirectory(item.path) },
   ], [item.path])
 
   useContextualMenuRegistration(anchorName, entries)
