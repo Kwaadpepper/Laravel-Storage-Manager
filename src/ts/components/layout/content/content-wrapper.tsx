@@ -11,7 +11,7 @@ interface ContentWrapperProps {
 
 export default function ContentWrapper({ item }: Readonly<ContentWrapperProps>) {
   const container = useContainer()
-  const navigationService = container.cradle.navigationService
+  const navigationService = container.resolve('navigationService')
 
   function onItemClick(item: Item) {
     if (isDirectory(item)) {

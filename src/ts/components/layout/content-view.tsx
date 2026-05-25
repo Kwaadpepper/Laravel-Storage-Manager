@@ -10,7 +10,7 @@ interface ContentViewProps {
 export default function ContentView(_: Readonly<ContentViewProps>) {
   const { directories, files } = useFileManagerStore()
   const container = useContainer()
-  const navigationService = container.cradle.navigationService
+  const navigationService = container.resolve('navigationService')
 
   function onDirectoryClick(path: Path) {
     navigationService.navigateTo(path)

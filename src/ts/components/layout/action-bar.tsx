@@ -9,7 +9,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
   const container = useContainer()
   const { setAboutModal, setNewDirectoryModal, setUploadFileModal } = useUiStore()
 
-  const navigationService = container.cradle.navigationService
+  const navigationService = container.resolve('navigationService')
   const canNavigatePrevious = navigationService.canNavigatePrevious()
   const canNavigateNext = navigationService.canNavigateNext()
   const canNavigateUp = navigationService.canNavigateUp()

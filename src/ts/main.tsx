@@ -9,7 +9,7 @@ import { useConfigStore } from './stores/config-store.ts';
 // * Bootstrap SM
 
 const container = buildDiContainer()
-container.cradle.errorHandlerService.registerGlobalHandlers()
+container.resolve('errorHandlerService').registerGlobalHandlers()
 const globalConfig = appConfigSchema.safeParse(globalThis.__STORAGE_MANAGER_CONFIG__)
 
 if (!globalConfig.success) {

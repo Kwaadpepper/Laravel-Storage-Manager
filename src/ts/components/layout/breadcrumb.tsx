@@ -13,7 +13,7 @@ interface BreadcrumbPathPart {
 
 export default function Breadcrumb(_: Readonly<BreadcrumbViewProps>) {
   const container = useContainer()
-  const navigationService = container.cradle.navigationService
+  const navigationService = container.resolve('navigationService')
   const { currentPath } = useFileManagerStore()
 
   const breadcrumb = useMemo<BreadcrumbPathPart[]>(() => {
