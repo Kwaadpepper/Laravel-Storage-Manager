@@ -9,6 +9,7 @@ use Illuminate\Http\Response;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Service\ApiService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class StorageManagerMiddleware
 {
@@ -20,33 +21,14 @@ final class StorageManagerMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(Request):(Response|BinaryFileResponse|ApiResponse)  $next
-     *
-     * //  * @throws AuthenticationException
+     * @param  \Closure(Request):(Response|BinaryFileResponse|StreamedResponse|ApiResponse)  $next
      */
-    public function handle(Request $request, \Closure $next): Response | BinaryFileResponse | ApiResponse
+    public function handle(Request $request, \Closure $next): Response | BinaryFileResponse | StreamedResponse | ApiResponse
     {
         if (! $this->apiService->isAllowedToRequest($request)) {
             abort(ApiResponse::HTTP_FORBIDDEN);
         }
 
-        // $jsonMimeTypes = 'application/json';
-
-        // $originalAcceptHeader      = $request->headers->get('Accept');
-        // $originalContentTypeHeader = $request->headers->get('Content-Type');
-        // $wantedJson                = $request->wantsJson();
-        // $request->headers->set('Accept', $jsonMimeTypes);
-        // $request->headers->set('Content-Type', $jsonMimeTypes);
-
-        $response = $next($request);
-
-        // $request->headers->set('Accept', $originalAcceptHeader);
-        // $request->headers->set('Content-Type', $originalContentTypeHeader);
-
-        // if (! $wantedJson && $response->getStatusCode() === ApiResponse::HTTP_UNAUTHORIZED) {
-        //     throw new AuthenticationException();
-        // }
-
-        return $response;
+        return $next($request);
     }
 }
