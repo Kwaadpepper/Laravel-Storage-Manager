@@ -4,6 +4,7 @@ import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { ApiService } from "./api-service";
 
 export type CreateDirectoryValidationField = 'directoryName'
+export type RenameDirectoryValidationField = 'directoryName'
 
 export class FileManagerService {
   private readonly prefix: string = '/sm/fm'
@@ -52,6 +53,29 @@ export class FileManagerService {
       }
 
       throw error
+    })
+  }
+
+  async renameDirectory(path: Path, newName: string): Promise<void> {
+    return this.apiService.put(`${this.prefix}/rename`, {
+      disk: 'public',
+      path,
+      to: newName,
+    }).catch((error: unknown) => {
+      if (isValidationError(error)) {
+        throw this.remapValidationError(error, {
+          to: 'directoryName',
+        })
+      }
+
+      throw error
+    })
+  }
+
+  async deleteDirectory(path: Path): Promise<void> {
+    return this.apiService.delete(`${this.prefix}/delete`, {
+      disk: 'public',
+      path,
     })
   }
 

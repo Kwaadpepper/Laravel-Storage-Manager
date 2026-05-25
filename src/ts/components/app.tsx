@@ -5,6 +5,8 @@ import ContentView from './layout/content-view';
 import TreeView from './layout/tree-view';
 import AboutModal from './modals/about-modal';
 import DirectoryModal from './modals/directory/create-modal';
+import DeleteDirectoryModal from './modals/directory/delete-modal';
+import RenameDirectoryModal from './modals/directory/rename-modal';
 import { ContextualMenuContainer } from './shared/contextual-menu-container';
 import ToastContainer from './shared/toast-container';
 import { useAppInitialization } from './shared/use-app-initialization';
@@ -51,6 +53,8 @@ function App() {
       {/* Modals */}
       <AboutModal />
       <DirectoryModal />
+      <RenameDirectoryModal />
+      <DeleteDirectoryModal />
     </div>
   )
 }
