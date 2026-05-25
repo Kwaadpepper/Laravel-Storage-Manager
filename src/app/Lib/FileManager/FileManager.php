@@ -12,6 +12,7 @@ use Kwaadpepper\LaravelStorageManager\Enum\GenericDomainError;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\FileStream;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList as PathContent;
@@ -250,6 +251,31 @@ class FileManager
         return $this->getStorage()->exists(
             $this->pathNormalizer->normalizePath((string) $path)
         ) && ! $this->isDirectory($path);
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function readStream(Path $path): FileStream
+    {
+        $filesystem     = $this->getStorage();
+        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+
+        if (! $filesystem->exists($normalizedPath)) {
+            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
+        }
+
+        if ($this->isDirectory($path)) {
+            FileOperationException::throwWith(FileOperationError::INVALID_PATH);
+        }
+
+        $stream = $filesystem->readStream($normalizedPath);
+
+        if ($stream === null) {
+            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+        }
+
+        return new FileStream($stream);
     }
 
     private function getDisk(): Disk
