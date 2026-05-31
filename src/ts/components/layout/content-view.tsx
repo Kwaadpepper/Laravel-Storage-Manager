@@ -1,6 +1,4 @@
-import { useContainer } from "@ts/container";
 import { useFileManagerStore } from "@ts/stores";
-import { Path } from "@ts/types";
 import { FolderOpen } from "lucide-react";
 import ContentWrapper from "./content/content-wrapper";
 
@@ -9,12 +7,6 @@ interface ContentViewProps {
 
 export default function ContentView(_: Readonly<ContentViewProps>) {
   const { directories, files } = useFileManagerStore()
-  const container = useContainer()
-  const navigationService = container.resolve('navigationService')
-
-  function onDirectoryClick(path: Path) {
-    navigationService.navigateTo(path)
-  }
 
   return (
     <div className="overflow-x-auto">
