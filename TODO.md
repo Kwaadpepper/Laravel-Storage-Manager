@@ -10,6 +10,7 @@
 - [ ] Zip / unzip archives
 - [ ] Trash / soft delete (restore accidentally deleted files)
 - [ ] Undo / redo last operation (move, rename, delete)
+- [ ] Delete non-empty directory with confirmation dialog
 
 ## Upload & Download
 
@@ -27,6 +28,7 @@
 - [ ] Full screen button
 - [ ] Favorites / "Places" (pin frequently used folders in the sidebar)
 - [ ] File searching (by name, extension, size)
+- [ ] Search / filter reset button
 - [ ] Column ordering (name, size, type)
 - [ ] Keyboard shortcuts (Del, F2, Ctrl+C/V...)
 - [ ] Drag & drop to move files and directories
@@ -39,6 +41,7 @@
 - [ ] Image cropper
 - [ ] Audio viewer
 - [ ] Video viewer
+- [ ] Video streaming (HLS / MPEG-Dash, optional ffmpeg transcoding)
 - [ ] PDF viewer
 - [ ] File metadata view (EXIF, size, dates...)
 
@@ -63,6 +66,7 @@
 
 - [ ] Events (upload, delete, rename, move...)
 - [ ] WYSIWYG integration (CKEditor 4 - 5, Tiptap, Tinymce 3 - 4 - 5, Standalone - provide plugins)
+- [ ] File type scoping when opening via integration (`type=image|audio|video|archive`)
 - [ ] Multi-panel view (side by side)
 
 ## Help & documentation
@@ -75,6 +79,7 @@
 - [ ] i18n
 - [ ] Refactor
 - [ ] Tests
+- [ ] CSP nonce support on embedded assets
 
 ## Community & documentation
 
