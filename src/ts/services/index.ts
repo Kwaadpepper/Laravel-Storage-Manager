@@ -1,5 +1,6 @@
 export * from './api-service';
 export * from './contextual-menu-service';
+export * from './disk-service';
 export * from './download-service';
 export * from './error-handler-service';
 export * from './file-manager-service';

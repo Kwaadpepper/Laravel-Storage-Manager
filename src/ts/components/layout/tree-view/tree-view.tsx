@@ -1,3 +1,4 @@
+import DiskSelector from "@ts/components/shared/disk-selector";
 import { useContainer } from "@ts/container";
 import { useFileManagerStore, useTreeStore } from "@ts/stores";
 import { rootPath } from "@ts/types";
@@ -17,6 +18,9 @@ export default function TreeView(_: Readonly<TreeViewProps>) {
 
   return (
     <div className="bg-base-100 rounded-box shadow-sm w-full overflow-y-auto">
+      <div className="px-3 pt-2 pb-1 border-b border-base-200">
+        <DiskSelector className="w-full" />
+      </div>
       <ul className="p-2 text-sm">
         <li>
           <div className={`flex items-center gap-1 rounded select-none${rootActive ? ' bg-primary/20 text-primary' : ' hover:bg-base-200'}`}>

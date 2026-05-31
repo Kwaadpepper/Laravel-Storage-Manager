@@ -1,5 +1,6 @@
+import DiskSelector from '@ts/components/shared/disk-selector';
 import { useContainer } from '@ts/container';
-import { useFileManagerStore } from '@ts/stores';
+import { useConfigStore, useFileManagerStore } from '@ts/stores';
 import { Path, rootPath } from '@ts/types';
 import { useMemo } from 'react';
 
@@ -15,6 +16,7 @@ export default function Breadcrumb(_: Readonly<BreadcrumbViewProps>) {
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
   const { currentPath } = useFileManagerStore()
+  const { disks } = useConfigStore()
 
   const breadcrumb = useMemo<BreadcrumbPathPart[]>(() => {
     const parts = currentPath.split('/').filter(Boolean)
@@ -37,6 +39,9 @@ export default function Breadcrumb(_: Readonly<BreadcrumbViewProps>) {
   return (
     <div className="breadcrumbs text-sm">
       <ul>
+        {disks.length > 1 && (
+          <li key="disk-selector"><DiskSelector /></li>
+        )}
         {breadcrumb.map((part, partIndex) => (
           <li key={`breadcrumb-part-${part.path}-${partIndex}`}>
             <button className="link link-hover" onClick={() => onBreadcrumbClick(part)}>

@@ -1,5 +1,6 @@
 import { isValidationError, ValidationError } from "@ts/errors";
 import { existsResponseSchema, treeResponseSchema } from "@ts/schemas";
+import { useDiskStore } from "@ts/stores";
 import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { ApiService } from "./api-service";
 
@@ -10,8 +11,13 @@ export type RenameFileValidationField = 'fileName'
 export class FileManagerService {
   private readonly prefix: string = '/sm/fm'
 
-  constructor(private readonly apiService: ApiService) {
-    this.apiService = apiService
+  constructor(
+    private readonly apiService: ApiService,
+    private readonly diskStore: typeof useDiskStore,
+  ) { }
+
+  private getDisk(): string {
+    return this.diskStore.getState().currentDisk ?? 'public'
   }
 
   async initialize(): Promise<void> {
@@ -23,7 +29,7 @@ export class FileManagerService {
     files: TreeNodeFile[],
   }> {
     return this.apiService
-      .get(`${this.prefix}/tree?disk=public&path=${encodeURIComponent(path)}`, treeResponseSchema)
+      .get(`${this.prefix}/tree?disk=${encodeURIComponent(this.getDisk())}&path=${encodeURIComponent(path)}`, treeResponseSchema)
       .then(data => {
         return {
           directories: data.directories.map(dir => ({
@@ -43,7 +49,7 @@ export class FileManagerService {
 
   async createDirectory(path: Path, name: string): Promise<void> {
     return this.apiService.post(`${this.prefix}/create-directory`, {
-      disk: 'public',
+      disk: this.getDisk(),
       path,
       name,
     }).catch((error: unknown) => {
@@ -59,7 +65,7 @@ export class FileManagerService {
 
   async renameDirectory(path: Path, newName: string): Promise<void> {
     return this.apiService.put(`${this.prefix}/rename`, {
-      disk: 'public',
+      disk: this.getDisk(),
       path,
       to: newName,
     }).catch((error: unknown) => {
@@ -79,7 +85,7 @@ export class FileManagerService {
 
   async createFile(path: Path, name: string, content: string = ''): Promise<void> {
     return this.apiService.post(`${this.prefix}/create-file`, {
-      disk: 'public',
+      disk: this.getDisk(),
       path,
       name,
       content,
@@ -96,13 +102,13 @@ export class FileManagerService {
 
   async fileExists(path: Path): Promise<boolean> {
     return this.apiService
-      .get(`${this.prefix}/exists?disk=public&path=${encodeURIComponent(path)}`, existsResponseSchema)
+      .get(`${this.prefix}/exists?disk=${encodeURIComponent(this.getDisk())}&path=${encodeURIComponent(path)}`, existsResponseSchema)
       .then(data => data.exists)
   }
 
   async renameFile(path: Path, newName: string): Promise<void> {
     return this.apiService.put(`${this.prefix}/rename`, {
-      disk: 'public',
+      disk: this.getDisk(),
       path,
       to: newName,
     }).catch((error: unknown) => {
@@ -122,7 +128,7 @@ export class FileManagerService {
 
   private async deleteAtPath(path: Path): Promise<void> {
     return this.apiService.delete(`${this.prefix}/delete`, {
-      disk: 'public',
+      disk: this.getDisk(),
       path,
     })
   }

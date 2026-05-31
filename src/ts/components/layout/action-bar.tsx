@@ -1,3 +1,4 @@
+import DiskSelector from "@ts/components/shared/disk-selector";
 import { useContainer } from "@ts/container";
 import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
 import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus, LayoutGrid, List, PanelLeft, PanelLeftClose } from "lucide-react";
@@ -64,6 +65,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
           <ArrowUp size={16} />
           <span className="hidden md:inline">Up</span>
         </button>
+        <DiskSelector className="ml-2" />
       </div>
 
       {/* Actions */}

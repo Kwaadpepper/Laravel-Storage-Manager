@@ -1,9 +1,9 @@
 import { HttpClient } from '@ts/clients';
-import { ApiService, ErrorHandlerService, LocationService, NavigationService, ThemeService, ToastService } from '@ts/services';
+import { ApiService, DiskService, ErrorHandlerService, LocationService, NavigationService, ThemeService, ToastService } from '@ts/services';
 import { ContextualMenuService } from '@ts/services/contextual-menu-service';
 import { DownloadService } from '@ts/services/download-service';
 import { FileManagerService } from '@ts/services/file-manager-service';
-import { useContextualMenuStore, useFileManagerStore, useToastStore, useTreeStore, useUiStore } from '@ts/stores';
+import { useConfigStore, useContextualMenuStore, useDiskStore, useFileManagerStore, useToastStore, useTreeStore, useUiStore } from '@ts/stores';
 import { asFunction, createContainer, InjectionMode } from 'awilix';
 
 export type AppContainer = {
@@ -17,6 +17,7 @@ export type AppContainer = {
   downloadService: DownloadService
   themeService: ThemeService
   locationService: LocationService
+  diskService: DiskService
 }
 
 const apiBaseUrl: URL =
@@ -47,7 +48,8 @@ export function buildDiContainer() {
   container.register({
     httpClient: asFunction(() => new HttpClient(apiBaseUrl)).singleton(),
     apiService: asFunction(({ httpClient }) => new ApiService(httpClient)).singleton(),
-    fileManagerService: asFunction(({ apiService }) => new FileManagerService(apiService)).singleton(),
+    diskService: asFunction(({ apiService }) => new DiskService(apiService, useConfigStore, useDiskStore)).singleton(),
+    fileManagerService: asFunction(({ apiService }) => new FileManagerService(apiService, useDiskStore)).singleton(),
     navigationService: asFunction(({ fileManagerService, locationService }) => new NavigationService(
       useFileManagerStore, fileManagerService, useTreeStore, locationService)
     ).singleton(),

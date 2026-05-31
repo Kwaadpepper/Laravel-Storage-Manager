@@ -5,6 +5,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './components/app.tsx';
 import { useConfigStore } from './stores/config-store.ts';
+import { useDiskStore } from './stores/disk-store.ts';
 
 // * Bootstrap SM
 
@@ -18,6 +19,11 @@ if (!globalConfig.success) {
 }
 
 useConfigStore.getState().initialize(globalConfig.data)
+
+const initialDisks = useConfigStore.getState().disks
+if (initialDisks.length > 0) {
+  useDiskStore.getState().setCurrentDisk(initialDisks[0])
+}
 
 const rootEl = document.getElementById('file-manager')
 

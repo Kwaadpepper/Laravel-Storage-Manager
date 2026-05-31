@@ -67,6 +67,20 @@ export class NavigationService {
     this.navigateTo(this.locationService.getRootPath())
   }
 
+  public switchDisk(): void {
+    const root = this.locationService.getRootPath()
+    this.navigationHistory.length = 0
+    this.navigationIndex = -1
+    this.treeStore.getState().reset()
+    this.fileManagerStore.setState({ currentPath: root, selectedFile: null })
+    this.updateNavigationCapabilities()
+    this.locationService.replace(root)
+    this.emit(NavigationEvent.NavigateTo)
+    this.fetchAndApply(root).catch(() => {
+      throw new NavigationError(`Error navigating to root after disk switch`)
+    })
+  }
+
   public navigateToParent(): void {
     const parentPath = this.locationService.getParentPath(this.getCurrentPath())
     if (parentPath === null) return
