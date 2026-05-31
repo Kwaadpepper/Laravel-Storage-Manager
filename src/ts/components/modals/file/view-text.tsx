@@ -6,12 +6,8 @@ const TextEditor = lazy(() => import("@ts/components/editor/text-editor"));
 function detectLanguage(extension: string | null): keyof typeof SUPPORTED_LANGUAGES {
   if (!extension) return 'Text';
   const ext = extension.toLowerCase();
-  for (const [label, aliases] of Object.entries(SUPPORTED_LANGUAGES)) {
-    if ((aliases as readonly string[]).includes(ext)) {
-      return label;
-    }
-  }
-  return 'Text';
+  const keys = Object.keys(SUPPORTED_LANGUAGES) as (keyof typeof SUPPORTED_LANGUAGES)[];
+  return keys.find(label => (SUPPORTED_LANGUAGES[label] as readonly string[]).includes(ext)) ?? 'Text';
 }
 
 export const SUPPORTED_EXTENSIONS: readonly string[] = [
