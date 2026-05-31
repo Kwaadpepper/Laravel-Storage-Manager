@@ -82,7 +82,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-16 text-base-content/40">
             <FolderOpen size={48} className="mb-2" />
-            <p>Dossier vide</p>
+            <p>Directory is empty</p>
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -126,7 +126,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
       {isEmpty && (
         <div className="flex flex-col items-center justify-center py-16 text-base-content/40">
           <FolderOpen size={48} className="mb-2" />
-          <p>Dossier vide</p>
+          <p>Directory is empty</p>
         </div>
       )}
     </div>
