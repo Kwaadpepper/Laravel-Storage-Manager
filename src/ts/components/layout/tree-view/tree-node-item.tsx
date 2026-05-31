@@ -17,7 +17,7 @@ export default function TreeNodeItem({
 }: Readonly<TreeNodeItemProps>) {
   const isExpanded = nodeState?.expanded ?? false
   const isActive = currentPath === directory.path
-  const hasChildren = directory.hasSubDirectories
+  const hasChildren = directory.hasSubDirectories || (nodeState?.loaded === true && nodeState.children.length > 0)
 
   return (
     <li>
