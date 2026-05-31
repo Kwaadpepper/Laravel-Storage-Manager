@@ -42,15 +42,15 @@ export default function ContentFile({ item }: Readonly<ContentFileProps>) {
 
   return (
     <>
-      <div data-contextual-menu={anchorName} tabIndex={-1} style={{ anchorName }} className="table-cell p-2">
+      <div data-contextual-menu={anchorName} tabIndex={-1} style={{ anchorName }} className="table-cell select-none p-2">
         <span className="flex items-center gap-2">
           <FileIcon size={16} className="text-info" />
           <span>{item.name}</span>
         </span>
       </div>
-      <div className="table-cell p-2"><span className="badge badge-ghost badge-sm">File</span></div>
-      <div className="table-cell p-2"><FileSize bytes={item.size} /></div>
-      <div className="table-cell p-2">{item.extension ?? <span className="text-base-content/40">N/A</span>}</div>
+      <div className="table-cell select-none p-2"><span className="badge badge-ghost badge-sm">File</span></div>
+      <div className="table-cell select-none p-2"><FileSize bytes={item.size} /></div>
+      <div className="table-cell select-none p-2">{item.extension ?? <span className="text-base-content/40">N/A</span>}</div>
     </>
   )
 }

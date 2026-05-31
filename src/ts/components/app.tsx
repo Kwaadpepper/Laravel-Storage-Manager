@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import ActionBar from './layout/action-bar';
 import Breadcrumb from './layout/breadcrumb';
 import ContentView from './layout/content-view';
+import SelectionBar from './layout/selection-bar';
 import TreeView from './layout/tree-view';
 import ModalContainer from './modals/modal-container';
 import { ContextualMenuContainer } from './shared/contextual-menu-container';
@@ -30,6 +31,9 @@ function App() {
       <div className="bg-base-100 border-b border-base-300 px-4 py-1">
         <ActionBar />
       </div>
+
+      {/* Selection bar */}
+      <SelectionBar />
 
       {/* Main layout */}
       <div className="flex flex-row gap-4 p-4">

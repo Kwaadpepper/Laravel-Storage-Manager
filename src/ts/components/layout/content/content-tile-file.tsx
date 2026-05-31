@@ -1,7 +1,7 @@
 import FileSize from "@ts/components/shared/file-size";
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { ModalState, toAnchorName, useUiStore } from "@ts/stores";
+import { ModalState, toAnchorName, useFileManagerStore, useUiStore } from "@ts/stores";
 import { TreeNodeFile } from "@ts/types";
 import { FileIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -12,10 +12,13 @@ interface ContentTileFileProps {
 
 export default function ContentTileFile({ item }: Readonly<ContentTileFileProps>) {
   const { setRenameFileModal, setDeleteFileModal, setViewFileModal, setTargetFilePath } = useUiStore()
+  const { selectNode, selectedFile } = useFileManagerStore()
   const container = useContainer()
   const downloadService = container.resolve('downloadService')
   const toastService = container.resolve('toastService')
   const anchorName = toAnchorName(item.path)
+
+  const isSelected = selectedFile?.path === item.path
 
   async function download() {
     try {
@@ -45,10 +48,17 @@ export default function ContentTileFile({ item }: Readonly<ContentTileFileProps>
       type="button"
       data-contextual-menu={anchorName}
       style={{ anchorName }}
-      className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-accent/30 hover:cursor-pointer w-24"
+      className={`flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-accent/30 hover:cursor-pointer w-24${isSelected ? ' bg-primary/20 ring-1 ring-primary' : ''}`}
       title={item.name}
+      onClick={() => { selectNode(item) }}
       onDoubleClick={() => { setTargetFilePath(item.path); setViewFileModal(ModalState.Opened) }}
-      onKeyDown={(e) => { if (e.key === 'Enter') { setTargetFilePath(item.path); setViewFileModal(ModalState.Opened) } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          setTargetFilePath(item.path)
+          requestAnimationFrame(() => setViewFileModal(ModalState.Opened))
+        }
+      }}
     >
       <FileIcon size={36} className="text-info" />
       <span className="text-xs text-center truncate w-full">{item.name}</span>

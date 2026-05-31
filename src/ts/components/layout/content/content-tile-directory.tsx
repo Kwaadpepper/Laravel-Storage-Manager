@@ -1,6 +1,6 @@
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { ModalState, toAnchorName, useUiStore } from "@ts/stores";
+import { ModalState, toAnchorName, useFileManagerStore, useUiStore } from "@ts/stores";
 import { rootPath, TreeNodeDirectory } from "@ts/types";
 import { Folder, FolderOpen } from "lucide-react";
 import { useMemo } from "react";
@@ -11,8 +11,11 @@ interface ContentTileDirectoryProps {
 
 export default function ContentTileDirectory({ item }: Readonly<ContentTileDirectoryProps>) {
   const { setRenameDirectoryModal, setDeleteDirectoryModal, setTargetDirectoryPath } = useUiStore()
+  const { selectedFile } = useFileManagerStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
+
+  const isSelected = selectedFile?.path === item.path
 
   const anchorName = toAnchorName(item.path)
 
@@ -31,9 +34,9 @@ export default function ContentTileDirectory({ item }: Readonly<ContentTileDirec
       type="button"
       data-contextual-menu={anchorName}
       style={{ anchorName }}
-      className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-accent/30 hover:cursor-pointer w-24"
+      className={`flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-accent/30 hover:cursor-pointer w-24${isSelected ? ' bg-primary/20 ring-1 ring-primary' : ''}`}
       title={isRoot ? 'root' : item.name}
-      onDoubleClick={() => navigationService.navigateTo(item.path)}
+      onClick={() => navigationService.navigateTo(item.path)}
       onKeyDown={(e) => { if (e.key === 'Enter') navigationService.navigateTo(item.path) }}
     >
       {isRoot

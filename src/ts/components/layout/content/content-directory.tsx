@@ -26,15 +26,15 @@ export default function ContentDirectory({ item }: Readonly<ContentDirectoryProp
 
   return (
     <>
-      <div data-contextual-menu={anchorName} tabIndex={-1} style={{ anchorName }} className="table-cell p-2">
+      <div data-contextual-menu={anchorName} tabIndex={-1} style={{ anchorName }} className="table-cell select-none p-2">
         <span className="flex items-center gap-2">
           {item.path === rootPath() ? <Folder size={16} className="text-warning" /> : <FolderOpen size={16} className="text-warning" />}
           {item.path === rootPath() ? 'root' : item.name}
         </span>
       </div>
-      <div className="table-cell p-2"><span className="badge badge-ghost badge-sm">Directory</span></div>
-      <div className="table-cell p-2">-</div>
-      <div className="table-cell p-2">-</div>
+      <div className="table-cell select-none p-2"><span className="badge badge-ghost badge-sm">Directory</span></div>
+      <div className="table-cell select-none p-2">-</div>
+      <div className="table-cell select-none p-2">-</div>
     </>
   )
 }
