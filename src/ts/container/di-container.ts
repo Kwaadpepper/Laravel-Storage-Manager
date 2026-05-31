@@ -3,59 +3,59 @@ import { ApiService, ErrorHandlerService, NavigationService, ThemeService, Toast
 import { ContextualMenuService } from '@ts/services/contextual-menu-service';
 import { DownloadService } from '@ts/services/download-service';
 import { FileManagerService } from '@ts/services/file-manager-service';
-import { useContextualMenuStore, useFileManagerStore, useToastStore, useUiStore } from '@ts/stores';
+import { useContextualMenuStore, useFileManagerStore, useToastStore, useTreeStore, useUiStore } from '@ts/stores';
 import { asFunction, createContainer, InjectionMode } from 'awilix';
 
 export type AppContainer = {
-  fileManagerService: FileManagerService
-  navigationService: NavigationService
-  apiService: ApiService
-  httpClient: HttpClient
-  toastService: ToastService
-  contextualMenuService: ContextualMenuService
-  errorHandlerService: ErrorHandlerService
-  downloadService: DownloadService
-  themeService: ThemeService
+    fileManagerService: FileManagerService
+    navigationService: NavigationService
+    apiService: ApiService
+    httpClient: HttpClient
+    toastService: ToastService
+    contextualMenuService: ContextualMenuService
+    errorHandlerService: ErrorHandlerService
+    downloadService: DownloadService
+    themeService: ThemeService
 }
 
 const apiBaseUrl: URL =
-  (() => {
-    const metaTag = document.querySelector('meta[name="storage-manager-url"]')
-    if (!metaTag) {
-      throw new Error('Meta tag with name "storage-manager-url" not found')
-    }
-    const content = metaTag.getAttribute('content')
-    if (!content) {
-      throw new Error('Meta tag with name "storage-manager-url" has no content')
-    }
-    return new URL(content)
-  })()
+    (() => {
+        const metaTag = document.querySelector('meta[name="storage-manager-url"]')
+        if (!metaTag) {
+            throw new Error('Meta tag with name "storage-manager-url" not found')
+        }
+        const content = metaTag.getAttribute('content')
+        if (!content) {
+            throw new Error('Meta tag with name "storage-manager-url" has no content')
+        }
+        return new URL(content)
+    })()
 
 if (apiBaseUrl === undefined) {
-  throw new Error('API base URL not found in meta tag')
+    throw new Error('API base URL not found in meta tag')
 }
 
 export function buildDiContainer() {
 
-  // * ContainerContext
-  const container = createContainer<AppContainer>({
-    injectionMode: InjectionMode.PROXY,
-  })
+    // * ContainerContext
+    const container = createContainer<AppContainer>({
+        injectionMode: InjectionMode.PROXY,
+    })
 
-  // * HttpClient
-  container.register({
-    httpClient: asFunction(() => new HttpClient(apiBaseUrl)).singleton(),
-    apiService: asFunction(({ httpClient }) => new ApiService(httpClient)).singleton(),
-    fileManagerService: asFunction(({ apiService }) => new FileManagerService(apiService)).singleton(),
-    navigationService: asFunction(({ fileManagerService }) => new NavigationService(useFileManagerStore, fileManagerService)).singleton(),
-    toastService: asFunction(() => new ToastService(useToastStore)).singleton(),
-    errorHandlerService: asFunction(({ toastService }) => new ErrorHandlerService(toastService)).singleton(),
-    contextualMenuService: asFunction(() => new ContextualMenuService(useContextualMenuStore)).singleton(),
-    downloadService: asFunction(() => new DownloadService()).singleton(),
-    themeService: asFunction(() => new ThemeService(useUiStore)).singleton(),
-  })
+    // * HttpClient
+    container.register({
+        httpClient: asFunction(() => new HttpClient(apiBaseUrl)).singleton(),
+        apiService: asFunction(({ httpClient }) => new ApiService(httpClient)).singleton(),
+        fileManagerService: asFunction(({ apiService }) => new FileManagerService(apiService)).singleton(),
+        navigationService: asFunction(({ fileManagerService }) => new NavigationService(useFileManagerStore, fileManagerService, useTreeStore)).singleton(),
+        toastService: asFunction(() => new ToastService(useToastStore)).singleton(),
+        errorHandlerService: asFunction(({ toastService }) => new ErrorHandlerService(toastService)).singleton(),
+        contextualMenuService: asFunction(() => new ContextualMenuService(useContextualMenuStore)).singleton(),
+        downloadService: asFunction(() => new DownloadService()).singleton(),
+        themeService: asFunction(() => new ThemeService(useUiStore)).singleton(),
+    })
 
-  return container
+    return container
 }
 
 export type DiContainer = ReturnType<typeof buildDiContainer>

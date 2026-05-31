@@ -1,4 +1,4 @@
-import { useFileManagerStore } from "@ts/stores";
+import { useFileManagerStore, useTreeStore } from "@ts/stores";
 import { Path, rootPath } from "@ts/types";
 import { FileManagerService } from "./file-manager-service";
 
@@ -13,13 +13,14 @@ export class NavigationService {
   private readonly navigationHistory: Path[] = []
   private navigationIndex: number = -1
   private loadedPath: Path | null = null
-
+  private readonly treeLoadingPaths = new Set<string>()
   private readonly eventListeners: { [event in NavigationEvent]?: (() => void)[]
   } = {}
 
   constructor(
     private readonly fileManagerStore: typeof useFileManagerStore,
-    private readonly fileManagerService: FileManagerService
+    private readonly fileManagerService: FileManagerService,
+    private readonly treeStore: typeof useTreeStore
   ) {
     this.fileManagerStore = fileManagerStore
     this.fileManagerStore.subscribe(state => {
@@ -27,10 +28,29 @@ export class NavigationService {
         this.loadedPath = state.currentPath
         this.fileManagerService.listFiles(state.currentPath).then(({ directories, files }) => {
           this.fileManagerStore.setState({ directories, files })
+          this.treeStore.getState().setNodeChildren(state.currentPath, directories)
+          this.treeStore.getState().expandAncestors(state.currentPath)
         }).catch(() => {
           console.error('Error navigating to path:', state.currentPath)
         })
       }
+    })
+  }
+
+  public loadTreeNode(path: Path): void {
+    const nodes = this.treeStore.getState().nodes
+    if (nodes[path]?.loaded || this.treeLoadingPaths.has(path)) {
+      this.treeStore.getState().toggleExpanded(path)
+      return
+    }
+    this.treeLoadingPaths.add(path)
+    this.treeStore.getState().toggleExpanded(path)
+    this.fileManagerService.listFiles(path).then(({ directories }) => {
+      this.treeStore.getState().setNodeChildren(path, directories)
+    }).catch(() => {
+      console.error('Error loading tree node:', path)
+    }).finally(() => {
+      this.treeLoadingPaths.delete(path)
     })
   }
 
