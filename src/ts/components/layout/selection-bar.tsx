@@ -32,7 +32,7 @@ export default function SelectionBar() {
 
   return (
     <div
-      className={`flex items-center gap-2 px-4 py-1 bg-primary/10 border-b border-primary/20 min-h-[2.25rem]${visible ? '' : ' invisible pointer-events-none'}`}
+      className={`flex items-center gap-2 px-4 h-9 overflow-hidden border-b transition-colors${visible ? ' bg-primary/10 border-primary/20' : ' bg-transparent border-base-300'}`}
       aria-hidden={!visible}
     >
       {selectedFile !== null && (
