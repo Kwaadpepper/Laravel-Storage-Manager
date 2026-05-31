@@ -1,5 +1,5 @@
 import { Disk } from '@ts/types';
-import z from 'zod/v4';
+import * as z from 'zod/v4';
 
 export const appConfigSchema = z.object({
   packageName: z.string().nonempty(),
