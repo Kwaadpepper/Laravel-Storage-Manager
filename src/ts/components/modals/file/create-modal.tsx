@@ -89,7 +89,7 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
         style={step === 'editor' ? { height: '90vh', width: '90vw', maxWidth: '90vw' } : {}}
       >
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-lg">{fileName ? `Create — ${fileName}` : 'Create File'}</h3>
+          <h3 className="font-bold text-lg">{fileName ? `Create - ${fileName}` : 'Create File'}</h3>
           <button
             className="btn btn-sm btn-circle btn-ghost"
             type="button"
