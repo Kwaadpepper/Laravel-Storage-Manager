@@ -75,3 +75,8 @@
 - [ ] i18n
 - [ ] Refactor
 - [ ] Tests
+
+## Community & documentation
+
+- [ ] Demo repository (minimal Laravel app with the package pre-configured)
+- [ ] GitHub Pages site (features overview, screenshots, quick-start guide)
