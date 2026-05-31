@@ -20,17 +20,8 @@ function App() {
 
   return (
     <div ref={appRef} className="min-h-screen bg-base-200">
-      {/* Navbar */}
-      <div className="navbar bg-base-100 shadow-sm px-4">
-        <div className="navbar-start">
-          <span className="text-xl font-bold">Storage Manager</span>
-        </div>
-      </div>
-
-      {/* Action bar */}
-      <div className="bg-base-100 border-b border-base-300 px-4 py-1">
-        <ActionBar />
-      </div>
+      {/* Navbar + action bar */}
+      <ActionBar />
 
       {/* Selection bar */}
       <SelectionBar />

@@ -42,8 +42,8 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
   }
 
   return (
-    <div className="flex">
-      <div className="flex justify-start gap-2">
+    <div className="navbar bg-base-100 shadow-sm px-4">
+      <div className="navbar-start gap-1">
         <button className="btn btn-ghost btn-sm" title="Back" onClick={onBackClick} disabled={!canNavigatePrevious}>
           <ArrowLeft size={16} />
           <span className="hidden md:inline">Back</span>
@@ -58,7 +58,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
         </button>
       </div>
 
-      <div className="mx-auto flex justify-center gap-2">
+      <div className="navbar-center gap-1">
         <button className="btn btn-ghost btn-sm" title="New File" onClick={onNewFileClick}>
           <FilePlus size={16} />
           <span className="hidden md:inline">New File</span>
@@ -73,7 +73,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
         </button>
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="navbar-end gap-1">
         <button
           className="btn btn-ghost btn-sm"
           title={viewMode === 'list' ? 'List view' : 'Tiles view'}
@@ -81,7 +81,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
         >
           {viewMode === 'list' ? <List size={16} /> : <LayoutGrid size={16} />}
         </button>
-        <span className="mx-2"><ThemeSelector /></span>
+        <ThemeSelector />
         <button className="btn btn-ghost btn-sm" title="About" onClick={onAboutClick}>
           <CircleQuestionMark size={16} />
           <span className="hidden md:inline">About</span>
@@ -90,3 +90,4 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
     </div>
   );
 }
+
