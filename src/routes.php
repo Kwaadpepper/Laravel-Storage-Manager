@@ -49,6 +49,7 @@ Route::group([
 
             // Basic operations routes
             Route::get('/properties', [BasicOperationsController::class, 'properties'])->name('properties');
+            Route::get('/exists', [BasicOperationsController::class, 'exists'])->name('exists');
             Route::post('/create-directory', [BasicOperationsController::class, 'createDirectory'])->name('create-directory');
             Route::post('/create-file', [BasicOperationsController::class, 'createFile'])->name('create-file');
             Route::delete('/delete', [BasicOperationsController::class, 'delete'])->name('delete');

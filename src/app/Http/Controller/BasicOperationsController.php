@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedFileDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\DeletedDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\ExistsDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\PropertiesDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\RenamedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
@@ -45,6 +46,16 @@ class BasicOperationsController extends Controller
         $fileProperties = $this->fileManager->getProperties($path);
 
         return ApiResponse::json($this->presentProperties($fileProperties), ApiResponse::HTTP_OK);
+    }
+
+    public function exists(PropertiesPathRequest $request): ApiResponse
+    {
+        $path = $request->getPath();
+
+        return ApiResponse::json(
+            new ExistsDto($this->fileManager->exists($path)),
+            ApiResponse::HTTP_OK
+        );
     }
 
     public function createDirectory(CreateDirectoryRequest $request): ApiResponse

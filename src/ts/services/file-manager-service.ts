@@ -1,5 +1,5 @@
 import { isValidationError, ValidationError } from "@ts/errors";
-import { treeResponseSchema } from "@ts/schemas";
+import { existsResponseSchema, treeResponseSchema } from "@ts/schemas";
 import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { ApiService } from "./api-service";
 
@@ -75,6 +75,12 @@ export class FileManagerService {
 
   async deleteDirectory(path: Path): Promise<void> {
     return this.deleteAtPath(path)
+  }
+
+  async fileExists(path: Path): Promise<boolean> {
+    return this.apiService
+      .get(`${this.prefix}/exists?disk=public&path=${encodeURIComponent(path)}`, existsResponseSchema)
+      .then(data => data.exists)
   }
 
   async renameFile(path: Path, newName: string): Promise<void> {
