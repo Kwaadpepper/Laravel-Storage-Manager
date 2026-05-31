@@ -17,16 +17,14 @@ export default function Breadcrumb(_: Readonly<BreadcrumbViewProps>) {
   const { currentPath } = useFileManagerStore()
 
   const breadcrumb = useMemo<BreadcrumbPathPart[]>(() => {
-    const url = new URL(globalThis.location.href)
-    url.pathname = currentPath
-    const parts = url.pathname.split('/').filter(Boolean) as Path[]
+    const parts = currentPath.split('/').filter(Boolean)
     const breadcrumbParts: BreadcrumbPathPart[] = []
 
     breadcrumbParts.push({ name: 'root', path: rootPath() })
 
     for (const [i, part] of parts.entries()) {
-      url.pathname = parts.slice(0, i + 1).join('/')
-      breadcrumbParts.push({ name: part, path: url.pathname as Path })
+      const path = ('/' + parts.slice(0, i + 1).join('/')) as Path
+      breadcrumbParts.push({ name: decodeURIComponent(part), path })
     }
 
     return breadcrumbParts
