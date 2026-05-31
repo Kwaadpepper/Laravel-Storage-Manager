@@ -3,12 +3,7 @@ import ActionBar from './layout/action-bar';
 import Breadcrumb from './layout/breadcrumb';
 import ContentView from './layout/content-view';
 import TreeView from './layout/tree-view';
-import AboutModal from './modals/about-modal';
-import DirectoryModal from './modals/directory/create-modal';
-import DeleteDirectoryModal from './modals/directory/delete-modal';
-import RenameDirectoryModal from './modals/directory/rename-modal';
-import DeleteFileModal from './modals/file/delete-modal';
-import RenameFileModal from './modals/file/rename-modal';
+import ModalContainer from './modals/modal-container';
 import { ContextualMenuContainer } from './shared/contextual-menu-container';
 import ToastContainer from './shared/toast-container';
 import { useAppInitialization } from './shared/use-app-initialization';
@@ -55,12 +50,7 @@ function App() {
       <ContextualMenuContainer />
 
       {/* Modals */}
-      <AboutModal />
-      <DirectoryModal />
-      <RenameDirectoryModal />
-      <DeleteDirectoryModal />
-      <RenameFileModal />
-      <DeleteFileModal />
+      <ModalContainer />
     </div>
   )
 }

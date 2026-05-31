@@ -1,4 +1,5 @@
 import { useContainer } from "@ts/container";
+import { ModalState, useUiStore } from "@ts/stores";
 import { isDirectory, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import ContentDirectory from "./content-directory";
 import ContentFile from "./content-file";
@@ -12,12 +13,18 @@ interface ContentWrapperProps {
 export default function ContentWrapper({ item }: Readonly<ContentWrapperProps>) {
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
+  const { setTargetFilePath, setViewFileModal } = useUiStore()
 
   function onItemClick(item: Item) {
     if (isDirectory(item)) {
       navigationService.navigateTo(item.path)
-    } else {
-      // onFileClick(item.path)
+    }
+  }
+
+  function onItemDoubleClick(item: Item) {
+    if (!isDirectory(item)) {
+      setTargetFilePath(item.path)
+      setViewFileModal(ModalState.Opened)
     }
   }
 
@@ -28,6 +35,7 @@ export default function ContentWrapper({ item }: Readonly<ContentWrapperProps>) 
       role="row"
       tabIndex={0}
       onClick={() => onItemClick(item)}
+      onDoubleClick={() => onItemDoubleClick(item)}
     >
       {isDirectory(item) ? (
         <ContentDirectory item={item} />

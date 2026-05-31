@@ -4,7 +4,7 @@ import { AuthorizationError, DomainValidationError, NotFoundError, ServerError, 
 import { apiResponseSchema, authorizationErrorSchema, domainValidationErrorSchema, validationErrors } from '@ts/schemas';
 import { Str } from '@ts/tools';
 import { JsonValue } from '@ts/types';
-import z from 'zod/v4';
+import * as z from 'zod/v4';
 
 export class ApiService {
 

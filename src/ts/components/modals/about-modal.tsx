@@ -20,13 +20,14 @@ export default function AboutModal(_: Readonly<AboutModalProps>) {
     } else {
       dialogRef?.current?.close()
     }
+  }, [aboutModal])
 
+  useEffect(() => {
     closeInnerButtonRef.current?.addEventListener('click', onInnerCloseButtonClick)
-
     return () => {
       closeInnerButtonRef.current?.removeEventListener('click', onInnerCloseButtonClick)
     }
-  }, [aboutModal])
+  }, [])
 
 
   function onInnerCloseButtonClick() {

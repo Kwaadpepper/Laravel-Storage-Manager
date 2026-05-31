@@ -1,5 +1,6 @@
 import { useContainer } from "@ts/container";
 import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
+import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus } from "lucide-react";
 import ThemeSelector from "./theme-selector";
 
 interface ActionBarProps {
@@ -7,7 +8,7 @@ interface ActionBarProps {
 
 export default function ActionBar(_: Readonly<ActionBarProps>) {
   const container = useContainer()
-  const { setAboutModal, setNewDirectoryModal, setUploadFileModal } = useUiStore()
+  const { setAboutModal, setCreateFileModal, setNewDirectoryModal, setUploadFileModal } = useUiStore()
   const { canNavigatePrevious, canNavigateNext, canNavigateUp } = useFileManagerStore()
 
   const navigationService = container.resolve('navigationService')
@@ -22,6 +23,10 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
 
   function onUpClick() {
     navigationService.navigateToParent()
+  }
+
+  function onNewFileClick() {
+    setCreateFileModal(ModalState.Opened)
   }
 
   function onNewDirectoryClick() {
@@ -54,6 +59,10 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
       </div>
 
       <div className="mx-auto flex justify-center gap-2">
+        <button className="btn btn-ghost btn-sm" title="New File" onClick={onNewFileClick}>
+          <FilePlus size={16} />
+          <span className="hidden md:inline">New File</span>
+        </button>
         <button className="btn btn-ghost btn-sm" title="New Directory" onClick={onNewDirectoryClick}>
           <FolderPlus size={16} />
           <span className="hidden md:inline">New Directory</span>

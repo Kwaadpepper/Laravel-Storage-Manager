@@ -1,7 +1,17 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { rmSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
+import { type Plugin, defineConfig } from 'vite';
+
+const cleanOutputDirs = (): Plugin => ({
+  name: 'clean-output-dirs',
+  buildStart() {
+    for (const dir of ['resources/js', 'resources/css']) {
+      rmSync(resolve(import.meta.dirname, dir), { recursive: true, force: true });
+    }
+  },
+});
 
 export default defineConfig({
   server: {
@@ -23,10 +33,12 @@ export default defineConfig({
     },
   },
   plugins: [
+    cleanOutputDirs(),
     react(),
     tailwindcss(),
   ],
   optimizeDeps: {
+    exclude: ['prism-react-editor'],
     rollupOptions: {},
   },
   build: {
@@ -38,7 +50,11 @@ export default defineConfig({
       },
       output: {
         entryFileNames: 'js/[name].js',
-        chunkFileNames: 'js/[name]-[hash].js',
+        chunkFileNames: (chunk) => {
+          // Stable names (no hash) for known lazy chunks loaded by the blade
+          if (chunk.name === 'text-editor') return 'js/[name].js';
+          return 'js/[name]-[hash].js';
+        },
         assetFileNames: (assetInfo) => {
           if (assetInfo.names?.some((n) => n.endsWith('.css'))) {
             return 'css/[name][extname]'

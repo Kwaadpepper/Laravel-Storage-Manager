@@ -1,3 +1,4 @@
+import FileSize from "@ts/components/shared/file-size";
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
 import { ModalState, toAnchorName, useUiStore } from "@ts/stores";
@@ -10,7 +11,7 @@ interface ContentFileProps {
 }
 
 export default function ContentFile({ item }: Readonly<ContentFileProps>) {
-  const { setRenameFileModal, setDeleteFileModal, setTargetFilePath } = useUiStore()
+  const { setRenameFileModal, setDeleteFileModal, setViewFileModal, setTargetFilePath } = useUiStore()
   const container = useContainer()
   const downloadService = container.resolve('downloadService')
   const toastService = container.resolve('toastService')
@@ -31,6 +32,7 @@ export default function ContentFile({ item }: Readonly<ContentFileProps>) {
   }
 
   const entries = useMemo(() => [
+    { label: 'View', onClick: () => { setTargetFilePath(item.path); setViewFileModal(ModalState.Opened) } },
     { label: 'Download', onClick: () => void download() },
     { label: 'Rename', onClick: () => { setTargetFilePath(item.path); setRenameFileModal(ModalState.Opened) } },
     { label: 'Delete', onClick: () => { setTargetFilePath(item.path); setDeleteFileModal(ModalState.Opened) } },
@@ -47,7 +49,7 @@ export default function ContentFile({ item }: Readonly<ContentFileProps>) {
         </span>
       </div>
       <div className="table-cell p-2"><span className="badge badge-ghost badge-sm">File</span></div>
-      <div className="table-cell p-2">{item.size} o</div>
+      <div className="table-cell p-2"><FileSize bytes={item.size} /></div>
       <div className="table-cell p-2">{item.extension ?? <span className="text-base-content/40">N/A</span>}</div>
     </>
   )

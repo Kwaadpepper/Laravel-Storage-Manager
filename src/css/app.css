@@ -2,5 +2,3 @@
 @plugin "daisyui";
 
 @source "../ts/**/*.{ts,tsx}";
-@source "../../resources/view/**/*.blade.php";
-@source "../resources/view/**/*.blade.php";

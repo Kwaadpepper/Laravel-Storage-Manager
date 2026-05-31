@@ -77,6 +77,23 @@ export class FileManagerService {
     return this.deleteAtPath(path)
   }
 
+  async createFile(path: Path, name: string, content: string = ''): Promise<void> {
+    return this.apiService.post(`${this.prefix}/create-file`, {
+      disk: 'public',
+      path,
+      name,
+      content,
+    }).catch((error: unknown) => {
+      if (isValidationError(error)) {
+        throw this.remapValidationError(error, {
+          name: 'fileName',
+        })
+      }
+
+      throw error
+    })
+  }
+
   async fileExists(path: Path): Promise<boolean> {
     return this.apiService
       .get(`${this.prefix}/exists?disk=public&path=${encodeURIComponent(path)}`, existsResponseSchema)
