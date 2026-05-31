@@ -1,3 +1,4 @@
+import { NavigationError } from "@ts/errors";
 import { useFileManagerStore, useTreeStore } from "@ts/stores";
 import { Path, rootPath } from "@ts/types";
 import { FileManagerService } from "./file-manager-service";
@@ -31,7 +32,7 @@ export class NavigationService {
           this.treeStore.getState().setNodeChildren(state.currentPath, directories)
           this.treeStore.getState().expandAncestors(state.currentPath)
         }).catch(() => {
-          console.error('Error navigating to path:', state.currentPath)
+          throw new NavigationError(`Error navigating to path: ${state.currentPath}`)
         })
       }
     })
@@ -48,7 +49,7 @@ export class NavigationService {
     this.fileManagerService.listFiles(path).then(({ directories }) => {
       this.treeStore.getState().setNodeChildren(path, directories)
     }).catch(() => {
-      console.error('Error loading tree node:', path)
+      throw new NavigationError(`Error loading tree node: ${path}`)
     }).finally(() => {
       this.treeLoadingPaths.delete(path)
     })
@@ -77,8 +78,12 @@ export class NavigationService {
 
   public refreshCurrentPath(): void {
     const currentPath = this.getCurrentPath()
-    this.loadedPath = null
-    this.fileManagerStore.setState({ currentPath })
+    this.fileManagerService.listFiles(currentPath).then(({ directories, files }) => {
+      this.fileManagerStore.setState({ directories, files })
+      this.treeStore.getState().setNodeChildren(currentPath, directories)
+    }).catch(() => {
+      throw new NavigationError(`Error refreshing path: ${currentPath}`)
+    })
   }
 
   public navigateTo(path: Path): void {
@@ -147,12 +152,10 @@ export class NavigationService {
   }
 
   private pushHistory(path: Path): void {
-    // When navigating after going back, remove the "forward" branch.
     if (this.navigationIndex < this.navigationHistory.length - 1) {
       this.navigationHistory.splice(this.navigationIndex + 1)
     }
 
-    // Prevent duplicate consecutive entries.
     if (this.navigationHistory.at(this.navigationIndex) === path) {
       return
     }
