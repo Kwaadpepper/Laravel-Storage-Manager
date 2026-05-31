@@ -1,7 +1,8 @@
 import { NavigationError } from "@ts/errors";
 import { useFileManagerStore, useTreeStore } from "@ts/stores";
-import { Path, rootPath } from "@ts/types";
+import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { FileManagerService } from "./file-manager-service";
+import { LocationService } from "./location-service";
 
 export enum NavigationEvent {
   NavigateTo = 'navigateTo',
@@ -10,49 +11,25 @@ export enum NavigationEvent {
   NavigatePrevious = 'navigatePrevious',
 }
 
+export interface PreloadedData {
+  directories: TreeNodeDirectory[]
+  files: TreeNodeFile[]
+}
+
 export class NavigationService {
   private readonly navigationHistory: Path[] = []
   private navigationIndex: number = -1
-  private loadedPath: Path | null = null
-  private readonly treeLoadingPaths = new Set<string>()
+  private readonly loadingPaths = new Set<string>()
   private readonly eventListeners: { [event in NavigationEvent]?: (() => void)[]
   } = {}
 
   constructor(
     private readonly fileManagerStore: typeof useFileManagerStore,
     private readonly fileManagerService: FileManagerService,
-    private readonly treeStore: typeof useTreeStore
+    private readonly treeStore: typeof useTreeStore,
+    private readonly locationService: LocationService
   ) {
-    this.fileManagerStore = fileManagerStore
-    this.fileManagerStore.subscribe(state => {
-      if (state.currentPath !== this.loadedPath) {
-        this.loadedPath = state.currentPath
-        this.fileManagerService.listFiles(state.currentPath).then(({ directories, files }) => {
-          this.fileManagerStore.setState({ directories, files })
-          this.treeStore.getState().setNodeChildren(state.currentPath, directories)
-          this.treeStore.getState().expandAncestors(state.currentPath)
-        }).catch(() => {
-          throw new NavigationError(`Error navigating to path: ${state.currentPath}`)
-        })
-      }
-    })
-  }
-
-  public loadTreeNode(path: Path): void {
-    const nodes = this.treeStore.getState().nodes
-    if (nodes[path]?.loaded || this.treeLoadingPaths.has(path)) {
-      this.treeStore.getState().toggleExpanded(path)
-      return
-    }
-    this.treeLoadingPaths.add(path)
-    this.treeStore.getState().toggleExpanded(path)
-    this.fileManagerService.listFiles(path).then(({ directories }) => {
-      this.treeStore.getState().setNodeChildren(path, directories)
-    }).catch(() => {
-      throw new NavigationError(`Error loading tree node: ${path}`)
-    }).finally(() => {
-      this.treeLoadingPaths.delete(path)
-    })
+    this.locationService.onPopState(path => this.commitNavigation(path, NavigationEvent.NavigateTo))
   }
 
   public on(event: NavigationEvent, callback: () => void): void {
@@ -60,12 +37,8 @@ export class NavigationService {
     this.eventListeners[event]?.push(callback)
   }
 
-  private emit(event: NavigationEvent): void {
-    this.eventListeners[event]?.forEach(callback => callback())
-  }
-
   public canNavigateUp(): boolean {
-    return this.getCurrentPath() !== rootPath()
+    return this.locationService.getParentPath(this.getCurrentPath()) !== null
   }
 
   public canNavigateNext(): boolean {
@@ -76,93 +49,117 @@ export class NavigationService {
     return this.navigationIndex > 0
   }
 
-  public refreshCurrentPath(): void {
-    const currentPath = this.getCurrentPath()
-    this.fileManagerService.listFiles(currentPath).then(({ directories, files }) => {
-      this.fileManagerStore.setState({ directories, files })
-      this.treeStore.getState().setNodeChildren(currentPath, directories)
-    }).catch(() => {
-      throw new NavigationError(`Error refreshing path: ${currentPath}`)
-    })
-  }
-
-  public navigateTo(path: Path): void {
+  public navigateTo(path: Path, preloadedData?: PreloadedData): void {
     const currentHistoryPath = this.navigationHistory.at(this.navigationIndex)
-
     if (path === this.getCurrentPath() && currentHistoryPath === path) {
       return
     }
-
     this.pushHistory(path)
     this.fileManagerStore.setState({ currentPath: path, selectedFile: null })
     this.updateNavigationCapabilities()
     this.emit(NavigationEvent.NavigateTo)
+    this.fetchAndApply(path, preloadedData).catch(() => {
+      throw new NavigationError(`Error navigating to path: ${path}`)
+    })
   }
 
   public navigateToRoot(): void {
-    this.navigateTo(rootPath())
+    this.navigateTo(this.locationService.getRootPath())
   }
 
   public navigateToParent(): void {
-    const currentPath = this.getCurrentPath()
-
-    if (currentPath === rootPath()) {
-      return
-    }
-
-    const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/'
-    this.navigateTo(parentPath as Path)
-    this.emit(NavigationEvent.NavigateUp)
+    const parentPath = this.locationService.getParentPath(this.getCurrentPath())
+    if (parentPath === null) return
+    this.pushHistory(parentPath)
+    this.commitNavigation(parentPath, NavigationEvent.NavigateUp)
   }
 
   public navigateNext(): void {
-    if (!this.canNavigateNext()) {
-      return
-    }
-
-    const nextPath = this.navigationHistory.at(this.navigationIndex + 1)
-
-    if (!nextPath) {
-      return
-    }
-
-    this.navigationIndex++
-    this.updateUrl(nextPath)
-    this.fileManagerStore.setState({ currentPath: nextPath, selectedFile: null })
-    this.updateNavigationCapabilities()
-    this.emit(NavigationEvent.NavigateNext)
+    if (!this.canNavigateNext()) return
+    this.navigateToHistoryIndex(1, NavigationEvent.NavigateNext)
   }
 
   public navigatePrevious(): void {
-    if (!this.canNavigatePrevious()) {
+    if (!this.canNavigatePrevious()) return
+    this.navigateToHistoryIndex(-1, NavigationEvent.NavigatePrevious)
+  }
+
+  public refreshCurrentPath(): void {
+    const currentPath = this.getCurrentPath()
+    this.fetchAndApply(currentPath).catch(() => {
+      throw new NavigationError(`Error refreshing path: ${currentPath}`)
+    })
+  }
+
+  public loadTreeNode(path: Path): void {
+    if (this.treeStore.getState().nodes[path]?.loaded || this.loadingPaths.has(path)) {
+      this.treeStore.getState().toggleExpanded(path)
       return
     }
+    this.loadingPaths.add(path)
+    this.treeStore.getState().toggleExpanded(path)
+    this.fileManagerService.listFiles(path)
+      .then(({ directories }) => {
+        this.treeStore.getState().setNodeChildren(path, directories)
+      })
+      .catch(() => {
+        throw new NavigationError(`Error loading tree node: ${path}`)
+      })
+      .finally(() => { this.loadingPaths.delete(path) })
+  }
 
-    const previousPath = this.navigationHistory.at(this.navigationIndex - 1)
+  private async fetchAndApply(path: Path, data?: PreloadedData): Promise<void> {
+    const { directories, files } = data ?? await this.fileManagerService.listFiles(path)
+    this.fileManagerStore.setState({ directories, files })
+    this.treeStore.getState().setNodeChildren(path, directories)
+    this.treeStore.getState().expandAncestors(path)
+    this.loadAncestorsForTree(path)
+  }
 
-    if (!previousPath) {
-      return
+  private loadAncestorsForTree(path: Path): void {
+    for (const ancestor of this.locationService.getAncestorPaths(path)) {
+      if (this.treeStore.getState().nodes[ancestor]?.loaded || this.loadingPaths.has(ancestor)) {
+        continue
+      }
+      this.loadingPaths.add(ancestor)
+      this.fileManagerService.listFiles(ancestor)
+        .then(({ directories }) => {
+          this.treeStore.getState().setNodeChildren(ancestor, directories)
+        })
+        .catch(() => { /* silent - tree just won't show children */ })
+        .finally(() => { this.loadingPaths.delete(ancestor) })
     }
+  }
 
-    this.navigationIndex--
-    this.updateUrl(previousPath)
-    this.fileManagerStore.setState({ currentPath: previousPath, selectedFile: null })
+  private commitNavigation(path: Path, event: NavigationEvent): void {
+    this.fileManagerStore.setState({ currentPath: path, selectedFile: null })
     this.updateNavigationCapabilities()
-    this.emit(NavigationEvent.NavigatePrevious)
+    this.emit(event)
+    this.fetchAndApply(path).catch(() => {
+      throw new NavigationError(`Error navigating to path: ${path}`)
+    })
+  }
+
+  private navigateToHistoryIndex(offset: 1 | -1, event: NavigationEvent): void {
+    const targetPath = this.navigationHistory.at(this.navigationIndex + offset)
+    if (!targetPath) return
+    this.navigationIndex += offset
+    this.locationService.replace(targetPath)
+    this.commitNavigation(targetPath, event)
+  }
+
+  private emit(event: NavigationEvent): void {
+    this.eventListeners[event]?.forEach(callback => callback())
   }
 
   private pushHistory(path: Path): void {
     if (this.navigationIndex < this.navigationHistory.length - 1) {
       this.navigationHistory.splice(this.navigationIndex + 1)
     }
-
     if (this.navigationHistory.at(this.navigationIndex) === path) {
       return
     }
-
-    const url = new URL(globalThis.location.href)
-    url.hash = path
-    globalThis.history.pushState({}, '', url.toString())
+    this.locationService.push(path)
     this.navigationHistory.push(path)
     this.navigationIndex = this.navigationHistory.length - 1
   }
@@ -177,11 +174,5 @@ export class NavigationService {
 
   private getCurrentPath(): Path {
     return this.fileManagerStore.getState().currentPath
-  }
-
-  private updateUrl(path: Path): void {
-    const url = new URL(globalThis.location.href)
-    url.hash = path
-    globalThis.history.replaceState({}, '', url.toString())
   }
 }

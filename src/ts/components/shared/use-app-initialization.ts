@@ -3,13 +3,19 @@ import { rootPath } from '@ts/types';
 import { useEffect } from 'react';
 
 export function useAppInitialization(): void {
-  const { fileManagerService, navigationService } = useContainer().cradle;
+  const { fileManagerService, navigationService, locationService } = useContainer().cradle;
 
   useEffect(() => {
-    fileManagerService.initialize().then(() => {
-      navigationService.navigateTo(rootPath());
+    fileManagerService.initialize().then(async () => {
+      const initialPath = locationService.getCurrentPath()
+      try {
+        const data = await fileManagerService.listFiles(initialPath)
+        navigationService.navigateTo(initialPath, data)
+      } catch {
+        navigationService.navigateTo(rootPath())
+      }
     }).catch(() => {
-      console.error('Error initializing file manager');
+      throw new Error('Error initializing file manager');
     });
-  }, [fileManagerService, navigationService]);
+  }, [fileManagerService, navigationService, locationService]);
 }
