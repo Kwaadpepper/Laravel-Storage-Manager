@@ -1,6 +1,6 @@
 import { useContainer } from "@ts/container";
 import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
-import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus, LayoutGrid, List } from "lucide-react";
 import ThemeSelector from "./theme-selector";
 
 interface ActionBarProps {
@@ -8,7 +8,7 @@ interface ActionBarProps {
 
 export default function ActionBar(_: Readonly<ActionBarProps>) {
   const container = useContainer()
-  const { setAboutModal, setCreateFileModal, setNewDirectoryModal, setUploadFileModal } = useUiStore()
+  const { setAboutModal, setCreateFileModal, setNewDirectoryModal, setUploadFileModal, viewMode, setViewMode } = useUiStore()
   const { canNavigatePrevious, canNavigateNext, canNavigateUp } = useFileManagerStore()
 
   const navigationService = container.resolve('navigationService')
@@ -74,6 +74,13 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
       </div>
 
       <div className="flex justify-end gap-2">
+        <button
+          className="btn btn-ghost btn-sm"
+          title={viewMode === 'list' ? 'List view' : 'Tiles view'}
+          onClick={() => setViewMode(viewMode === 'list' ? 'tiles' : 'list')}
+        >
+          {viewMode === 'list' ? <List size={16} /> : <LayoutGrid size={16} />}
+        </button>
         <span className="mx-2"><ThemeSelector /></span>
         <button className="btn btn-ghost btn-sm" title="About" onClick={onAboutClick}>
           <CircleQuestionMark size={16} />
