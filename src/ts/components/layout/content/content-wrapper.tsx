@@ -44,6 +44,7 @@ export default function ContentWrapper({ item, tabIndex = -1 }: Readonly<Content
       data-path={item.path}
       onClick={() => onItemClick(item)}
       onDoubleClick={() => onItemDoubleClick(item)}
+      onContextMenu={() => selectNode(item)}
       onKeyDown={(e) => {
         if (e.key === ' ' && !isDirectory(item)) { e.preventDefault(); selectNode(item) }
         if (e.key === 'Enter' && isDirectory(item)) navigationService.navigateTo(item.path)

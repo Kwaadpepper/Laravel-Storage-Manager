@@ -11,7 +11,7 @@ interface ContentTileDirectoryProps {
 
 export default function ContentTileDirectory({ item }: Readonly<ContentTileDirectoryProps>) {
   const { setRenameDirectoryModal, setDeleteDirectoryModal, setTargetDirectoryPath } = useUiStore()
-  const { selectedFile } = useFileManagerStore()
+  const { selectedFile, selectNode } = useFileManagerStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
 
@@ -37,6 +37,7 @@ export default function ContentTileDirectory({ item }: Readonly<ContentTileDirec
       className={`flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-accent/30 hover:cursor-pointer w-24${isSelected ? ' bg-primary/20 ring-1 ring-primary' : ''}`}
       title={isRoot ? 'root' : item.name}
       onClick={() => navigationService.navigateTo(item.path)}
+      onContextMenu={() => selectNode(item)}
       onKeyDown={(e) => { if (e.key === 'Enter') navigationService.navigateTo(item.path) }}
     >
       {isRoot

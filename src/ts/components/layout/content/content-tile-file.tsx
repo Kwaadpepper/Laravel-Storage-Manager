@@ -52,6 +52,7 @@ export default function ContentTileFile({ item }: Readonly<ContentTileFileProps>
       title={item.name}
       onClick={() => { selectNode(item) }}
       onDoubleClick={() => { setTargetFilePath(item.path); setViewFileModal(ModalState.Opened) }}
+      onContextMenu={() => selectNode(item)}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
           e.preventDefault()
