@@ -61,7 +61,7 @@ Route::group([
             'as'     => 'disks.',
         ], function (): void {
             Route::get('/', [DiskController::class, 'list'])->name('list');
-            Route::get('/select', [DiskController::class, 'select'])->name('select');
+            Route::post('/select', [DiskController::class, 'select'])->name('select');
         });
     });
 });
