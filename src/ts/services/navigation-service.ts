@@ -69,7 +69,7 @@ export class NavigationService {
     }
 
     this.pushHistory(path)
-    this.fileManagerStore.setState({ currentPath: path })
+    this.fileManagerStore.setState({ currentPath: path, selectedFile: null })
     this.updateNavigationCapabilities()
     this.emit(NavigationEvent.NavigateTo)
   }
@@ -103,7 +103,7 @@ export class NavigationService {
 
     this.navigationIndex++
     this.updateUrl(nextPath)
-    this.fileManagerStore.setState({ currentPath: nextPath })
+    this.fileManagerStore.setState({ currentPath: nextPath, selectedFile: null })
     this.updateNavigationCapabilities()
     this.emit(NavigationEvent.NavigateNext)
   }
@@ -121,7 +121,7 @@ export class NavigationService {
 
     this.navigationIndex--
     this.updateUrl(previousPath)
-    this.fileManagerStore.setState({ currentPath: previousPath })
+    this.fileManagerStore.setState({ currentPath: previousPath, selectedFile: null })
     this.updateNavigationCapabilities()
     this.emit(NavigationEvent.NavigatePrevious)
   }
