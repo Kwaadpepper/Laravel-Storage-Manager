@@ -1,9 +1,9 @@
 import { HttpClient } from '@ts/clients';
-import { ApiService, ErrorHandlerService, NavigationService, ToastService } from '@ts/services';
+import { ApiService, ErrorHandlerService, NavigationService, ThemeService, ToastService } from '@ts/services';
 import { ContextualMenuService } from '@ts/services/contextual-menu-service';
 import { DownloadService } from '@ts/services/download-service';
 import { FileManagerService } from '@ts/services/file-manager-service';
-import { useContextualMenuStore, useFileManagerStore, useToastStore } from '@ts/stores';
+import { useContextualMenuStore, useFileManagerStore, useToastStore, useUiStore } from '@ts/stores';
 import { asFunction, createContainer, InjectionMode } from 'awilix';
 
 export type AppContainer = {
@@ -15,6 +15,7 @@ export type AppContainer = {
   contextualMenuService: ContextualMenuService
   errorHandlerService: ErrorHandlerService
   downloadService: DownloadService
+  themeService: ThemeService
 }
 
 const apiBaseUrl: URL =
@@ -51,6 +52,7 @@ export function buildDiContainer() {
     errorHandlerService: asFunction(({ toastService }) => new ErrorHandlerService(toastService)).singleton(),
     contextualMenuService: asFunction(() => new ContextualMenuService(useContextualMenuStore)).singleton(),
     downloadService: asFunction(() => new DownloadService()).singleton(),
+    themeService: asFunction(() => new ThemeService(useUiStore)).singleton(),
   })
 
   return container

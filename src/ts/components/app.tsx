@@ -13,11 +13,13 @@ import { ContextualMenuContainer } from './shared/contextual-menu-container';
 import ToastContainer from './shared/toast-container';
 import { useAppInitialization } from './shared/use-app-initialization';
 import { useContextMenuTrigger } from './shared/use-contextual-menu-trigger';
+import { useThemeInitialization } from './shared/use-theme-initialization';
 
 
 function App() {
   const appRef = useRef<HTMLDivElement | null>(null)
   useAppInitialization()
+  useThemeInitialization()
   useContextMenuTrigger(appRef)
 
   return (

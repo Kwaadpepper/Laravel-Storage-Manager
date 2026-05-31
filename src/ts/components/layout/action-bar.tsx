@@ -1,6 +1,6 @@
 import { useContainer } from "@ts/container";
 import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
-import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FileUp, FolderPlus } from "lucide-react";
+import ThemeSelector from "./theme-selector";
 
 interface ActionBarProps {
 }
@@ -65,6 +65,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
       </div>
 
       <div className="flex justify-end gap-2">
+        <span className="mx-2"><ThemeSelector /></span>
         <button className="btn btn-ghost btn-sm" title="About" onClick={onAboutClick}>
           <CircleQuestionMark size={16} />
           <span className="hidden md:inline">About</span>
