@@ -9,6 +9,7 @@ export enum ModalState {
 
 const LOCAL_STORAGE_KEY = 'sm-theme';
 const VIEW_MODE_KEY = 'sm-view-mode';
+const TREE_VISIBLE_KEY = 'sm-tree-visible';
 
 export type ViewMode = 'list' | 'tiles';
 
@@ -19,6 +20,14 @@ function getLocalStorageViewMode(): ViewMode {
 
 function setLocalStorageViewMode(mode: ViewMode): void {
   localStorage[VIEW_MODE_KEY] = mode;
+}
+
+function getLocalStorageTreeVisible(): boolean {
+  return localStorage[TREE_VISIBLE_KEY] !== 'false';
+}
+
+function setLocalStorageTreeVisible(visible: boolean): void {
+  localStorage[TREE_VISIBLE_KEY] = String(visible);
 }
 
 function getLocalStorageTheme(): Theme {
@@ -59,6 +68,8 @@ type UiState = {
   setTargetFilePath: (path: Path | null) => void
   viewMode: ViewMode
   setViewMode: (mode: ViewMode) => void
+  treeVisible: boolean
+  setTreeVisible: (visible: boolean) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -94,5 +105,10 @@ export const useUiStore = create<UiState>((set) => ({
   setViewMode: (mode) => {
     set({ viewMode: mode })
     setLocalStorageViewMode(mode)
+  },
+  treeVisible: getLocalStorageTreeVisible(),
+  setTreeVisible: (visible) => {
+    set({ treeVisible: visible })
+    setLocalStorageTreeVisible(visible)
   },
 }))

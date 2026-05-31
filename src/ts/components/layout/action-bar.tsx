@@ -1,6 +1,6 @@
 import { useContainer } from "@ts/container";
 import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
-import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus, LayoutGrid, List } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus, LayoutGrid, List, PanelLeft, PanelLeftClose } from "lucide-react";
 import ThemeSelector from "./theme-selector";
 
 interface ActionBarProps {
@@ -8,7 +8,7 @@ interface ActionBarProps {
 
 export default function ActionBar(_: Readonly<ActionBarProps>) {
   const container = useContainer()
-  const { setAboutModal, setCreateFileModal, setNewDirectoryModal, setUploadFileModal, viewMode, setViewMode } = useUiStore()
+  const { setAboutModal, setCreateFileModal, setNewDirectoryModal, setUploadFileModal, viewMode, setViewMode, treeVisible, setTreeVisible } = useUiStore()
   const { canNavigatePrevious, canNavigateNext, canNavigateUp } = useFileManagerStore()
 
   const navigationService = container.resolve('navigationService')
@@ -43,7 +43,15 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
 
   return (
     <div className="navbar bg-base-100 shadow-sm px-4">
+      {/* Navigation */}
       <div className="navbar-start gap-1">
+        <button
+          className="btn btn-ghost btn-sm"
+          title={treeVisible ? 'Hide tree' : 'Show tree'}
+          onClick={() => setTreeVisible(!treeVisible)}
+        >
+          {treeVisible ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+        </button>
         <button className="btn btn-ghost btn-sm" title="Back" onClick={onBackClick} disabled={!canNavigatePrevious}>
           <ArrowLeft size={16} />
           <span className="hidden md:inline">Back</span>
@@ -58,6 +66,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
         </button>
       </div>
 
+      {/* Actions */}
       <div className="navbar-center gap-1">
         <button className="btn btn-ghost btn-sm" title="New File" onClick={onNewFileClick}>
           <FilePlus size={16} />
@@ -73,6 +82,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
         </button>
       </div>
 
+      {/* View Mode and Theme */}
       <div className="navbar-end gap-1">
         <button
           className="btn btn-ghost btn-sm"

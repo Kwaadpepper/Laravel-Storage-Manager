@@ -1,3 +1,4 @@
+import { useUiStore } from '@ts/stores';
 import { useRef } from 'react';
 import ActionBar from './layout/action-bar';
 import Breadcrumb from './layout/breadcrumb';
@@ -14,6 +15,7 @@ import { useThemeInitialization } from './shared/use-theme-initialization';
 
 function App() {
   const appRef = useRef<HTMLDivElement | null>(null)
+  const { treeVisible } = useUiStore()
   useAppInitialization()
   useThemeInitialization()
   useContextMenuTrigger(appRef)
@@ -28,9 +30,11 @@ function App() {
 
       {/* Main layout */}
       <div className="flex flex-row gap-4 p-4">
-        <div className="w-64 shrink-0">
-          <TreeView />
-        </div>
+        {treeVisible && (
+          <div className="w-64 shrink-0">
+            <TreeView />
+          </div>
+        )}
         <div className="flex flex-col gap-2 flex-1 min-w-0">
           <div className="bg-base-100 rounded-box px-4 py-2 shadow-sm">
             <Breadcrumb />
