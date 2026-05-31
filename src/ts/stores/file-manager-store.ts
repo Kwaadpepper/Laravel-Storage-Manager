@@ -1,17 +1,17 @@
-import { Path, rootPath, TreeNode, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
+import { Path, rootPath, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
 import { create } from 'zustand';
 
 type FileManagerState = {
   currentPath: Path
   directories: TreeNodeDirectory[]
   files: TreeNodeFile[]
-  selectedFile: TreeNode | null
+  selectedFile: TreeNodeFile | TreeNodeDirectory | null
   canNavigatePrevious: boolean
   canNavigateNext: boolean
   canNavigateUp: boolean
   setCurrentPath: (path: Path) => void
   setFiles: (files: TreeNodeFile[]) => void
-  selectNode: (file: TreeNode | null) => void
+  selectNode: (file: TreeNodeFile | TreeNodeDirectory | null) => void
 }
 
 export const useFileManagerStore = create<FileManagerState>((set) => ({

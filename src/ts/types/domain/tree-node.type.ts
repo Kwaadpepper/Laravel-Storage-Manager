@@ -1,3 +1,5 @@
+import { Path } from "./path.type";
+
 export interface TreeNode {
-  path: string
+  path: Path
 }
