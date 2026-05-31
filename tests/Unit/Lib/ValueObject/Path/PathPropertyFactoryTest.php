@@ -80,7 +80,7 @@ describe('PathPropertyFactory', function (): void {
         });
     });
 
-    describe('fromArray() — type dir', function (): void {
+    describe('fromArray() - type dir', function (): void {
         it('returns a DirectoryPathProperties for type dir with all explicit fields', function (): void {
             // Given
             $metadata = [
@@ -116,7 +116,7 @@ describe('PathPropertyFactory', function (): void {
         });
     });
 
-    describe('fromArray() — error cases', function (): void {
+    describe('fromArray() - error cases', function (): void {
         it('throws InvalidArgumentException when type field is missing', function (): void {
             // Given
             $metadata = ['path' => '/file.txt'];
