@@ -3,39 +3,45 @@ import { isDirectory, TreeNode } from "@ts/types";
 import { Pencil, Trash2 } from "lucide-react";
 
 interface CommonButtonsProps {
-  selectedFile: TreeNode | null
+  selectedNodes: TreeNode[]
 }
 
-export default function CommonButtons({ selectedFile }: Readonly<CommonButtonsProps>) {
+export default function CommonButtons({ selectedNodes }: Readonly<CommonButtonsProps>) {
+  const hasMultipleSelection = selectedNodes.length > 1
+  const firstSelectedNode: TreeNode | null = selectedNodes[0] || null
+  const firstNodeIsDirectory = firstSelectedNode !== null && isDirectory(firstSelectedNode)
+
   const { setRenameFileModal, setDeleteFileModal, setTargetFilePath,
     setRenameDirectoryModal, setDeleteDirectoryModal, setTargetDirectoryPath } = useUiStore()
 
-  const isDir = selectedFile !== null && isDirectory(selectedFile)
-
   function onClickRename(_: React.MouseEvent<HTMLButtonElement>) {
-    if (selectedFile === null) {
+    if (firstSelectedNode === null) {
       return
     }
-    if (isDir) {
-      setTargetDirectoryPath(selectedFile.path)
+    if (firstNodeIsDirectory) {
+      setTargetDirectoryPath(firstSelectedNode.path)
       setRenameDirectoryModal(ModalState.Opened)
     } else {
-      setTargetFilePath(selectedFile.path)
+      setTargetFilePath(firstSelectedNode.path)
       setRenameFileModal(ModalState.Opened)
     }
   }
 
   function onClickDelete(_: React.MouseEvent<HTMLButtonElement>) {
-    if (selectedFile === null) {
+    if (firstSelectedNode === null) {
       return
     }
-    if (isDir) {
-      setTargetDirectoryPath(selectedFile.path)
+    if (firstNodeIsDirectory) {
+      setTargetDirectoryPath(firstSelectedNode.path)
       setDeleteDirectoryModal(ModalState.Opened)
     } else {
-      setTargetFilePath(selectedFile.path)
+      setTargetFilePath(firstSelectedNode.path)
       setDeleteFileModal(ModalState.Opened)
     }
+  }
+
+  if (hasMultipleSelection) {
+    return null
   }
 
   return (

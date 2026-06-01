@@ -7,10 +7,11 @@ import { FileIcon } from "lucide-react";
 import { useMemo } from "react";
 
 interface ContentFileProps {
+  readonly asTile?: boolean
   readonly item: TreeNodeFile
 }
 
-export default function ContentFile({ item }: Readonly<ContentFileProps>) {
+export default function ContentFile({ item, asTile = false }: Readonly<ContentFileProps>) {
   const { setRenameFileModal, setDeleteFileModal, setViewFileModal, setTargetFilePath } = useUiStore()
   const container = useContainer()
   const downloadService = container.resolve('downloadService')
@@ -39,6 +40,20 @@ export default function ContentFile({ item }: Readonly<ContentFileProps>) {
   ], [item.path])
 
   useContextualMenuRegistration(anchorName, entries)
+
+  if (asTile) {
+    return (
+      <div
+        data-contextual-menu={anchorName}
+        style={{ anchorName }}
+        className="flex flex-col items-center gap-1 p-3 rounded-lg w-24 select-none"
+      >
+        <FileIcon size={36} className="text-info" />
+        <span className="text-xs text-center truncate w-full">{item.name}</span>
+        <span className="text-xs text-base-content/50"><FileSize bytes={item.size} /></span>
+      </div>
+    )
+  }
 
   return (
     <>

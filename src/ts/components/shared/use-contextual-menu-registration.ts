@@ -3,13 +3,14 @@ import { AnchorName, ContextualMenuEntry } from '@ts/stores';
 import { useEffect } from 'react';
 
 export function useContextualMenuRegistration(anchorName: AnchorName, entries: ContextualMenuEntry[]): void {
-    const { cradle } = useContainer();
+  const container = useContainer();
+  const contextualMenuService = container.resolve('contextualMenuService');
 
-    useEffect(() => {
-        cradle.contextualMenuService.register(anchorName, entries);
+  useEffect(() => {
+    contextualMenuService.register(anchorName, entries);
 
-        return () => {
-            cradle.contextualMenuService.unregister(anchorName);
-        };
-    }, [anchorName, cradle.contextualMenuService, entries]);
+    return () => {
+      contextualMenuService.unregister(anchorName);
+    };
+  }, [anchorName, contextualMenuService, entries]);
 }

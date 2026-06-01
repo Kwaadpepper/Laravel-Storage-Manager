@@ -10,6 +10,7 @@ import { ContextualMenuContainer } from './shared/contextual-menu-container';
 import ToastContainer from './shared/toast-container';
 import { useAppInitialization } from './shared/use-app-initialization';
 import { useContextMenuTrigger } from './shared/use-contextual-menu-trigger';
+import { useKeyboardNavigation } from './shared/use-keyboard-navigation';
 import { useThemeInitialization } from './shared/use-theme-initialization';
 
 
@@ -18,6 +19,7 @@ function App() {
   const { treeVisible } = useUiStore()
   useAppInitialization()
   useThemeInitialization()
+  useKeyboardNavigation()
   useContextMenuTrigger(appRef)
 
   return (

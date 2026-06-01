@@ -1,43 +1,49 @@
 import { useContainer } from "@ts/container";
 import { ModalState, useUiStore } from "@ts/stores";
-import { isDirectory, TreeNodeFile } from "@ts/types";
+import { isFile, TreeNode } from "@ts/types";
 import { Download, Eye } from "lucide-react";
 
 interface FileButtonsProps {
-  selectedFile: TreeNodeFile | null
+  selectedNodes: TreeNode[]
 }
 
-export default function FileButtons({ selectedFile }: Readonly<FileButtonsProps>) {
+export default function FileButtons({ selectedNodes }: Readonly<FileButtonsProps>) {
+  const hasMultipleSelection = selectedNodes.length > 1
+  const firstSelectedNode: TreeNode | null = selectedNodes[0] || null
+  const firstNodeIsFile = firstSelectedNode !== null && isFile(firstSelectedNode)
+
   const { setTargetFilePath, setViewFileModal } = useUiStore()
   const container = useContainer()
   const downloadService = container.resolve('downloadService')
   const toastService = container.resolve('toastService')
 
-  const isDir = selectedFile !== null && isDirectory(selectedFile)
-
   function onClickView(_: React.MouseEvent<HTMLButtonElement>) {
-    if (selectedFile === null || isDir) {
+    if (firstSelectedNode === null || !firstNodeIsFile) {
       return
     }
-    setTargetFilePath(selectedFile.path)
+    setTargetFilePath(firstSelectedNode.path)
     setViewFileModal(ModalState.Opened)
   }
 
   async function onClickDownload(_: React.MouseEvent<HTMLButtonElement>) {
     try {
-      if (selectedFile === null || isDir) {
+      if (firstSelectedNode === null || !firstNodeIsFile) {
         return
       }
-      const blob = await downloadService.downloadFile(selectedFile.path)
+      const blob = await downloadService.downloadFile(firstSelectedNode.path)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = selectedFile.name
+      a.download = firstSelectedNode.name
       a.click()
       URL.revokeObjectURL(url)
     } catch {
       toastService.pushToast({ message: 'Failed to download file.', type: 'error' })
     }
+  }
+
+  if (hasMultipleSelection || !firstNodeIsFile) {
+    return null
   }
 
   return (

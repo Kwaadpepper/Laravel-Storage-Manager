@@ -1,22 +1,28 @@
 import { useContainer } from "@ts/container";
-import { isDirectory, TreeNodeDirectory } from "@ts/types";
+import { isDirectory, TreeNode } from "@ts/types";
 import { FolderOpen } from "lucide-react";
 
 interface DirectoryButtonsProps {
-  selectedFile: TreeNodeDirectory | null
+  selectedNodes: TreeNode[]
 }
 
-export default function DirectoryButtons({ selectedFile }: Readonly<DirectoryButtonsProps>) {
+export default function DirectoryButtons({ selectedNodes }: Readonly<DirectoryButtonsProps>) {
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
 
-  const isDir = selectedFile !== null && isDirectory(selectedFile)
+  const hasMultipleSelection = selectedNodes.length > 1
+  const firstSelectedNode: TreeNode | null = selectedNodes[0] || null
+  const firstNodeIsDir = firstSelectedNode !== null && isDirectory(firstSelectedNode)
 
   function onClickOpen(_: React.MouseEvent<HTMLButtonElement>) {
-    if (selectedFile === null || !isDir) {
+    if (firstSelectedNode === null || !firstNodeIsDir) {
       return
     }
-    navigationService.navigateTo(selectedFile.path)
+    navigationService.navigateTo(firstSelectedNode.path)
+  }
+
+  if (hasMultipleSelection || !firstNodeIsDir) {
+    return null
   }
 
   return (

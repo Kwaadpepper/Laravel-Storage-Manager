@@ -3,34 +3,34 @@ import { TreeNode } from "@ts/types";
 import { ClipboardCopy, ClipboardPaste, Scissors } from "lucide-react";
 
 interface ClipboardButtonsProps {
-  selectedFile: TreeNode | null
+  selectedNodes: TreeNode[]
 }
 
-export default function ClipboardButtons({ selectedFile }: Readonly<ClipboardButtonsProps>) {
+export default function ClipboardButtons({ selectedNodes }: Readonly<ClipboardButtonsProps>) {
   const container = useContainer()
   const toastService = container.resolve('toastService')
   const clipboardService = container.resolve('clipboardService')
 
-    function onClickCopy(_: React.MouseEvent<HTMLButtonElement>) {
-    if (selectedFile === null) {
+  function onClickCopy(_: React.MouseEvent<HTMLButtonElement>) {
+    if (selectedNodes.length === 0) {
       return
     }
     clipboardService.setConsumingMode(false)
-    clipboardService.addEntry(selectedFile.path)
+    clipboardService.addEntry(...selectedNodes.map(node => node.path))
     toastService.pushToast({ message: 'File path copied to clipboard.', type: 'success' })
   }
 
   function onClickCut(_: React.MouseEvent<HTMLButtonElement>) {
-    if (selectedFile === null) {
+    if (selectedNodes.length === 0) {
       return
     }
     clipboardService.setConsumingMode(true)
-    clipboardService.addEntry(selectedFile.path)
+    clipboardService.addEntry(...selectedNodes.map(node => node.path))
     toastService.pushToast({ message: 'File path cut to clipboard.', type: 'success' })
   }
 
   function onClickPaste(_: React.MouseEvent<HTMLButtonElement>) {
-    if (selectedFile === null) {
+    if (selectedNodes.length === 0) {
       return
     }
     const entry = clipboardService.getLastEntry()

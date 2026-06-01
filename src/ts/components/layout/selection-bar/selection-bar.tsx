@@ -1,5 +1,4 @@
 import { useFileManagerStore } from "@ts/stores";
-import { isDirectory } from "@ts/types";
 import { X } from "lucide-react";
 import ClipboardButtons from "./clipboard-buttons";
 import CommonButtons from "./common-buttons";
@@ -10,15 +9,13 @@ interface SelectionBarProps {
 }
 
 export default function SelectionBar(_: Readonly<SelectionBarProps>) {
-  const { selectedNode: selectedFile, selectNode } = useFileManagerStore()
-
-  const isDir = selectedFile !== null && isDirectory(selectedFile)
-  const visible = selectedFile !== null
-
-
+  const { selectedNodes, selectNodes: selectNode } = useFileManagerStore()
+  const visible = Object.keys(selectedNodes).length > 0
+  const selectedLabel = Object.values(selectedNodes)
+    .reduce((label, node) => label.length ? 'Multiple selections' : node.name, '')
 
   function onClickDeselect(_: React.MouseEvent<HTMLButtonElement>) {
-    selectNode(null)
+    selectNode()
   }
 
   return (
@@ -26,28 +23,25 @@ export default function SelectionBar(_: Readonly<SelectionBarProps>) {
       className={`flex items-center gap-2 px-4 h-9 overflow-hidden border-b transition-colors${visible ? ' bg-primary/10 border-primary/20' : ' bg-transparent border-base-300'}`}
       aria-hidden={!visible}
     >
-      {selectedFile !== null && (
+      {visible && (
         <>
-          <span className="text-sm font-medium text-base-content/70 truncate max-w-xs" title={selectedFile.name}>
-            {selectedFile.name}
+          <span className="text-sm font-medium text-base-content/70 truncate max-w-xs" title={selectedLabel}>
+            {selectedLabel}
           </span>
 
           <div className="flex items-center gap-1 ml-2">
-            {isDir ? (
-              <DirectoryButtons selectedFile={selectedFile} />
-            ) : (
-              <FileButtons selectedFile={selectedFile} />
-            )}
+            <DirectoryButtons selectedNodes={Object.values(selectedNodes)} />
+            <FileButtons selectedNodes={Object.values(selectedNodes)} />
           </div>
 
           {/* CLIPBOARD ACTIONS */}
           <div className="flex items-center gap-1 ml-2">
-            <ClipboardButtons selectedFile={selectedFile} />
+            <ClipboardButtons selectedNodes={Object.values(selectedNodes)} />
           </div>
 
           {/* COMMON ACTIONS */}
           <div className="flex items-center gap-1 ml-2">
-            <CommonButtons selectedFile={selectedFile} />
+            <CommonButtons selectedNodes={Object.values(selectedNodes)} />
           </div>
 
           <button

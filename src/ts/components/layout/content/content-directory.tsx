@@ -6,15 +6,17 @@ import { Folder, FolderOpen } from "lucide-react";
 import { useMemo } from "react";
 
 interface ContentDirectoryProps {
+  readonly asTile?: boolean
   readonly item: TreeNodeDirectory
 }
 
-export default function ContentDirectory({ item }: Readonly<ContentDirectoryProps>) {
+export default function ContentDirectory({ item, asTile = false }: Readonly<ContentDirectoryProps>) {
   const { setRenameDirectoryModal, setDeleteDirectoryModal, setTargetDirectoryPath } = useUiStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
 
   const anchorName = toAnchorName(item.path)
+  const isRoot = item.path === rootPath()
 
   const entries = useMemo(() => [
     { label: 'Open', onClick: () => navigationService.navigateTo(item.path) },
@@ -23,6 +25,22 @@ export default function ContentDirectory({ item }: Readonly<ContentDirectoryProp
   ], [item.path])
 
   useContextualMenuRegistration(anchorName, entries)
+
+  if (asTile) {
+    return (
+      <div
+        data-contextual-menu={anchorName}
+        style={{ anchorName }}
+        className="flex flex-col items-center gap-1 p-3 rounded-lg w-24 select-none"
+      >
+        {isRoot
+          ? <Folder size={36} className="text-warning" />
+          : <FolderOpen size={36} className="text-warning" />
+        }
+        <span className="text-xs text-center truncate w-full">{isRoot ? 'root' : item.name}</span>
+      </div>
+    )
+  }
 
   return (
     <>

@@ -5,26 +5,29 @@ type FileManagerState = {
   currentPath: Path
   directoryNodes: TreeNodeDirectory[]
   fileNodes: TreeNodeFile[]
-  selectedNode: TreeNodeFile | TreeNodeDirectory | null
+  selectedNodes: Record<Path, TreeNodeDirectory | TreeNodeFile>
   canNavigatePrevious: boolean
   canNavigateNext: boolean
   canNavigateUp: boolean
   setCurrentPath: (path: Path) => void
   setDirectoryNodes: (nodes: TreeNodeDirectory[]) => void
   setFileNodes: (nodes: TreeNodeFile[]) => void
-  selectNode: (node: TreeNodeFile | TreeNodeDirectory | null) => void
+  selectNodes: (...nodes: (TreeNodeFile | TreeNodeDirectory)[]) => void
 }
 
 export const useFileManagerStore = create<FileManagerState>((set) => ({
   currentPath: rootPath(),
   directoryNodes: [],
   fileNodes: [],
-  selectedNode: null,
+  selectedNodes: {},
   canNavigatePrevious: false,
   canNavigateNext: false,
   canNavigateUp: false,
-  setCurrentPath: (path) => set({ currentPath: path, selectedNode: null }),
+  setCurrentPath: (path) => set({ currentPath: path, selectedNodes: {} }),
   setFileNodes: (nodes) => set({ fileNodes: nodes }),
   setDirectoryNodes: (nodes) => set({ directoryNodes: nodes }),
-  selectNode: (node) => set({ selectedNode: node }),
+  selectNodes: (...nodes) => set({
+    selectedNodes: nodes.map((n) => ({ [n.path]: n }))
+      .reduce((acc, curr) => ({ ...acc, ...curr }), {})
+  }),
 }))
