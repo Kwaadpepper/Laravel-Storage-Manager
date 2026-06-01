@@ -17,7 +17,7 @@ export default function TreeView(_: Readonly<TreeViewProps>) {
   const rootActive = currentPath === rootPath()
 
   return (
-    <div className="bg-base-100 rounded-box shadow-sm w-full overflow-y-auto">
+    <div className="bg-base-100 rounded-box shadow-sm w-full overflow-y-auto h-full">
       <div className="px-3 pt-2 pb-1 border-b border-base-200">
         <DiskSelector className="w-full" />
       </div>
