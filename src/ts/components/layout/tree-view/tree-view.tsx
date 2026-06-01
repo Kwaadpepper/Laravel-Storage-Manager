@@ -3,6 +3,7 @@ import { useContainer } from "@ts/container";
 import { useFileManagerStore, useTreeStore } from "@ts/stores";
 import { rootPath } from "@ts/types";
 import { ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
+import { useEffect, useRef } from "react";
 import TreeNodeItem from "./tree-node-item";
 
 interface TreeViewProps { }
@@ -13,17 +14,25 @@ export default function TreeView(_: Readonly<TreeViewProps>) {
   const { currentPath } = useFileManagerStore()
   const { nodes } = useTreeStore()
 
+  const scrollRef = useRef<HTMLDivElement>(null)
   const rootState = nodes[rootPath()]
   const rootActive = currentPath === rootPath()
 
+  useEffect(() => {
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-path="${currentPath}"]`)
+    if (el) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [currentPath])
+
   return (
-    <div className="bg-base-100 rounded-box shadow-sm w-full overflow-y-auto h-full">
+    <div ref={scrollRef} className="bg-base-100 rounded-box shadow-sm w-full overflow-y-auto h-full">
       <div className="px-3 pt-2 pb-1 border-b border-base-200 sticky top-0 bg-base-100 z-10">
         <DiskSelector className="w-full" />
       </div>
       <ul className="p-2 text-sm">
         <li>
-          <div className={`flex items-center gap-1 rounded select-none${rootActive ? ' bg-primary/20 text-primary' : ' hover:bg-base-200'}`}>
+          <div data-path={rootPath()} className={`flex items-center gap-1 rounded select-none${rootActive ? ' bg-primary/20 text-primary' : ' hover:bg-base-200'}`}>
             <button
               type="button"
               className="btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 shrink-0"

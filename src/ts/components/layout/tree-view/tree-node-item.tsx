@@ -22,6 +22,7 @@ export default function TreeNodeItem({
   return (
     <li>
       <div
+        data-path={directory.path}
         className={`flex items-center gap-1 rounded select-none${isActive ? ' bg-primary/20 text-primary' : ' hover:bg-base-200'}`}
         style={{ paddingLeft: `${depth * 14}px` }}
       >
