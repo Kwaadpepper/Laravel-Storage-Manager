@@ -1,4 +1,3 @@
-import { useContainer } from "@ts/container";
 import { useFileManagerStore } from "@ts/stores";
 import { isDirectory } from "@ts/types";
 import { X } from "lucide-react";
@@ -12,8 +11,6 @@ interface SelectionBarProps {
 
 export default function SelectionBar(_: Readonly<SelectionBarProps>) {
   const { selectedNode: selectedFile, selectNode } = useFileManagerStore()
-  const container = useContainer()
-  const navigationService = container.resolve('navigationService')
 
   const isDir = selectedFile !== null && isDirectory(selectedFile)
   const visible = selectedFile !== null
