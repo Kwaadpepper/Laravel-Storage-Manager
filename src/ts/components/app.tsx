@@ -23,7 +23,7 @@ function App() {
   useContextMenuTrigger(appRef)
 
   return (
-    <div ref={appRef} className="min-h-screen bg-base-200 flex flex-col">
+    <div ref={appRef} className="h-screen bg-base-200 flex flex-col overflow-hidden">
       {/* Navbar + action bar */}
       <ActionBar />
 
@@ -31,17 +31,17 @@ function App() {
       <SelectionBar />
 
       {/* Main layout */}
-      <div className="flex flex-row gap-4 p-4 flex-grow-1">
+      <div className="flex flex-row gap-4 p-4 flex-1 min-h-0">
         {treeVisible && (
-          <div className="w-64 h-auto">
+          <div className="w-64 overflow-hidden flex flex-col">
             <TreeView />
           </div>
         )}
-        <div className="flex flex-col gap-2 flex-1 min-w-0">
-          <div className="bg-base-100 rounded-box px-4 py-2 shadow-sm">
+        <div className="flex flex-col gap-2 flex-1 min-w-0 overflow-hidden">
+          <div className="bg-base-100 rounded-box px-4 py-2 shadow-sm shrink-0">
             <Breadcrumb />
           </div>
-          <div className="bg-base-100 rounded-box p-4 shadow-sm flex-1">
+          <div className="bg-base-100 rounded-box shadow-sm flex-1 overflow-hidden">
             <ContentView />
           </div>
         </div>

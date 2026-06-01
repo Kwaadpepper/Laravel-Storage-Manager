@@ -94,7 +94,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     <>
       <div
         ref={listRef}
-        className={`overflow-x-auto ${viewMode === 'list' ? '' : 'hidden'}`}
+        className={`overflow-auto h-full ${viewMode === 'list' ? '' : 'hidden'}`}
         role="grid"
         aria-label="File list"
         tabIndex={rovingIdx === -1 ? 0 : -1}
@@ -103,10 +103,10 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
         <div className="table table-zebra w-full">
           <div className="table-header-group">
             <div className="table-row">
-              <div className="table-cell p-2">Name</div>
-              <div className="table-cell p-2">Type</div>
-              <div className="table-cell p-2">Size</div>
-              <div className="table-cell p-2">Extension</div>
+              <div className="table-cell p-2 sticky top-0 bg-base-100 z-10 border-b border-base-200">Name</div>
+              <div className="table-cell p-2 sticky top-0 bg-base-100 z-10 border-b border-base-200">Type</div>
+              <div className="table-cell p-2 sticky top-0 bg-base-100 z-10 border-b border-base-200">Size</div>
+              <div className="table-cell p-2 sticky top-0 bg-base-100 z-10 border-b border-base-200">Extension</div>
             </div>
           </div>
           <div className="table-row-group">
@@ -123,7 +123,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
           </div>
         )}
       </div>
-      <div className={`p-2 ${viewMode === 'tiles' ? '' : 'hidden'}`}>
+      <div className={`p-2 overflow-y-auto h-full ${viewMode === 'tiles' ? '' : 'hidden'}`}>
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-16 text-base-content/40">
             <FolderOpen size={48} className="mb-2" />

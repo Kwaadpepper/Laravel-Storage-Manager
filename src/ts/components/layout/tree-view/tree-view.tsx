@@ -18,7 +18,7 @@ export default function TreeView(_: Readonly<TreeViewProps>) {
 
   return (
     <div className="bg-base-100 rounded-box shadow-sm w-full overflow-y-auto h-full">
-      <div className="px-3 pt-2 pb-1 border-b border-base-200">
+      <div className="px-3 pt-2 pb-1 border-b border-base-200 sticky top-0 bg-base-100 z-10">
         <DiskSelector className="w-full" />
       </div>
       <ul className="p-2 text-sm">
