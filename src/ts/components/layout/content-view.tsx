@@ -90,10 +90,40 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     }
   }
 
-  // * RENDER TILE VIEW
-  if (viewMode === 'tiles') {
-    return (
-      <div className="p-2">
+  return (
+    <>
+      <div
+        ref={listRef}
+        className={`overflow-x-auto ${viewMode === 'list' ? '' : 'hidden'}`}
+        role="grid"
+        aria-label="File list"
+        tabIndex={rovingIdx === -1 ? 0 : -1}
+        onKeyDown={onListKeyDown}
+      >
+        <div className="table table-zebra w-full">
+          <div className="table-header-group">
+            <div className="table-row">
+              <div className="table-cell p-2">Name</div>
+              <div className="table-cell p-2">Type</div>
+              <div className="table-cell p-2">Size</div>
+              <div className="table-cell p-2">Extension</div>
+            </div>
+          </div>
+          <div className="table-row-group">
+            {items.map((item, i) => (
+              <ContentWrapper key={item.path} item={item} tabIndex={rovingIdx === i ? 0 : -1} isListView />
+            ))}
+          </div>
+        </div>
+
+        {isEmpty && (
+          <div className="flex flex-col items-center justify-center py-16 text-base-content/40">
+            <FolderOpen size={48} className="mb-2" />
+            <p>Directory is empty</p>
+          </div>
+        )}
+      </div>
+      <div className={`p-2 ${viewMode === 'tiles' ? '' : 'hidden'}`}>
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-16 text-base-content/40">
             <FolderOpen size={48} className="mb-2" />
@@ -107,41 +137,6 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
           </div>
         )}
       </div>
-    )
-  }
-
-  // * RENDER LIST VIEW
-  return (
-    <div
-      ref={listRef}
-      className="overflow-x-auto"
-      role="grid"
-      aria-label="File list"
-      tabIndex={rovingIdx === -1 ? 0 : -1}
-      onKeyDown={onListKeyDown}
-    >
-      <div className="table table-zebra w-full">
-        <div className="table-header-group">
-          <div className="table-row">
-            <div className="table-cell p-2">Name</div>
-            <div className="table-cell p-2">Type</div>
-            <div className="table-cell p-2">Size</div>
-            <div className="table-cell p-2">Extension</div>
-          </div>
-        </div>
-        <div className="table-row-group">
-          {items.map((item, i) => (
-            <ContentWrapper key={item.path} item={item} tabIndex={rovingIdx === i ? 0 : -1} isListView />
-          ))}
-        </div>
-      </div>
-
-      {isEmpty && (
-        <div className="flex flex-col items-center justify-center py-16 text-base-content/40">
-          <FolderOpen size={48} className="mb-2" />
-          <p>Directory is empty</p>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
