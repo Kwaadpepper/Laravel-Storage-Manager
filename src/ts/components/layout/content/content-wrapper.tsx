@@ -140,7 +140,6 @@ export default function ContentWrapper({ isListView = false, item, tabIndex = -1
         role="row"
         aria-selected={isSelected}
         tabIndex={tabIndex}
-        data-path={item.path}
         onClick={onItemClick}
         onDoubleClick={onItemDoubleClick}
         onContextMenu={onContextMenu}
@@ -162,7 +161,6 @@ export default function ContentWrapper({ isListView = false, item, tabIndex = -1
       title={item.name}
       aria-pressed={isSelected}
       tabIndex={tabIndex}
-      data-path={item.path}
       onClick={onItemClick}
       onDoubleClick={onItemDoubleClick}
       onContextMenu={onContextMenu}
