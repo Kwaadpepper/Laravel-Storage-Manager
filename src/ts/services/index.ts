@@ -1,4 +1,5 @@
 export * from './api-service';
+export * from './clipboard-service';
 export * from './contextual-menu-service';
 export * from './disk-service';
 export * from './download-service';

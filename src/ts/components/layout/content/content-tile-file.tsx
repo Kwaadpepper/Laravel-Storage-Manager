@@ -12,7 +12,7 @@ interface ContentTileFileProps {
 
 export default function ContentTileFile({ item }: Readonly<ContentTileFileProps>) {
   const { setRenameFileModal, setDeleteFileModal, setViewFileModal, setTargetFilePath } = useUiStore()
-  const { selectNode, selectedFile } = useFileManagerStore()
+  const { selectNode, selectedNode: selectedFile } = useFileManagerStore()
   const container = useContainer()
   const downloadService = container.resolve('downloadService')
   const toastService = container.resolve('toastService')

@@ -1,5 +1,5 @@
 import { HttpClient } from '@ts/clients';
-import { ApiService, DiskService, ErrorHandlerService, LocationService, NavigationService, ThemeService, ToastService } from '@ts/services';
+import { ApiService, ClipboardService, DiskService, ErrorHandlerService, LocationService, NavigationService, ThemeService, ToastService } from '@ts/services';
 import { ContextualMenuService } from '@ts/services/contextual-menu-service';
 import { DownloadService } from '@ts/services/download-service';
 import { FileManagerService } from '@ts/services/file-manager-service';
@@ -18,6 +18,7 @@ export type AppContainer = {
   themeService: ThemeService
   locationService: LocationService
   diskService: DiskService
+  clipboardService: ClipboardService
 }
 
 const apiBaseUrl: URL =
@@ -59,6 +60,7 @@ export function buildDiContainer() {
     downloadService: asFunction(() => new DownloadService()).singleton(),
     locationService: asFunction(() => new LocationService()).singleton(),
     themeService: asFunction(() => new ThemeService(useUiStore)).singleton(),
+    clipboardService: asFunction(() => new ClipboardService()).singleton(),
   })
 
   return container

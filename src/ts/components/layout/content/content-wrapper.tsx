@@ -15,7 +15,7 @@ export default function ContentWrapper({ item, tabIndex = -1 }: Readonly<Content
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
   const { setTargetFilePath, setViewFileModal } = useUiStore()
-  const { selectNode, selectedFile } = useFileManagerStore()
+  const { selectNode, selectedNode: selectedFile } = useFileManagerStore()
 
   const isSelected = selectedFile?.path === item.path
 

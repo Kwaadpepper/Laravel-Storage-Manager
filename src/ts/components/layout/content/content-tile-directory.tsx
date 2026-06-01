@@ -11,7 +11,7 @@ interface ContentTileDirectoryProps {
 
 export default function ContentTileDirectory({ item }: Readonly<ContentTileDirectoryProps>) {
   const { setRenameDirectoryModal, setDeleteDirectoryModal, setTargetDirectoryPath } = useUiStore()
-  const { selectedFile, selectNode } = useFileManagerStore()
+  const { selectedNode: selectedFile, selectNode } = useFileManagerStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
 

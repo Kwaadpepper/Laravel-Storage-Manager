@@ -11,7 +11,7 @@ interface ContentViewProps {
 }
 
 export default function ContentView(_: Readonly<ContentViewProps>) {
-  const { directories, files, selectedFile, selectNode } = useFileManagerStore()
+  const { directoryNodes: directories, fileNodes: files, selectedNode: selectedFile, selectNode } = useFileManagerStore()
   const { viewMode, setTargetFilePath, setViewFileModal } = useUiStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')

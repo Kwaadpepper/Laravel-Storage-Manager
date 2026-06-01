@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import ActionBar from './layout/action-bar';
 import Breadcrumb from './layout/breadcrumb';
 import ContentView from './layout/content-view';
-import SelectionBar from './layout/selection-bar';
+import SelectionBar from './layout/selection-bar/selection-bar';
 import TreeView from './layout/tree-view/tree-view';
 import ModalContainer from './modals/modal-container';
 import { ContextualMenuContainer } from './shared/contextual-menu-container';
