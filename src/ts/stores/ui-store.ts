@@ -75,7 +75,6 @@ type UiState = {
 export const useUiStore = create<UiState>((set) => ({
   theme: getLocalStorageTheme(),
   setTheme: (theme) => {
-    console.debug(`Setting theme to ${theme}`)
     set({ theme })
     setLocalStorageTheme(theme)
   },
