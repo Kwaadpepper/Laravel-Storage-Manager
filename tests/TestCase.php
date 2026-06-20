@@ -31,6 +31,7 @@ abstract class TestCase extends OrchestraTestCase
             'root'   => storage_path('app'),
         ]);
 
+        $app['config']->set('app.debug', true);
         $app['config']->set('storage-manager.disks.default', 'local');
         $app['config']->set('storage-manager.disks.available', ['local']);
     }

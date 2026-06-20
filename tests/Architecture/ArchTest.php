@@ -20,7 +20,7 @@ function controllerClassNames(string $libraryNamespace): array
     $controllerPath  = __DIR__ . '/../../src/app/Http/Controller';
     $controllerFiles = array_filter(
         glob($controllerPath . '/*Controller.php') ?: [],
-        static fn (string $controllerFile): bool => pathinfo($controllerFile, PATHINFO_FILENAME) !== 'AssetController'
+        static fn (string $controllerFile): bool => !in_array(pathinfo($controllerFile, PATHINFO_FILENAME), ['AssetController', 'DownloadController'])
     );
 
     return array_map(
