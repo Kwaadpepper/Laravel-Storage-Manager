@@ -3,7 +3,7 @@ import { ApiService, ClipboardService, DiskService, ErrorHandlerService, Locatio
 import { ContextualMenuService } from '@ts/services/contextual-menu-service';
 import { DownloadService } from '@ts/services/download-service';
 import { FileManagerService } from '@ts/services/file-manager-service';
-import { useConfigStore, useContextualMenuStore, useDiskStore, useFileManagerStore, useToastStore, useTreeStore, useUiStore } from '@ts/stores';
+import { useClipboardStore, useConfigStore, useContextualMenuStore, useDiskStore, useFileManagerStore, useToastStore, useTreeStore, useUiStore } from '@ts/stores';
 import { asFunction, createContainer, InjectionMode } from 'awilix';
 
 export type AppContainer = {
@@ -60,7 +60,7 @@ export function buildDiContainer() {
     downloadService: asFunction(() => new DownloadService()).singleton(),
     locationService: asFunction(() => new LocationService()).singleton(),
     themeService: asFunction(() => new ThemeService(useUiStore)).singleton(),
-    clipboardService: asFunction(() => new ClipboardService()).singleton(),
+    clipboardService: asFunction(() => new ClipboardService(useClipboardStore)).singleton(),
   })
 
   return container

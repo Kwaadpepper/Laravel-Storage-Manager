@@ -1,5 +1,6 @@
+import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
+import { useClipboardStore, ModalState, toAnchorName, useFileManagerStore, useUiStore } from "@ts/stores";
 import { isDirectory } from "@ts/types";
 import { FolderOpen } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
@@ -9,14 +10,46 @@ interface ContentViewProps {
 }
 
 export default function ContentView(_: Readonly<ContentViewProps>) {
-  const { directoryNodes, fileNodes, selectedNodes, selectNodes } = useFileManagerStore()
+  const { directoryNodes, fileNodes, selectedNodes, selectNodes, currentPath } = useFileManagerStore()
   const { viewMode, setTargetFilePath, setViewFileModal } = useUiStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
+  const clipboardService = container.resolve('clipboardService')
+  const fileManagerService = container.resolve('fileManagerService')
+  const toastService = container.resolve('toastService')
+  const { hasEntries } = useClipboardStore()
 
   const items = useMemo(() => [...directoryNodes, ...fileNodes], [directoryNodes, fileNodes])
   const isEmpty = items.length === 0
   const listRef = useRef<HTMLDivElement>(null)
+
+  // Background contextual menu (right-click on empty space)
+  const bgAnchorName = toAnchorName(`bg-${currentPath}`)
+  const bgEntries = useMemo(() => [
+    ...(hasEntries ? [{ label: 'Paste', onClick: async () => {
+      const isCut = clipboardService.getIsConsumingMode()
+      const entry = clipboardService.getLastEntry()
+      if (!entry || entry.length === 0) {
+        toastService.pushToast({ message: 'Clipboard is empty.', type: 'info' })
+        return
+      }
+      try {
+        for (const path of entry) {
+          if (isCut) {
+            await fileManagerService.move(path, currentPath)
+          } else {
+            await fileManagerService.copy(path, currentPath)
+          }
+        }
+        clipboardService.clearEntries()
+        toastService.pushToast({ message: 'Pasted successfully.', type: 'success' })
+        await navigationService.refreshCurrentPath()
+      } catch (e: any) {
+        toastService.pushToast({ message: e.message || 'Failed to paste.', type: 'error' })
+      }
+    }}] : []),
+  ], [currentPath, hasEntries])
+  useContextualMenuRegistration(bgAnchorName, bgEntries)
 
   /** Index of the currently focused item for keyboard navigation */
   let rovingIdx: number
@@ -101,6 +134,8 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     <>
       <div
         ref={listRef}
+        data-contextual-menu={bgAnchorName}
+        style={{ anchorName: bgAnchorName }}
         className={`overflow-auto h-full pb-20 ${viewMode === 'list' ? '' : 'hidden'}`}
         role="grid"
         aria-label="File list"
@@ -132,6 +167,8 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
         )}
       </div>
       <div
+        data-contextual-menu={bgAnchorName}
+        style={{ anchorName: bgAnchorName }}
         className={`p-2 overflow-y-auto h-full ${viewMode === 'tiles' ? '' : 'hidden'}`}
         onClick={onClickOutside}
         role="grid"

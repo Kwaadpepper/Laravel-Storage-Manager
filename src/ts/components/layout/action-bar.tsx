@@ -102,4 +102,3 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
     </div>
   );
 }
-

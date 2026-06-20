@@ -1,3 +1,4 @@
+import { useClipboardStore } from "@ts/stores";
 import { Path } from "@ts/types";
 
 export type ClipboardEntry = Path[];
@@ -10,7 +11,9 @@ export class ClipboardService {
   private readonly maxHistorySize = 100;
   private isConsumingMode = false;
 
-  constructor() {
+  constructor(
+    private readonly clipboardStore: typeof useClipboardStore,
+  ) {
     this.isClipboardSupported = !!globalThis.navigator.clipboard;
     if (this.isClipboardSupported) {
       this.clipboard = navigator.clipboard;
@@ -21,6 +24,7 @@ export class ClipboardService {
 
   public setConsumingMode(isConsumingMode: boolean): void {
     this.isConsumingMode = isConsumingMode;
+    this.clipboardStore.getState().setIsCutMode(isConsumingMode);
   }
 
   public getIsConsumingMode(): boolean {
@@ -46,10 +50,6 @@ export class ClipboardService {
 
     const cloned = this.cloneEntry(lastEntry);
 
-    if (this.isConsumingMode) {
-      this.removeLastEntry();
-    }
-
     return cloned;
   }
 
@@ -63,7 +63,14 @@ export class ClipboardService {
 
   public clearEntries(): void {
     this.history.length = 0;
+    this.isConsumingMode = false;
+    this.syncStore();
     this.clearSystemClipboard();
+  }
+
+  private syncStore(): void {
+    this.clipboardStore.getState().setHasEntries(this.history.length > 0);
+    this.clipboardStore.getState().setIsCutMode(this.isConsumingMode);
   }
 
   private putInClipboard(entry: ClipboardEntry): void {
@@ -72,6 +79,7 @@ export class ClipboardService {
     }
 
     this.history.push(entry);
+    this.syncStore();
 
     if (this.isClipboardSupported) {
       this.clipboard?.writeText(entry.join('\n')).catch(err => {
@@ -86,6 +94,8 @@ export class ClipboardService {
     if (!poppedEntry) {
       return;
     }
+
+    this.syncStore();
 
     const newLast = this.history.at(-1);
 

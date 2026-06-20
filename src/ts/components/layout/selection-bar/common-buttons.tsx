@@ -40,7 +40,7 @@ export default function CommonButtons({ selectedNodes }: Readonly<CommonButtonsP
     }
   }
 
-  if (hasMultipleSelection) {
+  if (hasMultipleSelection || selectedNodes.length === 0) {
     return null
   }
 

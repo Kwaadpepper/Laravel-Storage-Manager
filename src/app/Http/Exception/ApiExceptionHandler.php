@@ -20,7 +20,7 @@ final class ApiExceptionHandler
         if ($exception instanceof ValidationException) {
             return ApiResponse::json(
                 new FieldErrorsDto($this->normalizeValidationErrors($exception)),
-                ApiResponse::HTTP_BAD_REQUEST
+                ApiResponse::HTTP_UNPROCESSABLE_ENTITY
             );
         }
 
@@ -50,7 +50,7 @@ final class ApiExceptionHandler
         }
 
         $exceptionClass = $content['exception'] ?? null;
-        $apiResponse = null;
+        $apiResponse    = null;
 
         if (is_string($exceptionClass) && is_a($exceptionClass, DomainException::class, true)) {
             $apiResponse = ApiResponse::json(
@@ -66,7 +66,7 @@ final class ApiExceptionHandler
         ) {
             $apiResponse = ApiResponse::json(
                 new FieldErrorsDto($this->normalizeRenderedValidationErrors($content['errors'] ?? [])),
-                ApiResponse::HTTP_BAD_REQUEST
+                ApiResponse::HTTP_UNPROCESSABLE_ENTITY
             );
         }
 
@@ -81,7 +81,7 @@ final class ApiExceptionHandler
         $errors = [];
 
         foreach ($exception->errors() as $field => $messages) {
-            $firstMessage = $messages[0] ?? trans('storage-manager::storage-manager.error.unknown');
+            $firstMessage   = $messages[0] ?? trans('storage-manager::storage-manager.error.unknown');
             $errors[$field] = is_string($firstMessage)
                 ? $firstMessage
                 : trans('storage-manager::storage-manager.error.unknown');
@@ -91,7 +91,6 @@ final class ApiExceptionHandler
     }
 
     /**
-     * @param mixed $errors
      * @return array<string, string>
      */
     private function normalizeRenderedValidationErrors(mixed $errors): array
@@ -105,10 +104,11 @@ final class ApiExceptionHandler
             $fieldName = is_string($field) ? $field : strval($field);
 
             if (is_array($messages)) {
-                $firstMessage = $messages[0] ?? trans('storage-manager::storage-manager.error.unknown');
+                $firstMessage           = $messages[0] ?? trans('storage-manager::storage-manager.error.unknown');
                 $normalized[$fieldName] = is_string($firstMessage)
                     ? $firstMessage
                     : trans('storage-manager::storage-manager.error.unknown');
+
                 continue;
             }
 
@@ -121,7 +121,7 @@ final class ApiExceptionHandler
     }
 
     /**
-     * @param array<string, mixed> $content
+     * @param  array<string, mixed>  $content
      */
     private function normalizeRenderedDomainErrorCode(array $content): int
     {
@@ -136,7 +136,7 @@ final class ApiExceptionHandler
     }
 
     /**
-     * @param array<string, mixed> $content
+     * @param  array<string, mixed>  $content
      */
     private function normalizeRenderedDomainErrorMessage(array $content): string
     {

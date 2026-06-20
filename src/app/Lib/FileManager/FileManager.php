@@ -221,6 +221,97 @@ class FileManager
         }
     }
 
+    /**
+     * @throws FileOperationException
+     */
+    public function copy(Path $source, Path $destinationDir): void
+    {
+        $filesystem       = $this->getStorage();
+        $normalizedSource = $this->pathNormalizer->normalizePath((string) $source);
+        $sourceIsDir      = $this->isDirectory($source);
+        $sourceIsFile     = $this->isFile($source);
+
+        if (! $sourceIsDir && ! $sourceIsFile) {
+            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
+        }
+
+        $basename    = basename($normalizedSource);
+        $destination = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
+
+        $counter             = 1;
+        $originalDestination = (string) $destination;
+        while ($this->isDirectory($destination) || $this->isFile($destination)) {
+            $pathInfo  = pathinfo($originalDestination);
+            $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
+            $filename  = $pathInfo['filename'];
+
+            // Re-join dir with modified basename
+            $newBasename = sprintf('%s (copy%s)%s', $filename, $counter > 1 ? ' ' . $counter : '', $extension);
+            $destination = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($newBasename));
+            $counter++;
+        }
+
+        $normalizedDestination = (string) $destination;
+
+        if ($sourceIsFile) {
+            if ($filesystem->copy($normalizedSource, $normalizedDestination) === false) {
+                FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+            }
+        } else {
+            if ($filesystem->makeDirectory($normalizedDestination) === false) {
+                FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+            }
+
+            $directories = $filesystem->allDirectories($normalizedSource);
+            foreach ($directories as $dir) {
+                $relativePath = substr($dir, strlen($normalizedSource) + 1);
+                $filesystem->makeDirectory((string) Path::appendTo($destination, $relativePath));
+            }
+
+            $files = $filesystem->allFiles($normalizedSource);
+            foreach ($files as $file) {
+                $relativePath = substr($file, strlen($normalizedSource) + 1);
+                $filesystem->copy($file, (string) Path::appendTo($destination, $relativePath));
+            }
+        }
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function move(Path $source, Path $destinationDir): void
+    {
+        $filesystem       = $this->getStorage();
+        $normalizedSource = $this->pathNormalizer->normalizePath((string) $source);
+        $sourceIsDir      = $this->isDirectory($source);
+        $sourceIsFile     = $this->isFile($source);
+
+        if (! $sourceIsDir && ! $sourceIsFile) {
+            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
+        }
+
+        $basename    = basename($normalizedSource);
+        $destination = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
+
+        $counter             = 1;
+        $originalDestination = (string) $destination;
+        while ($this->isDirectory($destination) || $this->isFile($destination)) {
+            $pathInfo  = pathinfo($originalDestination);
+            $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
+            $filename  = $pathInfo['filename'];
+
+            $newBasename = sprintf('%s (copy%s)%s', $filename, $counter > 1 ? ' ' . $counter : '', $extension);
+            $destination = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($newBasename));
+            $counter++;
+        }
+
+        $normalizedDestination = (string) $destination;
+
+        if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
+            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+        }
+    }
+
     public function exists(Path $path): bool
     {
         return $this->getStorage()->exists(

@@ -1,6 +1,6 @@
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { ModalState, toAnchorName, useUiStore } from "@ts/stores";
+import { useClipboardStore, ModalState, toAnchorName, useFileManagerStore, useUiStore } from "@ts/stores";
 import { rootPath, TreeNodeDirectory } from "@ts/types";
 import { Folder, FolderOpen } from "lucide-react";
 import { useMemo } from "react";
@@ -12,17 +12,60 @@ interface ContentDirectoryProps {
 
 export default function ContentDirectory({ item, asTile = false }: Readonly<ContentDirectoryProps>) {
   const { setRenameDirectoryModal, setDeleteDirectoryModal, setTargetDirectoryPath } = useUiStore()
+  const { selectedNodes } = useFileManagerStore()
+  const { hasEntries } = useClipboardStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
+  const clipboardService = container.resolve('clipboardService')
+  const fileManagerService = container.resolve('fileManagerService')
+  const toastService = container.resolve('toastService')
 
   const anchorName = toAnchorName(item.path)
   const isRoot = item.path === rootPath()
 
   const entries = useMemo(() => [
     { label: 'Open', onClick: () => navigationService.navigateTo(item.path) },
+    { separator: true as const },
+    { label: 'Cut', onClick: () => {
+      const paths = Object.values(selectedNodes)
+      const nodes = paths.length > 0 ? paths : [item]
+      clipboardService.setConsumingMode(true)
+      clipboardService.addEntry(...nodes.map(n => n.path))
+      toastService.pushToast({ message: `${nodes.length} item(s) cut to clipboard.`, type: 'info' })
+    }},
+    { label: 'Copy', onClick: () => {
+      const paths = Object.values(selectedNodes)
+      const nodes = paths.length > 0 ? paths : [item]
+      clipboardService.setConsumingMode(false)
+      clipboardService.addEntry(...nodes.map(n => n.path))
+      toastService.pushToast({ message: `${nodes.length} item(s) copied to clipboard.`, type: 'info' })
+    }},
+    ...(hasEntries ? [{ label: 'Paste', onClick: async () => {
+      const isCut = clipboardService.getIsConsumingMode()
+      const entry = clipboardService.getLastEntry()
+      if (!entry || entry.length === 0) {
+        toastService.pushToast({ message: 'Clipboard is empty.', type: 'info' })
+        return
+      }
+      try {
+        for (const path of entry) {
+          if (isCut) {
+            await fileManagerService.move(path, item.path)
+          } else {
+            await fileManagerService.copy(path, item.path)
+          }
+        }
+        clipboardService.clearEntries()
+        toastService.pushToast({ message: 'Pasted successfully.', type: 'success' })
+        await navigationService.refreshCurrentPath()
+      } catch (e: any) {
+        toastService.pushToast({ message: e.message || 'Failed to paste.', type: 'error' })
+      }
+    }}] : []),
+    { separator: true as const },
     { label: 'Rename', onClick: () => { setTargetDirectoryPath(item.path); setRenameDirectoryModal(ModalState.Opened) } },
     { label: 'Delete', onClick: () => { setTargetDirectoryPath(item.path); setDeleteDirectoryModal(ModalState.Opened) } },
-  ], [item.path])
+  ], [item.path, selectedNodes, hasEntries])
 
   useContextualMenuRegistration(anchorName, entries)
 

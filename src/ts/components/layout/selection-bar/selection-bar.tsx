@@ -45,14 +45,16 @@ export default function ContextBar(_: Readonly<ContextBarProps>) {
         <CommonButtons selectedNodes={Object.values(selectedNodes)} />
       </div>
 
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs ml-auto"
-        title="Deselect"
-        onClick={onClickDeselect}
-      >
-        <X size={14} />
-      </button>
+      {Object.values(selectedNodes).length > 0 && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs ml-auto"
+          title="Deselect"
+          onClick={onClickDeselect}
+        >
+          <X size={14} />
+        </button>
+      )}
 
     </div>
   )

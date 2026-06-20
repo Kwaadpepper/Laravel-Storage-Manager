@@ -33,7 +33,7 @@ final class StorageManagerApiMiddleware
 
         if ($response instanceof JsonResponse) {
             $normalizedErrorResponse = $this->apiExceptionHandler->toApiResponseFromRenderedJsonResponse($response);
-            $response = $normalizedErrorResponse ?? $this->apiService->wrapResponse($response);
+            $response                = $normalizedErrorResponse ?? $this->apiService->wrapResponse($response);
         }
 
         $response->headers->set('Cache-Control', 'no-store');

@@ -83,6 +83,22 @@ export class FileManagerService {
     return this.deleteAtPath(path)
   }
 
+  async copy(path: Path, destinationDir: Path): Promise<void> {
+    return this.apiService.post(`${this.prefix}/copy`, {
+      disk: this.getDisk(),
+      path,
+      destination_dir: destinationDir,
+    })
+  }
+
+  async move(path: Path, destinationDir: Path): Promise<void> {
+    return this.apiService.post(`${this.prefix}/move`, {
+      disk: this.getDisk(),
+      path,
+      destination_dir: destinationDir,
+    })
+  }
+
   async createFile(path: Path, name: string, content: string = ''): Promise<void> {
     return this.apiService.post(`${this.prefix}/create-file`, {
       disk: this.getDisk(),

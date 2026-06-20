@@ -54,6 +54,8 @@ Route::group([
             Route::post('/create-file', [BasicOperationsController::class, 'createFile'])->name('create-file');
             Route::delete('/delete', [BasicOperationsController::class, 'delete'])->name('delete');
             Route::put('/rename', [BasicOperationsController::class, 'rename'])->name('rename');
+            Route::post('/copy', [BasicOperationsController::class, 'copy'])->name('copy');
+            Route::post('/move', [BasicOperationsController::class, 'move'])->name('move');
         });
 
         Route::group([

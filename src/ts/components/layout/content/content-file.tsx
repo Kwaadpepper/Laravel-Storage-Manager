@@ -1,7 +1,7 @@
 import FileSize from "@ts/components/shared/file-size";
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { ModalState, toAnchorName, useUiStore } from "@ts/stores";
+import { ModalState, toAnchorName, useFileManagerStore, useUiStore } from "@ts/stores";
 import { TreeNodeFile } from "@ts/types";
 import { FileIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -13,8 +13,10 @@ interface ContentFileProps {
 
 export default function ContentFile({ item, asTile = false }: Readonly<ContentFileProps>) {
   const { setRenameFileModal, setDeleteFileModal, setViewFileModal, setTargetFilePath } = useUiStore()
+  const { selectedNodes } = useFileManagerStore()
   const container = useContainer()
   const downloadService = container.resolve('downloadService')
+  const clipboardService = container.resolve('clipboardService')
   const toastService = container.resolve('toastService')
   const anchorName = toAnchorName(item.path)
 
@@ -35,9 +37,25 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
   const entries = useMemo(() => [
     { label: 'View', onClick: () => { setTargetFilePath(item.path); setViewFileModal(ModalState.Opened) } },
     { label: 'Download', onClick: () => void download() },
+    { separator: true as const },
+    { label: 'Cut', onClick: () => {
+      const paths = Object.values(selectedNodes)
+      const nodes = paths.length > 0 ? paths : [item]
+      clipboardService.setConsumingMode(true)
+      clipboardService.addEntry(...nodes.map(n => n.path))
+      toastService.pushToast({ message: `${nodes.length} item(s) cut to clipboard.`, type: 'info' })
+    }},
+    { label: 'Copy', onClick: () => {
+      const paths = Object.values(selectedNodes)
+      const nodes = paths.length > 0 ? paths : [item]
+      clipboardService.setConsumingMode(false)
+      clipboardService.addEntry(...nodes.map(n => n.path))
+      toastService.pushToast({ message: `${nodes.length} item(s) copied to clipboard.`, type: 'info' })
+    }},
+    { separator: true as const },
     { label: 'Rename', onClick: () => { setTargetFilePath(item.path); setRenameFileModal(ModalState.Opened) } },
     { label: 'Delete', onClick: () => { setTargetFilePath(item.path); setDeleteFileModal(ModalState.Opened) } },
-  ], [item.path])
+  ], [item.path, selectedNodes])
 
   useContextualMenuRegistration(anchorName, entries)
 

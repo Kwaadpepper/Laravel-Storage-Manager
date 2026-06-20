@@ -119,7 +119,9 @@ export default function ContentWrapper({ isListView = false, item, tabIndex = -1
 
   function onContextMenu(e: React.MouseEvent<HTMLElement>) {
     e.preventDefault()
-    selectNodes(item)
+    if (!isSelected) {
+      selectNodes(item)
+    }
   }
 
   function onMouseEnter() {

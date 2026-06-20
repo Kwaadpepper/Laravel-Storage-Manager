@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CopiedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\MovedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedFileDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\DeletedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\ExistsDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\PropertiesDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\RenamedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CopyPathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirectoryRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\MovePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateFileRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\PropertiesPathRequest;
@@ -126,6 +130,23 @@ class BasicOperationsController extends Controller
         return ApiResponse::json($this->presentRenamed(), ApiResponse::HTTP_OK);
     }
 
+    public function copy(CopyPathRequest $request): ApiResponse
+    {
+        $path           = $request->getPath();
+        $destinationDir = $request->getDestinationDir();
+
+        if (! $this->fileManager->exists($path)) {
+            return ApiResponse::json(
+                $this->presentError(self::ERROR_PATH_NOT_FOUND),
+                ApiResponse::HTTP_NOT_FOUND
+            );
+        }
+
+        $this->fileManager->copy($path, $destinationDir);
+
+        return ApiResponse::json($this->presentCopied(), ApiResponse::HTTP_OK);
+    }
+
     private function presentError(string $message): ErrorDto
     {
         return new ErrorDto($message);
@@ -164,5 +185,32 @@ class BasicOperationsController extends Controller
     private function presentRenamed(): RenamedDto
     {
         return new RenamedDto();
+    }
+
+    public function move(MovePathRequest $request): ApiResponse
+    {
+        $path           = $request->getPath();
+        $destinationDir = $request->getDestinationDir();
+
+        if (! $this->fileManager->exists($path)) {
+            return ApiResponse::json(
+                $this->presentError(self::ERROR_PATH_NOT_FOUND),
+                ApiResponse::HTTP_NOT_FOUND
+            );
+        }
+
+        $this->fileManager->move($path, $destinationDir);
+
+        return ApiResponse::json($this->presentMoved(), ApiResponse::HTTP_OK);
+    }
+
+    private function presentCopied(): CopiedDto
+    {
+        return new CopiedDto();
+    }
+
+    private function presentMoved(): MovedDto
+    {
+        return new MovedDto();
     }
 }
