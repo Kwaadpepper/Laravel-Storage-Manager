@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\ServiceProvider;
-use Kwaadpepper\LaravelStorageManager\Event\SmEvent;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;

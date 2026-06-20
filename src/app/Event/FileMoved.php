@@ -7,11 +7,12 @@ namespace Kwaadpepper\LaravelStorageManager\Event;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 
-/** @implements SmEvent<array{disk: string}> */
-final class DiskSelected implements SmEvent
+/** @implements SmEvent<array{'source_path': string, 'target_path': string}> */
+class FileMoved implements SmEvent
 {
     public function __construct(
-        public readonly string $disk,
+        public readonly string $sourcePath,
+        public readonly string $targetPath,
         public readonly ?Authenticatable $user = null,
     ) {
     }
@@ -20,7 +21,8 @@ final class DiskSelected implements SmEvent
     {
         return new self(
             user: $user,
-            disk: $parameters['disk'],
+            sourcePath: $parameters['source_path'],
+            targetPath: $parameters['target_path']
         );
     }
 }

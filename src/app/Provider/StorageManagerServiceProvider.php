@@ -15,6 +15,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class StorageManagerServiceProvider extends ServiceProvider
 {
@@ -64,6 +65,10 @@ class StorageManagerServiceProvider extends ServiceProvider
                     $configRepository->getDefaultDisk()
                 );
             }
+        );
+        $this->app->singleton(
+            EventDispatcher::class,
+            fn () => new EventDispatcher()
         );
     }
 

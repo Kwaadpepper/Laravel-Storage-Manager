@@ -43,7 +43,7 @@ class FileManager
     public function getProperties(Path $path): PathProperties
     {
         $disk             = $this->getDisk();
-        $normalizedPath   = $this->pathNormalizer->normalizePath((string) $path);
+        $normalizedPath   = $this->pathNormalizer->normalizePath($path->value);
         $sourceIsDir      = $this->isDirectory($path);
         $sourceIsFile     = $this->isFile($path);
 
@@ -61,7 +61,7 @@ class FileManager
     public function getContent(?Path $path = null): PathContent
     {
         $filesystem  = $this->getStorage();
-        $directory   = $this->pathNormalizer->normalizePath($path ? (string) $path : '/');
+        $directory   = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
         $files       = array_map(
             fn ($file) => $this->pathNormalizer->normalizePath($file),
             $filesystem->files($directory)
@@ -83,7 +83,7 @@ class FileManager
     public function getPathTree(?Path $path = null): PathTreeLevel
     {
         $filesystem  = $this->getStorage();
-        $directory   = $this->pathNormalizer->normalizePath($path ? (string) $path : '/');
+        $directory   = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
         $directories = array_map(
             fn ($dir) => $this->pathNormalizer->normalizePath($dir),
             $filesystem->directories($directory)
@@ -126,7 +126,7 @@ class FileManager
     public function createDirectory(Path $path): void
     {
         $filesystem     = $this->getStorage();
-        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+        $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if ($filesystem->exists($normalizedPath)) {
             FileOperationException::throwWith(FileOperationError::DIRECTORY_ALREADY_EXISTS);
@@ -143,7 +143,7 @@ class FileManager
     public function deleteDirectory(Path $path, bool $force = false): void
     {
         $filesystem     = $this->getStorage();
-        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+        $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if (preg_match('/^\/?$/', $normalizedPath)) {
             FileOperationException::throwWith(FileOperationError::INVALID_PATH);
@@ -169,7 +169,7 @@ class FileManager
     public function createFile(Path $path, string $content = ''): void
     {
         $filesystem     = $this->getStorage();
-        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+        $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if ($filesystem->exists($normalizedPath)) {
             FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
@@ -185,7 +185,7 @@ class FileManager
     public function deleteFile(Path $path): void
     {
         $filesystem     = $this->getStorage();
-        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+        $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if (! $filesystem->exists($normalizedPath)) {
             FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
@@ -199,10 +199,10 @@ class FileManager
     /**
      * @throws FileOperationException
      */
-    public function rename(Path $source, string $newName): void
+    public function rename(Path $source, string $newName): Path
     {
         $filesystem       = $this->getStorage();
-        $normalizedSource = $this->pathNormalizer->normalizePath((string) $source);
+        $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
         $sourceIsDir      = $this->isDirectory($source);
         $sourceIsFile     = $this->isFile($source);
 
@@ -227,15 +227,17 @@ class FileManager
         if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
+
+        return $destination;
     }
 
     /**
      * @throws FileOperationException
      */
-    public function copy(Path $source, Path $destinationDir): void
+    public function copy(Path $source, Path $destinationDir): Path
     {
         $filesystem       = $this->getStorage();
-        $normalizedSource = $this->pathNormalizer->normalizePath((string) $source);
+        $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
         $sourceIsDir      = $this->isDirectory($source);
         $sourceIsFile     = $this->isFile($source);
 
@@ -272,16 +274,20 @@ class FileManager
 
             $directories = $filesystem->allDirectories($normalizedSource);
             foreach ($directories as $dir) {
-                $relativePath = substr($dir, strlen($normalizedSource) + 1);
+                $normalizedDir = $this->pathNormalizer->normalizePath($dir);
+                $relativePath = substr($normalizedDir, strlen($normalizedSource) + 1);
                 $filesystem->makeDirectory((string) Path::appendTo($destination, $relativePath));
             }
 
             $files = $filesystem->allFiles($normalizedSource);
             foreach ($files as $file) {
-                $relativePath = substr($file, strlen($normalizedSource) + 1);
+                $normalizedFile = $this->pathNormalizer->normalizePath($file);
+                $relativePath = substr($normalizedFile, strlen($normalizedSource) + 1);
                 $filesystem->copy($file, (string) Path::appendTo($destination, $relativePath));
             }
         }
+
+        return $destination;
     }
 
     /**
@@ -290,7 +296,7 @@ class FileManager
     public function move(Path $source, Path $destinationDir): void
     {
         $filesystem       = $this->getStorage();
-        $normalizedSource = $this->pathNormalizer->normalizePath((string) $source);
+        $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
         $sourceIsDir      = $this->isDirectory($source);
         $sourceIsFile     = $this->isFile($source);
 
@@ -329,7 +335,7 @@ class FileManager
 
     public function isDirectory(Path $path): bool
     {
-        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+        $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if ($normalizedPath === '/') {
             return true;
@@ -348,7 +354,7 @@ class FileManager
     public function isFile(Path $path): bool
     {
         return $this->getStorage()->exists(
-            $this->pathNormalizer->normalizePath((string) $path)
+            $this->pathNormalizer->normalizePath($path->value)
         ) && ! $this->isDirectory($path);
     }
 
@@ -358,7 +364,7 @@ class FileManager
     public function readStream(Path $path): FileStream
     {
         $filesystem     = $this->getStorage();
-        $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
+        $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if (! $filesystem->exists($normalizedPath)) {
             FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);

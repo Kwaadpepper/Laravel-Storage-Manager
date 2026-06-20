@@ -5,6 +5,16 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryCopied;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreated;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleted;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryMoved;
+use Kwaadpepper\LaravelStorageManager\Event\FileCopied;
+use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
+use Kwaadpepper\LaravelStorageManager\Event\FileDeleted;
+use Kwaadpepper\LaravelStorageManager\Event\FileMoved;
+use Kwaadpepper\LaravelStorageManager\Event\FileRenamed;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CopiedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\MovedDto;
@@ -22,6 +32,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathReq
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\PropertiesPathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\RenamePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
@@ -32,6 +43,7 @@ class BasicOperationsController extends Controller
     private const ERROR_PATH_NOT_FOUND = 'The specified path does not exist.';
 
     public function __construct(
+        private readonly EventDispatcher $eventDispatcher,
         private readonly FileManager $fileManager
     ) {
     }
@@ -71,6 +83,11 @@ class BasicOperationsController extends Controller
 
         $this->fileManager->createDirectory($path);
 
+        $this->eventDispatcher->dispatch(
+            DirectoryCreated::class,
+            ['path' => $path->value]
+        );
+
         return ApiResponse::json($this->presentCreatedDirectory(), ApiResponse::HTTP_CREATED);
     }
 
@@ -83,6 +100,11 @@ class BasicOperationsController extends Controller
         $content = $request->string('content')->value();
 
         $this->fileManager->createFile($path, $content);
+
+        $this->eventDispatcher->dispatch(
+            FileCreated::class,
+            ['path' => $path->value]
+        );
 
         return ApiResponse::json($this->presentCreatedFile(), ApiResponse::HTTP_CREATED);
     }
@@ -99,9 +121,18 @@ class BasicOperationsController extends Controller
                 );
             case $this->fileManager->isDirectory($path):
                 $this->fileManager->deleteDirectory($path, $request->boolean('force'));
+
+                $this->eventDispatcher->dispatch(
+                    DirectoryDeleted::class,
+                    ['path' => $path->value]
+                );
                 break;
             case $this->fileManager->isFile($path):
                 $this->fileManager->deleteFile($path);
+                $this->eventDispatcher->dispatch(
+                    FileDeleted::class,
+                    ['path' => $path->value]
+                );
                 break;
             default:
                 return ApiResponse::json(
@@ -125,7 +156,16 @@ class BasicOperationsController extends Controller
             );
         }
 
-        $this->fileManager->rename($path, $newName);
+        $newPath = $this->fileManager->rename($path, $newName);
+
+        $this->eventDispatcher->dispatch(
+            $this->fileManager->isDirectory($path) ?
+              DirectoryRenamed::class : FileRenamed::class,
+            [
+              'old_path' => $path->value,
+              'new_path' => $newPath->value,
+            ]
+        );
 
         return ApiResponse::json($this->presentRenamed(), ApiResponse::HTTP_OK);
     }
@@ -142,7 +182,16 @@ class BasicOperationsController extends Controller
             );
         }
 
-        $this->fileManager->copy($path, $destinationDir);
+        $newPath = $this->fileManager->copy($path, $destinationDir);
+
+        $this->eventDispatcher->dispatch(
+            $this->fileManager->isDirectory($path) ?
+              DirectoryCopied::class : FileCopied::class,
+            [
+              'source_path' => $path->value,
+              'target_path' => $newPath->value,
+            ]
+        );
 
         return ApiResponse::json($this->presentCopied(), ApiResponse::HTTP_OK);
     }
@@ -200,6 +249,15 @@ class BasicOperationsController extends Controller
         }
 
         $this->fileManager->move($path, $destinationDir);
+
+        $this->eventDispatcher->dispatch(
+            $this->fileManager->isDirectory($path) ?
+              DirectoryMoved::class : FileMoved::class,
+            [
+              'source_path' => $path->value,
+              'target_path' => $destinationDir->value,
+            ]
+        );
 
         return ApiResponse::json($this->presentMoved(), ApiResponse::HTTP_OK);
     }

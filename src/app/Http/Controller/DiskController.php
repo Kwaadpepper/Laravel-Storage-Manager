@@ -10,13 +10,14 @@ use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskListDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\SelectedDiskDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Disk\SelectDiskRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
-use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 
 final class DiskController extends Controller
 {
     public function __construct(
+        private readonly EventDispatcher $eventDispatcher,
         private readonly DiskService $diskService
     ) {
     }
@@ -31,7 +32,7 @@ final class DiskController extends Controller
 
     public function select(SelectDiskRequest $request): ApiResponse
     {
-        EventFactory::dispatch(DiskSelected::class);
+        $this->eventDispatcher->dispatch(DiskSelected::class);
 
         $disk = $request->getDisk();
 

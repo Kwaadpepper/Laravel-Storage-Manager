@@ -11,7 +11,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Dto\FileManager\PathContentDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\FileManager\PathTreeLevelDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
-use Kwaadpepper\LaravelStorageManager\Lib\Factory\EventFactory;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
@@ -19,13 +19,14 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
 final class FileManagerController extends Controller
 {
     public function __construct(
+        private readonly EventDispatcher $eventDispatcher,
         private readonly FileManager $fileManager
     ) {
     }
 
     public function init(): ApiResponse
     {
-        EventFactory::dispatch(FileManagerShowed::class);
+        $this->eventDispatcher->dispatch(FileManagerShowed::class);
 
         return ApiResponse::json(
             $this->presentInit(),
