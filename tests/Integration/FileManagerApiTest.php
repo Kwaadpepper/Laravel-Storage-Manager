@@ -261,6 +261,90 @@ describe('delete', function () use (&$disk): void {
     });
 });
 
+describe('copy', function () use (&$disk): void {
+    it('copies a file', function () use (&$disk): void {
+        // Given
+        $disk->put('source.txt', 'content');
+        $disk->makeDirectory('dest');
+        $route = route('storage-manager.api.fm.copy');
+
+        // When
+        $response = $this->postJson($route, [
+            'path' => '/source.txt',
+            'destination_dir' => '/dest',
+            'disk' => 'local',
+        ]);
+
+        // Then
+        $response->assertSuccessful();
+        $disk->assertExists('source.txt');
+        $disk->assertExists('dest/source.txt');
+    });
+
+    it('copies a directory', function () use (&$disk): void {
+        // Given
+        $disk->makeDirectory('source-dir');
+        $disk->put('source-dir/file.txt', 'content');
+        $disk->makeDirectory('dest-dir');
+        $route = route('storage-manager.api.fm.copy');
+
+        // When
+        $response = $this->postJson($route, [
+            'path' => '/source-dir',
+            'destination_dir' => '/dest-dir',
+            'disk' => 'local',
+        ]);
+
+        // Then
+        $response->assertSuccessful();
+        $disk->assertExists('source-dir');
+        $disk->assertExists('dest-dir/source-dir');
+        $disk->assertExists('dest-dir/source-dir/file.txt');
+    });
+});
+
+describe('move', function () use (&$disk): void {
+    it('moves a file', function () use (&$disk): void {
+        // Given
+        $disk->put('source.txt', 'content');
+        $disk->makeDirectory('dest');
+        $route = route('storage-manager.api.fm.move');
+
+        // When
+        $response = $this->postJson($route, [
+            'path' => '/source.txt',
+            'destination_dir' => '/dest',
+            'disk' => 'local',
+        ]);
+
+        // Then
+        $response->assertSuccessful();
+        $disk->assertMissing('source.txt');
+        $disk->assertExists('dest/source.txt');
+    });
+
+    it('moves a directory', function () use (&$disk): void {
+        // Given
+        $disk->makeDirectory('source-dir');
+        $disk->put('source-dir/file.txt', 'content');
+        $disk->makeDirectory('dest-dir');
+        $route = route('storage-manager.api.fm.move');
+
+        // When
+        $response = $this->postJson($route, [
+            'path' => '/source-dir',
+            'destination_dir' => '/dest-dir',
+            'disk' => 'local',
+        ]);
+
+        // Then
+        $response->assertSuccessful();
+        $disk->assertMissing('source-dir');
+        $disk->assertExists('dest-dir/source-dir');
+        $disk->assertExists('dest-dir/source-dir/file.txt');
+    });
+});
+
 describe('validation', function (): void {
     it('returns 422 when required fields are missing', function (): void {
         // Given
