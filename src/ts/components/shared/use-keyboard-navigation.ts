@@ -7,8 +7,8 @@ export function useKeyboardNavigation() {
 
   useEffect(() => {
     function onDocKeyDown(e: React.KeyboardEvent<HTMLElement>) {
-      const currentTarget = e.currentTarget
-      if (currentTarget.tagName === 'INPUT' || currentTarget.tagName === 'TEXTAREA' || currentTarget.isContentEditable) {
+      const target = e.target as HTMLElement | null
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) {
         return
       }
       if (e.key === 'Backspace') {
