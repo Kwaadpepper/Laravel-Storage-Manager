@@ -62,6 +62,10 @@ type UiState = {
   setDeleteFileModal: (state: ModalState) => void
   viewFileModal: ModalState
   setViewFileModal: (state: ModalState) => void
+  moveModal: ModalState
+  setMoveModal: (state: ModalState) => void
+  copyModal: ModalState
+  setCopyModal: (state: ModalState) => void
   targetDirectoryPath: Path | null
   setTargetDirectoryPath: (path: Path | null) => void
   targetFilePath: Path | null
@@ -96,6 +100,10 @@ export const useUiStore = create<UiState>((set) => ({
   setDeleteFileModal: (state) => set({ deleteFileModal: state }),
   viewFileModal: ModalState.Closed,
   setViewFileModal: (state) => set({ viewFileModal: state }),
+  moveModal: ModalState.Closed,
+  setMoveModal: (state) => set({ moveModal: state }),
+  copyModal: ModalState.Closed,
+  setCopyModal: (state) => set({ copyModal: state }),
   targetDirectoryPath: null,
   setTargetDirectoryPath: (path) => set({ targetDirectoryPath: path }),
   targetFilePath: null,

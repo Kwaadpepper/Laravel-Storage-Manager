@@ -19,7 +19,9 @@ export const formSchema = z.object({
 
 export function useCreateDirectoryViewModel() {
   const { currentPath } = useFileManagerStore()
-  const { newDirectoryModal, setNewDirectoryModal } = useUiStore()
+  const { newDirectoryModal, setNewDirectoryModal, targetDirectoryPath, setTargetDirectoryPath } = useUiStore()
+
+  const activePath = targetDirectoryPath ?? currentPath
 
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
@@ -36,8 +38,9 @@ export function useCreateDirectoryViewModel() {
     setDirectoryNameFieldError(null)
 
     try {
-      await fileManagerService.createDirectory(currentPath, directoryName)
+      await fileManagerService.createDirectory(activePath, directoryName)
       setNewDirectoryModal(ModalState.Closed)
+      setTargetDirectoryPath(null)
       navigationService.refreshCurrentPath()
       toastService.pushToast({ message: 'Directory created successfully.', type: 'success' })
       return true
@@ -63,11 +66,12 @@ export function useCreateDirectoryViewModel() {
 
   function close() {
     setNewDirectoryModal(ModalState.Closed)
+    setTargetDirectoryPath(null)
   }
 
   return {
     isOpen,
-    currentPath,
+    currentPath: activePath,
     formErrorMessage,
     directoryNameFieldError,
     submit,

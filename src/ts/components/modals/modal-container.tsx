@@ -8,6 +8,8 @@ import CreateFileModal from './file/create-modal';
 import DeleteFileModal from './file/delete-modal';
 import RenameFileModal from './file/rename-modal';
 import ViewFileModal from './file/view-modal';
+import MoveModal from './directory/move-modal';
+import CopyModal from './directory/copy-modal';
 
 /** Must match DaisyUI modal CSS transition duration */
 const MODAL_CLOSE_DELAY = 250;
@@ -22,6 +24,8 @@ export default function ModalContainer() {
     renameFileModal,
     deleteFileModal,
     viewFileModal,
+    moveModal,
+    copyModal,
   } = useUiStore();
 
   const aboutOpen = aboutModal === ModalState.Opened;
@@ -32,6 +36,8 @@ export default function ModalContainer() {
   const fileRenameOpen = renameFileModal === ModalState.Opened;
   const fileDeleteOpen = deleteFileModal === ModalState.Opened;
   const fileViewOpen = viewFileModal === ModalState.Opened;
+  const moveOpen = moveModal === ModalState.Opened;
+  const copyOpen = copyModal === ModalState.Opened;
 
   const aboutMounted = useDelayedUnmount(aboutOpen, MODAL_CLOSE_DELAY);
   const dirCreateMounted = useDelayedUnmount(dirCreateOpen, MODAL_CLOSE_DELAY);
@@ -41,6 +47,8 @@ export default function ModalContainer() {
   const fileRenameMounted = useDelayedUnmount(fileRenameOpen, MODAL_CLOSE_DELAY);
   const fileDeleteMounted = useDelayedUnmount(fileDeleteOpen, MODAL_CLOSE_DELAY);
   const fileViewMounted = useDelayedUnmount(fileViewOpen, MODAL_CLOSE_DELAY);
+  const moveMounted = useDelayedUnmount(moveOpen, MODAL_CLOSE_DELAY);
+  const copyMounted = useDelayedUnmount(copyOpen, MODAL_CLOSE_DELAY);
 
   return (
     <>
@@ -52,6 +60,8 @@ export default function ModalContainer() {
       {fileRenameMounted && <RenameFileModal />}
       {fileDeleteMounted && <DeleteFileModal />}
       {fileViewMounted && <ViewFileModal />}
+      {moveMounted && <MoveModal />}
+      {copyMounted && <CopyModal />}
     </>
   );
 }
