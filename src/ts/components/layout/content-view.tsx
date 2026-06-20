@@ -106,12 +106,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
         aria-label="File list"
         tabIndex={rovingIdx === -1 ? 0 : -1}
         onKeyDown={onListKeyDown}
-        onClick={(e) => {
-          console.log('click', e.target, listRef.current)
-          if (e.target === listRef.current) {
-            selectNodes()
-          }
-        }}
+        onClick={onClickOutside}
       >
         <div className="table table-zebra w-full">
           <div className="table-header-group">
