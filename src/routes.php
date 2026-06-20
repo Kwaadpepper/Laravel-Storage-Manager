@@ -34,7 +34,7 @@ Route::group([
     Route::view('/', 'storage-manager::file-manager')->name('file-manager');
     Route::get('/assets/{dir}/{file}', AssetController::class)->name('assets');
 
-    Route::get('/download/{disk}/{path}', DownloadController::class)->name('download');
+    Route::get('/download/{disk}/{path}', DownloadController::class)->where('path', '.*')->name('download');
 
     Route::name('api.')->middleware([StorageManagerApiMiddleware::class])->group(function (): void {
 
