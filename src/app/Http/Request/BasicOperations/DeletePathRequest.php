@@ -27,6 +27,7 @@ class DeletePathRequest extends RequestWithPath
                     },
                 ]
             ),
+            'force' => ['sometimes', 'boolean'],
         ]);
     }
 }

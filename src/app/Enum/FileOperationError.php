@@ -15,6 +15,7 @@ enum FileOperationError: int implements DomainErrorCode
     case INVALID_PATH             = 1005;
     case PERMISSION_DENIED        = 1006;
     case UNKNOWN_ERROR            = 1007;
+    case DIRECTORY_NOT_EMPTY      = 1008;
 
     public function message(): string
     {
@@ -26,6 +27,7 @@ enum FileOperationError: int implements DomainErrorCode
             self::INVALID_PATH             => 'The provided path is invalid.',
             self::PERMISSION_DENIED        => 'Permission denied for the requested operation.',
             self::UNKNOWN_ERROR            => 'An unknown error occurred during the file operation.',
+            self::DIRECTORY_NOT_EMPTY      => 'The directory is not empty.',
         };
     }
 

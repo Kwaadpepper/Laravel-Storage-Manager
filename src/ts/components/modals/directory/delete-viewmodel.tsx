@@ -12,6 +12,7 @@ export function useDeleteDirectoryViewModel() {
   const toastService = container.resolve('toastService')
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isForceConfirm, setIsForceConfirm] = useState(false)
 
   const isOpen = deleteDirectoryModal === ModalState.Opened
   const targetName = targetDirectoryPath?.split('/').pop() ?? ''
@@ -21,13 +22,19 @@ export function useDeleteDirectoryViewModel() {
     setErrorMessage(null)
 
     try {
-      await fileManagerService.deleteDirectory(targetDirectoryPath)
+      await fileManagerService.deleteDirectory(targetDirectoryPath, isForceConfirm)
       setDeleteDirectoryModal(ModalState.Closed)
       navigationService.refreshCurrentPath()
       toastService.pushToast({ message: 'Directory deleted successfully.', type: 'success' })
+      setIsForceConfirm(false)
       return true
-    } catch (error: unknown) {
+    } catch (error: any) {
       if (isDomainValidationError(error)) {
+        if (error.getDomainCode() === 1008) {
+          setIsForceConfirm(true)
+          setErrorMessage("This directory is not empty. Deleting it will permanently erase all its contents. Are you sure you want to proceed?")
+          return false
+        }
         setErrorMessage(error.message)
         return false
       }
@@ -38,6 +45,8 @@ export function useDeleteDirectoryViewModel() {
 
   function close() {
     setDeleteDirectoryModal(ModalState.Closed)
+    setIsForceConfirm(false)
+    setErrorMessage(null)
   }
 
   return {
@@ -47,5 +56,6 @@ export function useDeleteDirectoryViewModel() {
     errorMessage,
     submit,
     close,
+    isForceConfirm,
   }
 }

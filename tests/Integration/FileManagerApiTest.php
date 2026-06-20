@@ -235,11 +235,29 @@ describe('delete', function () use (&$disk): void {
         $response = $this->deleteJson($route, [
             'path' => '/to-remove',
             'disk' => 'local',
+            'force' => true,
         ]);
 
         // Then
         $response->assertNoContent();
         $disk->assertMissing('to-remove');
+    });
+
+    it('rejects deleting a non-empty directory without force', function () use (&$disk): void {
+        // Given
+        $disk->makeDirectory('to-reject');
+        $disk->put('to-reject/file.txt', 'data');
+        $route = route('storage-manager.api.fm.delete');
+
+        // When
+        $response = $this->deleteJson($route, [
+            'path' => '/to-reject',
+            'disk' => 'local',
+        ]);
+
+        // Then
+        $response->assertStatus(422)
+            ->assertJsonPath('errors.message', 'The directory is not empty.');
     });
 });
 

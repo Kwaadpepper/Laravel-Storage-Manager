@@ -46,7 +46,7 @@ export default function DeleteDirectoryModal(_: Readonly<DeleteDirectoryModalPro
           <button className="btn" type="button" onClick={() => closeButtonRef.current?.click()}>Cancel</button>
           <button className="btn btn-error" type="button" onClick={() => vm.submit()}>
             <Trash2 size={16} />
-            Delete
+            {vm.isForceConfirm ? 'Force Delete' : 'Delete'}
           </button>
         </div>
       </div>

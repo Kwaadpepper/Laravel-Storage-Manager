@@ -140,7 +140,7 @@ class FileManager
     /**
      * @throws FileOperationException
      */
-    public function deleteDirectory(Path $path): void
+    public function deleteDirectory(Path $path, bool $force = false): void
     {
         $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath((string) $path);
@@ -151,6 +151,14 @@ class FileManager
 
         if (! $filesystem->exists($normalizedPath)) {
             FileOperationException::throwWith(FileOperationError::DIRECTORY_NOT_FOUND);
+        }
+
+        if (! $force) {
+            $files = $filesystem->files($normalizedPath);
+            $directories = $filesystem->directories($normalizedPath);
+            if (count($files) > 0 || count($directories) > 0) {
+                FileOperationException::throwWith(FileOperationError::DIRECTORY_NOT_EMPTY);
+            }
         }
 
         if ($filesystem->deleteDirectory($normalizedPath) === false) {

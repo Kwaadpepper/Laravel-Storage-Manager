@@ -98,7 +98,7 @@ class BasicOperationsController extends Controller
                     ApiResponse::HTTP_NOT_FOUND
                 );
             case $this->fileManager->isDirectory($path):
-                $this->fileManager->deleteDirectory($path);
+                $this->fileManager->deleteDirectory($path, $request->boolean('force'));
                 break;
             case $this->fileManager->isFile($path):
                 $this->fileManager->deleteFile($path);
