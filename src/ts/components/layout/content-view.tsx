@@ -27,7 +27,6 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
   const dragStartSelectionRef = useRef<TreeNode[]>([])
   const hasDraggedRef = useRef<boolean>(false)
 
-  // Background contextual menu (right-click on empty space)
   const bgAnchorName = toAnchorName(`bg-${currentPath}`)
   const bgEntries = useMemo(() => [
     ...(hasEntries ? [{ label: 'Paste', onClick: async () => {
@@ -37,20 +36,24 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
         toastService.pushToast({ message: 'Clipboard is empty.', type: 'info' })
         return
       }
-      try {
-        for (const path of entry) {
+
+      const eventQueueService = container.resolve('eventQueueService')
+      const events = entry.map(path => ({
+        id: `${isCut ? 'move' : 'copy'}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        type: (isCut ? 'MOVE' : 'COPY') as 'MOVE' | 'COPY',
+        sourcePath: path,
+        destinationPath: currentPath,
+        execute: async () => {
           if (isCut) {
             await fileManagerService.move(path, currentPath)
           } else {
             await fileManagerService.copy(path, currentPath)
           }
         }
-        clipboardService.clearEntries()
-        toastService.pushToast({ message: 'Pasted successfully.', type: 'success' })
-        await navigationService.refreshCurrentPath()
-      } catch (e: any) {
-        toastService.pushToast({ message: e.message || 'Failed to paste.', type: 'error' })
-      }
+      }))
+
+      eventQueueService.pushBatch(events)
+      clipboardService.clearEntries()
     }}] : []),
   ], [currentPath, hasEntries])
   useContextualMenuRegistration(bgAnchorName, bgEntries)
@@ -65,7 +68,6 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     rovingIdx = items.findIndex((i) => i.path === selectedFile.path)
   }
 
-  // * SCROLL TO SELECTED ITEM
   useEffect(() => {
     const selectedNodesArray = Object.values(selectedNodes)
     const firstItem = selectedNodesArray.at(0)
@@ -83,7 +85,6 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
 
   }, [selectedNodes, viewMode])
 
-  // * LIST KEY HANDLER
   function onListKeyDown(e: React.KeyboardEvent<HTMLElement>) {
     if (items.length === 0) {
       return
@@ -144,12 +145,10 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     const selectedNodesArray = Object.values(selectedNodes)
 
     if (isRangeSelect && lastSelectedIndex !== null) {
-      // Range select
       const start = Math.min(lastSelectedIndex, index)
       const end = Math.max(lastSelectedIndex, index)
       const range = items.slice(start, end + 1)
       
-      // If ctrl is also held, add to selection, otherwise replace
       if (isMultiToggle) {
         const newSelection = [...selectedNodesArray]
         for (const node of range) {
@@ -162,7 +161,6 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
         selectNodes(...range)
       }
     } else if (isMultiToggle) {
-      // Toggle single
       const isSelected = selectedNodesArray.some(n => n.path === item.path)
       if (isSelected) {
         selectNodes(...selectedNodesArray.filter(n => n.path !== item.path))
@@ -171,11 +169,9 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
       }
       setLastSelectedIndex(index)
     } else {
-      // Normal click
       const isSelected = selectedNodesArray.some(n => n.path === item.path)
       
       if (isSelected) {
-        // Trigger primary action if already selected
         handleItemDoubleClick(item)
       } else {
         selectNodes(item)
@@ -204,11 +200,9 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
 
   function onClickOutside(e: React.MouseEvent<HTMLElement>) {
     if (hasDraggedRef.current) {
-      // It was a drag, ignore this click
       return
     }
     const target = e.target as HTMLElement
-    // Ignore if clicking on a selectable item or contextual menu
     if (target.closest('.selectable')) {
       return
     }
@@ -216,11 +210,8 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     setLastSelectedIndex(null)
   }
 
-  // * DRAG SELECTION HANDLERS
-
   function onBeforeDragStart(e: SelectionEvent): boolean {
     const target = e.event?.target as Element
-    // Prevent drag selection if clicking on an interactive element like a file/folder or a button.
     if (target?.closest('.selectable')) {
       return false
     }

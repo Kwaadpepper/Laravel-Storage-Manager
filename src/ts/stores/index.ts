@@ -1,3 +1,4 @@
+export * from './action-store';
 export * from './clipboard-store';
 export * from './config-store';
 export * from './contextual-menu-store';

@@ -78,25 +78,20 @@ export function useCreateFileViewModel() {
     const trimmedExtension = inputExtension.trim()
     const newName = trimmedExtension ? `${inputBaseName}.${trimmedExtension}` : inputBaseName
 
-    try {
-      await fileManagerService.createFile(currentPath, newName, content)
-      setCreateFileModal(ModalState.Closed)
-      navigationService.refreshCurrentPath()
-      toastService.pushToast({ message: 'File created successfully.', type: 'success' })
-      return true
-    } catch (error: unknown) {
-      if (isDomainValidationError(error)) {
-        setFormErrorMessage(error.message)
-        return false
+    const eventQueueService = container.resolve('eventQueueService')
+    
+    eventQueueService.push({
+      id: `create-file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      type: 'CREATE',
+      sourcePath: currentPath,
+      destinationPath: `${currentPath === '/' ? '' : currentPath}/${newName}`,
+      execute: async () => {
+        await fileManagerService.createFile(currentPath, newName, content)
       }
-
-      if (isValidationError(error)) {
-        setFormErrorMessage(error.message)
-        return false
-      }
-
-      throw error
-    }
+    })
+    
+    setCreateFileModal(ModalState.Closed)
+    return true
   }
 
   function close() {

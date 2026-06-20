@@ -11,8 +11,8 @@ interface ContentDirectoryProps {
 }
 
 export default function ContentDirectory({ item, asTile = false }: Readonly<ContentDirectoryProps>) {
-  const { setRenameDirectoryModal, setDeleteDirectoryModal, setTargetDirectoryPath } = useUiStore()
-  const { selectedNodes } = useFileManagerStore()
+  const { setRenameDirectoryModal, setDeleteModal, setTargetDirectoryPath } = useUiStore()
+  const { selectedNodes, selectNodes } = useFileManagerStore()
   const { hasEntries } = useClipboardStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
@@ -47,25 +47,36 @@ export default function ContentDirectory({ item, asTile = false }: Readonly<Cont
         toastService.pushToast({ message: 'Clipboard is empty.', type: 'info' })
         return
       }
-      try {
-        for (const path of entry) {
+      
+      const eventQueueService = container.resolve('eventQueueService')
+      const events = entry.map(path => ({
+        id: `${isCut ? 'move' : 'copy'}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        type: (isCut ? 'MOVE' : 'COPY') as 'MOVE' | 'COPY',
+        sourcePath: path,
+        destinationPath: item.path,
+        execute: async () => {
           if (isCut) {
             await fileManagerService.move(path, item.path)
           } else {
             await fileManagerService.copy(path, item.path)
           }
         }
-        clipboardService.clearEntries()
-        toastService.pushToast({ message: 'Pasted successfully.', type: 'success' })
-        await navigationService.refreshCurrentPath()
-      } catch (e: any) {
-        toastService.pushToast({ message: e.message || 'Failed to paste.', type: 'error' })
-      }
+      }))
+
+      eventQueueService.pushBatch(events)
+      clipboardService.clearEntries()
     }}] : []),
     { separator: true as const },
-    { label: 'Rename', onClick: () => { setTargetDirectoryPath(item.path); setRenameDirectoryModal(ModalState.Opened) } },
-    { label: 'Delete', onClick: () => { setTargetDirectoryPath(item.path); setDeleteDirectoryModal(ModalState.Opened) } },
-  ], [item.path, selectedNodes, hasEntries])
+    { label: 'Rename', onClick: () => { 
+        if (!selectedNodes[item.path]) selectNodes(item);
+        setTargetDirectoryPath(item.path); 
+        setRenameDirectoryModal(ModalState.Opened);
+    } },
+    { label: 'Delete', onClick: () => { 
+        if (!selectedNodes[item.path]) selectNodes(item);
+        setDeleteModal(ModalState.Opened);
+    } },
+  ], [item.path, item, selectedNodes, selectNodes, hasEntries])
 
   useContextualMenuRegistration(anchorName, entries)
 

@@ -46,30 +46,20 @@ export function useRenameFileViewModel() {
     const trimmedExtension = extension.trim()
     const newName = trimmedExtension ? `${baseName}.${trimmedExtension}` : baseName
 
-    try {
-      await fileManagerService.renameFile(targetFilePath, newName)
-      setRenameFileModal(ModalState.Closed)
-      navigationService.refreshCurrentPath()
-      toastService.pushToast({ message: 'File renamed successfully.', type: 'success' })
-      return true
-    } catch (error: unknown) {
-      if (isDomainValidationError(error)) {
-        setFormErrorMessage(error.message)
-        return false
+    const eventQueueService = container.resolve('eventQueueService')
+    
+    eventQueueService.push({
+      id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      type: 'RENAME',
+      sourcePath: targetFilePath,
+      destinationPath: targetFilePath.substring(0, targetFilePath.lastIndexOf('/')) + '/' + newName,
+      execute: async () => {
+        await fileManagerService.renameFile(targetFilePath, newName)
       }
-
-      if (isValidationError<RenameFileValidationField>(error)) {
-        const fieldErrors = error.getFieldErrors()
-        const fileError = fieldErrors['fileName']
-
-        if (fileError) {
-          setBaseNameFieldError(fileError)
-          return false
-        }
-      }
-
-      throw error
-    }
+    })
+    
+    setRenameFileModal(ModalState.Closed)
+    return true
   }
 
   function close() {

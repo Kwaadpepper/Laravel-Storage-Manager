@@ -12,8 +12,8 @@ interface ContentFileProps {
 }
 
 export default function ContentFile({ item, asTile = false }: Readonly<ContentFileProps>) {
-  const { setRenameFileModal, setDeleteFileModal, setViewFileModal, setTargetFilePath } = useUiStore()
-  const { selectedNodes } = useFileManagerStore()
+  const { setRenameFileModal, setDeleteModal, setViewFileModal, setTargetFilePath } = useUiStore()
+  const { selectedNodes, selectNodes } = useFileManagerStore()
   const container = useContainer()
   const downloadService = container.resolve('downloadService')
   const clipboardService = container.resolve('clipboardService')
@@ -53,9 +53,16 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
       toastService.pushToast({ message: `${nodes.length} item(s) copied to clipboard.`, type: 'info' })
     }},
     { separator: true as const },
-    { label: 'Rename', onClick: () => { setTargetFilePath(item.path); setRenameFileModal(ModalState.Opened) } },
-    { label: 'Delete', onClick: () => { setTargetFilePath(item.path); setDeleteFileModal(ModalState.Opened) } },
-  ], [item.path, selectedNodes])
+    { label: 'Rename', onClick: () => { 
+        if (!selectedNodes[item.path]) selectNodes(item);
+        setTargetFilePath(item.path); 
+        setRenameFileModal(ModalState.Opened);
+    } },
+    { label: 'Delete', onClick: () => { 
+        if (!selectedNodes[item.path]) selectNodes(item);
+        setDeleteModal(ModalState.Opened);
+    } },
+  ], [item.path, item, selectedNodes, selectNodes])
 
   useContextualMenuRegistration(anchorName, entries)
 

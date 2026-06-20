@@ -2,10 +2,9 @@ import { ModalState, useUiStore } from '@ts/stores';
 import { useDelayedUnmount } from '@ts/tools';
 import AboutModal from './about-modal';
 import DirectoryModal from './directory/create-modal';
-import DeleteDirectoryModal from './directory/delete-modal';
 import RenameDirectoryModal from './directory/rename-modal';
+import DeleteModal from './shared/delete-modal';
 import CreateFileModal from './file/create-modal';
-import DeleteFileModal from './file/delete-modal';
 import RenameFileModal from './file/rename-modal';
 import ViewFileModal from './file/view-modal';
 import MoveModal from './directory/move-modal';
@@ -20,9 +19,8 @@ export default function ModalContainer() {
     newDirectoryModal,
     createFileModal,
     renameDirectoryModal,
-    deleteDirectoryModal,
+    deleteModal,
     renameFileModal,
-    deleteFileModal,
     viewFileModal,
     moveModal,
     copyModal,
@@ -32,9 +30,8 @@ export default function ModalContainer() {
   const dirCreateOpen = newDirectoryModal === ModalState.Opened;
   const fileCreateOpen = createFileModal === ModalState.Opened;
   const dirRenameOpen = renameDirectoryModal === ModalState.Opened;
-  const dirDeleteOpen = deleteDirectoryModal === ModalState.Opened;
+  const deleteOpen = deleteModal === ModalState.Opened;
   const fileRenameOpen = renameFileModal === ModalState.Opened;
-  const fileDeleteOpen = deleteFileModal === ModalState.Opened;
   const fileViewOpen = viewFileModal === ModalState.Opened;
   const moveOpen = moveModal === ModalState.Opened;
   const copyOpen = copyModal === ModalState.Opened;
@@ -43,9 +40,8 @@ export default function ModalContainer() {
   const dirCreateMounted = useDelayedUnmount(dirCreateOpen, MODAL_CLOSE_DELAY);
   const fileCreateMounted = useDelayedUnmount(fileCreateOpen, MODAL_CLOSE_DELAY);
   const dirRenameMounted = useDelayedUnmount(dirRenameOpen, MODAL_CLOSE_DELAY);
-  const dirDeleteMounted = useDelayedUnmount(dirDeleteOpen, MODAL_CLOSE_DELAY);
+  const deleteMounted = useDelayedUnmount(deleteOpen, MODAL_CLOSE_DELAY);
   const fileRenameMounted = useDelayedUnmount(fileRenameOpen, MODAL_CLOSE_DELAY);
-  const fileDeleteMounted = useDelayedUnmount(fileDeleteOpen, MODAL_CLOSE_DELAY);
   const fileViewMounted = useDelayedUnmount(fileViewOpen, MODAL_CLOSE_DELAY);
   const moveMounted = useDelayedUnmount(moveOpen, MODAL_CLOSE_DELAY);
   const copyMounted = useDelayedUnmount(copyOpen, MODAL_CLOSE_DELAY);
@@ -56,9 +52,8 @@ export default function ModalContainer() {
       {dirCreateMounted && <DirectoryModal />}
       {fileCreateMounted && <CreateFileModal />}
       {dirRenameMounted && <RenameDirectoryModal />}
-      {dirDeleteMounted && <DeleteDirectoryModal />}
+      {deleteMounted && <DeleteModal />}
       {fileRenameMounted && <RenameFileModal />}
-      {fileDeleteMounted && <DeleteFileModal />}
       {fileViewMounted && <ViewFileModal />}
       {moveMounted && <MoveModal />}
       {copyMounted && <CopyModal />}

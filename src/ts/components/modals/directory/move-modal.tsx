@@ -11,6 +11,8 @@ export default function MoveModal() {
   const toastService = container.resolve('toastService')
   const navigationService = container.resolve('navigationService')
 
+  const eventQueueService = container.resolve('eventQueueService')
+
   const { moveModal, setMoveModal, setNewDirectoryModal, setTargetDirectoryPath } = useUiStore()
   const { selectedNodes, selectNodes } = useFileManagerStore()
   
@@ -41,28 +43,20 @@ export default function MoveModal() {
     if (selectedNodesList.length === 0) return
 
     setIsSubmitting(true)
-    let successCount = 0
-    let lastError = null
 
-    for (const node of selectedNodesList) {
-      try {
+    const events = selectedNodesList.map(node => ({
+      id: `move-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      type: 'MOVE' as const,
+      sourcePath: node.path,
+      destinationPath: selectedDestination,
+      execute: async () => {
         await fileManagerService.move(node.path, selectedDestination)
-        successCount++
-      } catch (e: any) {
-        lastError = e.message || `Failed to move ${node.name}`
       }
-    }
-
-    if (successCount > 0) {
-      toastService.pushToast({ message: `Successfully moved ${successCount} item(s).`, type: 'success' })
-      await navigationService.refreshCurrentPath()
-      selectNodes() // Clear selection
-    }
-
-    if (lastError) {
-      toastService.pushToast({ message: lastError, type: 'error' })
-    }
-
+    }))
+    
+    eventQueueService.pushBatch(events)
+    selectNodes() // Clear selection
+    
     setIsSubmitting(false)
     onClose()
   }

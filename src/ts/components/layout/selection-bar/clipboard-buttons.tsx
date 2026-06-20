@@ -42,20 +42,24 @@ export default function ClipboardButtons({ selectedNodes }: Readonly<ClipboardBu
       toastService.pushToast({ message: 'Clipboard is empty.', type: 'info' })
       return
     }
-    try {
-      for (const path of entry) {
+
+    const eventQueueService = container.resolve('eventQueueService')
+    const events = entry.map(path => ({
+      id: `${isCut ? 'move' : 'copy'}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      type: (isCut ? 'MOVE' : 'COPY') as 'MOVE' | 'COPY',
+      sourcePath: path,
+      destinationPath: currentPath,
+      execute: async () => {
         if (isCut) {
           await fileManagerService.move(path, currentPath)
         } else {
           await fileManagerService.copy(path, currentPath)
         }
       }
-      clipboardService.clearEntries()
-      toastService.pushToast({ message: 'Pasted successfully.', type: 'success' })
-      await navigationService.refreshCurrentPath()
-    } catch (e: any) {
-      toastService.pushToast({ message: e.message || 'Failed to paste.', type: 'error' })
-    }
+    }))
+
+    eventQueueService.pushBatch(events)
+    clipboardService.clearEntries()
   }
 
   return (

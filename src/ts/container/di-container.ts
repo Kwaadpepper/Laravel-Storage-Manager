@@ -1,5 +1,5 @@
 import { HttpClient } from '@ts/clients';
-import { ApiService, ClipboardService, DiskService, ErrorHandlerService, LocationService, NavigationService, ThemeService, ToastService } from '@ts/services';
+import { ApiService, ClipboardService, DiskService, ErrorHandlerService, EventQueueService, LocationService, NavigationService, ThemeService, ToastService } from '@ts/services';
 import { ContextualMenuService } from '@ts/services/contextual-menu-service';
 import { DownloadService } from '@ts/services/download-service';
 import { FileManagerService } from '@ts/services/file-manager-service';
@@ -19,6 +19,7 @@ export type AppContainer = {
   locationService: LocationService
   diskService: DiskService
   clipboardService: ClipboardService
+  eventQueueService: EventQueueService
 }
 
 const apiBaseUrl: URL =
@@ -40,12 +41,10 @@ if (apiBaseUrl === undefined) {
 
 export function buildDiContainer() {
 
-  // * ContainerContext
   const container = createContainer<AppContainer>({
     injectionMode: InjectionMode.PROXY,
   })
 
-  // * HttpClient
   container.register({
     httpClient: asFunction(() => new HttpClient(apiBaseUrl)).singleton(),
     apiService: asFunction(({ httpClient }) => new ApiService(httpClient)).singleton(),
@@ -57,10 +56,11 @@ export function buildDiContainer() {
     toastService: asFunction(() => new ToastService(useToastStore)).singleton(),
     errorHandlerService: asFunction(({ toastService }) => new ErrorHandlerService(toastService)).singleton(),
     contextualMenuService: asFunction(() => new ContextualMenuService(useContextualMenuStore)).singleton(),
-    downloadService: asFunction(() => new DownloadService()).singleton(),
+    downloadService: asFunction(() => new DownloadService(useDiskStore)).singleton(),
     locationService: asFunction(() => new LocationService()).singleton(),
     themeService: asFunction(() => new ThemeService(useUiStore)).singleton(),
     clipboardService: asFunction(() => new ClipboardService(useClipboardStore)).singleton(),
+    eventQueueService: asFunction(({ navigationService }) => new EventQueueService(navigationService)).singleton(),
   })
 
   return container

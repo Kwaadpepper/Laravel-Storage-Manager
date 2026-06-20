@@ -11,12 +11,12 @@ export default function CommonButtons({ selectedNodes }: Readonly<CommonButtonsP
   const firstSelectedNode: TreeNode | null = selectedNodes[0] || null
   const firstNodeIsDirectory = firstSelectedNode !== null && isDirectory(firstSelectedNode)
 
-  const { setRenameFileModal, setDeleteFileModal, setTargetFilePath,
-    setRenameDirectoryModal, setDeleteDirectoryModal, setTargetDirectoryPath,
+  const { setRenameFileModal, setDeleteModal, setTargetFilePath,
+    setRenameDirectoryModal, setTargetDirectoryPath,
     setMoveModal, setCopyModal } = useUiStore()
 
   function onClickRename(_: React.MouseEvent<HTMLButtonElement>) {
-    if (firstSelectedNode === null) {
+    if (selectedNodes.length !== 1) {
       return
     }
     if (firstNodeIsDirectory) {
@@ -29,16 +29,7 @@ export default function CommonButtons({ selectedNodes }: Readonly<CommonButtonsP
   }
 
   function onClickDelete(_: React.MouseEvent<HTMLButtonElement>) {
-    if (firstSelectedNode === null) {
-      return
-    }
-    if (firstNodeIsDirectory) {
-      setTargetDirectoryPath(firstSelectedNode.path)
-      setDeleteDirectoryModal(ModalState.Opened)
-    } else {
-      setTargetFilePath(firstSelectedNode.path)
-      setDeleteFileModal(ModalState.Opened)
-    }
+    setDeleteModal(ModalState.Opened)
   }
 
   if (selectedNodes.length === 0) {
@@ -67,29 +58,26 @@ export default function CommonButtons({ selectedNodes }: Readonly<CommonButtonsP
         <span className="hidden sm:inline">Move To</span>
       </button>
 
-      {!hasMultipleSelection && (
-        <>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs"
-            title="Rename"
-            onClick={onClickRename}
-          >
-            <Pencil size={14} />
-            <span className="hidden sm:inline">Rename</span>
-          </button>
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs"
+        title="Rename"
+        onClick={onClickRename}
+        disabled={hasMultipleSelection}
+      >
+        <Pencil size={14} />
+        <span className="hidden sm:inline">Rename</span>
+      </button>
 
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs text-error"
-            title="Delete"
-            onClick={onClickDelete}
-          >
-            <Trash2 size={14} />
-            <span className="hidden sm:inline">Delete</span>
-          </button>
-        </>
-      )}
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs text-error"
+        title="Delete"
+        onClick={onClickDelete}
+      >
+        <Trash2 size={14} />
+        <span className="hidden sm:inline">Delete</span>
+      </button>
     </>
   );
 }

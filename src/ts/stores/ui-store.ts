@@ -1,6 +1,7 @@
-import { isValidTheme, Theme } from '@ts/services';
 import { Path } from '@ts/types';
 import { create } from 'zustand';
+
+export type Theme = 'auto' | 'light' | 'dark';
 
 export enum ModalState {
   Closed = 'closed',
@@ -33,7 +34,7 @@ function setLocalStorageTreeVisible(visible: boolean): void {
 function getLocalStorageTheme(): Theme {
   const storedTheme = localStorage[LOCAL_STORAGE_KEY];
 
-  return isValidTheme(storedTheme) ?
+  return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'auto' ?
     storedTheme : 'auto';
 }
 
@@ -50,16 +51,14 @@ type UiState = {
   setNewDirectoryModal: (state: ModalState) => void
   renameDirectoryModal: ModalState
   setRenameDirectoryModal: (state: ModalState) => void
-  deleteDirectoryModal: ModalState
-  setDeleteDirectoryModal: (state: ModalState) => void
+  deleteModal: ModalState
+  setDeleteModal: (state: ModalState) => void
   uploadFileModal: ModalState
   setUploadFileModal: (state: ModalState) => void
   createFileModal: ModalState
   setCreateFileModal: (state: ModalState) => void
   renameFileModal: ModalState
   setRenameFileModal: (state: ModalState) => void
-  deleteFileModal: ModalState
-  setDeleteFileModal: (state: ModalState) => void
   viewFileModal: ModalState
   setViewFileModal: (state: ModalState) => void
   moveModal: ModalState
@@ -88,16 +87,14 @@ export const useUiStore = create<UiState>((set) => ({
   setNewDirectoryModal: (state) => set({ newDirectoryModal: state }),
   renameDirectoryModal: ModalState.Closed,
   setRenameDirectoryModal: (state) => set({ renameDirectoryModal: state }),
-  deleteDirectoryModal: ModalState.Closed,
-  setDeleteDirectoryModal: (state) => set({ deleteDirectoryModal: state }),
+  deleteModal: ModalState.Closed,
+  setDeleteModal: (state) => set({ deleteModal: state }),
   uploadFileModal: ModalState.Closed,
   setUploadFileModal: (state) => set({ uploadFileModal: state }),
   createFileModal: ModalState.Closed,
   setCreateFileModal: (state) => set({ createFileModal: state }),
   renameFileModal: ModalState.Closed,
   setRenameFileModal: (state) => set({ renameFileModal: state }),
-  deleteFileModal: ModalState.Closed,
-  setDeleteFileModal: (state) => set({ deleteFileModal: state }),
   viewFileModal: ModalState.Closed,
   setViewFileModal: (state) => set({ viewFileModal: state }),
   moveModal: ModalState.Closed,

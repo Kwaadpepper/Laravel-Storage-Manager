@@ -12,6 +12,7 @@ import { useAppInitialization } from './shared/use-app-initialization';
 import { useContextMenuTrigger } from './shared/use-contextual-menu-trigger';
 import { useKeyboardNavigation } from './shared/use-keyboard-navigation';
 import { useThemeInitialization } from './shared/use-theme-initialization';
+import GlobalLoader from './layout/global-loader';
 
 
 function App() {
@@ -38,8 +39,13 @@ function App() {
           </div>
         )}
         <div className="flex flex-col gap-2 flex-1 min-w-0 overflow-hidden">
-          <div className="bg-base-100 rounded-box px-4 py-2 shadow-sm shrink-0">
-            <Breadcrumb />
+          <div className="bg-base-100 rounded-box px-4 py-2 shadow-sm shrink-0 flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <Breadcrumb />
+            </div>
+            <div className="shrink-0">
+              <GlobalLoader />
+            </div>
           </div>
           <div className="bg-base-100 rounded-box shadow-sm flex-1 overflow-hidden">
             <ContentView />

@@ -80,7 +80,7 @@ export class FileManagerService {
   }
 
   async deleteDirectory(path: Path, force: boolean = false): Promise<void> {
-    return this.deleteAtPath(path, force)
+    return this.deleteItem(path, force)
   }
 
   async copy(path: Path, destinationDir: Path): Promise<void> {
@@ -142,7 +142,9 @@ export class FileManagerService {
     return this.deleteAtPath(path)
   }
 
-  private async deleteAtPath(path: Path, force: boolean = false): Promise<void> {
+
+
+  public async deleteItem(path: Path, force: boolean = false): Promise<void> {
     return this.apiService.delete(`${this.prefix}/delete`, {
       disk: this.getDisk(),
       path,

@@ -36,30 +36,20 @@ export function useRenameDirectoryViewModel() {
     setFormErrorMessage(null)
     setDirectoryNameFieldError(null)
 
-    try {
-      await fileManagerService.renameDirectory(targetDirectoryPath, newName)
-      setRenameDirectoryModal(ModalState.Closed)
-      navigationService.refreshCurrentPath()
-      toastService.pushToast({ message: 'Directory renamed successfully.', type: 'success' })
-      return true
-    } catch (error: unknown) {
-      if (isDomainValidationError(error)) {
-        setFormErrorMessage(error.message)
-        return false
+    const eventQueueService = container.resolve('eventQueueService')
+    
+    eventQueueService.push({
+      id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      type: 'RENAME',
+      sourcePath: targetDirectoryPath,
+      destinationPath: targetDirectoryPath.substring(0, targetDirectoryPath.lastIndexOf('/')) + '/' + newName,
+      execute: async () => {
+        await fileManagerService.renameDirectory(targetDirectoryPath, newName)
       }
-
-      if (isValidationError<RenameDirectoryValidationField>(error)) {
-        const fieldErrors = error.getFieldErrors()
-        const directoryError = fieldErrors[directoryNameInputName]
-
-        if (directoryError) {
-          setDirectoryNameFieldError(directoryError)
-          return false
-        }
-      }
-
-      throw error
-    }
+    })
+    
+    setRenameDirectoryModal(ModalState.Closed)
+    return true
   }
 
   function close() {

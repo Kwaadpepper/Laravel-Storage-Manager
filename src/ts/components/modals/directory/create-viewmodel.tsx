@@ -37,31 +37,21 @@ export function useCreateDirectoryViewModel() {
     setFormErrorMessage(null)
     setDirectoryNameFieldError(null)
 
-    try {
-      await fileManagerService.createDirectory(activePath, directoryName)
-      setNewDirectoryModal(ModalState.Closed)
-      setTargetDirectoryPath(null)
-      navigationService.refreshCurrentPath()
-      toastService.pushToast({ message: 'Directory created successfully.', type: 'success' })
-      return true
-    } catch (error: unknown) {
-      if (isDomainValidationError(error)) {
-        setFormErrorMessage(error.message)
-        return false
+    const eventQueueService = container.resolve('eventQueueService')
+    
+    eventQueueService.push({
+      id: `create-dir-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      type: 'CREATE',
+      sourcePath: activePath,
+      destinationPath: `${activePath === '/' ? '' : activePath}/${directoryName}`,
+      execute: async () => {
+        await fileManagerService.createDirectory(activePath, directoryName)
       }
-
-      if (isValidationError<CreateDirectoryValidationField>(error)) {
-        const fieldErrors = error.getFieldErrors()
-        const directoryError = fieldErrors[directoryNameInputName]
-
-        if (directoryError) {
-          setDirectoryNameFieldError(directoryError)
-          return false
-        }
-      }
-
-      throw error
-    }
+    })
+    
+    setNewDirectoryModal(ModalState.Closed)
+    setTargetDirectoryPath(null)
+    return true
   }
 
   function close() {
