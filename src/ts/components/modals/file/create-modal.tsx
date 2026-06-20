@@ -32,7 +32,7 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const [step, setStep] = useState<'name' | 'editor'>('name')
-  const [fileContent, setFileContent] = useState('')
+  const fileContentRef = useRef('')
   const [language, setLanguage] = useState<keyof typeof SUPPORTED_LANGUAGES>('Text')
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
     if (isOpen) {
       setBaseName(null)
       setExtension(null)
-      setFileContent('')
+      fileContentRef.current = ''
       setLanguage('Text')
       setStep('name')
       current.showModal()
@@ -74,7 +74,7 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
 
   async function onCreate() {
     if (baseName === null || extension === null) return
-    await submit(baseName, extension, fileContent)
+    await submit(baseName, extension, fileContentRef.current)
   }
 
   let fileName: string | null = null
@@ -117,9 +117,9 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
             <div className="flex-1 min-h-0">
               <Suspense fallback={<div className="flex items-center justify-center h-full text-base-content/50">Loading editor…</div>}>
                 <TextEditor
-                  value={fileContent}
+                  value={fileContentRef.current}
                   language={language}
-                  onChange={setFileContent}
+                  onChange={(v) => { fileContentRef.current = v }}
                   onLanguageChange={setLanguage}
                 />
               </Suspense>
