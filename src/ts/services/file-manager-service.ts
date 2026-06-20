@@ -139,7 +139,7 @@ export class FileManagerService {
   }
 
   async deleteFile(path: Path): Promise<void> {
-    return this.deleteAtPath(path)
+    return this.deleteItem(path)
   }
 
 

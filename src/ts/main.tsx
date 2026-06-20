@@ -8,8 +8,6 @@ import { useConfigStore } from './stores/config-store.ts';
 import { useDiskStore } from './stores/disk-store.ts';
 
 const container = buildDiContainer()
-container.resolve('themeService').initialize()
-container.resolve('fileManagerService').initialize()
 container.resolve('errorHandlerService').registerGlobalHandlers()
 const globalConfig = appConfigSchema.safeParse(globalThis.__STORAGE_MANAGER_CONFIG__)
 

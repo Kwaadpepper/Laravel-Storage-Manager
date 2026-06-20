@@ -2,15 +2,15 @@
 
 ## File operations
 
-- [ ] Copy / paste files and directories
-- [ ] Move files and directories
-- [ ] Multi-select (mouse + Shift/Ctrl keys)
-- [ ] Mass actions (delete, move, copy on selection)
+- [x] Copy / paste files and directories
+- [x] Move files and directories
+- [x] Multi-select (mouse + Shift/Ctrl keys)
+- [x] Mass actions (delete, move, copy on selection)
 - [ ] Bulk rename (with pattern, e.g. `image_{n}`)
 - [ ] Zip / unzip archives
 - [ ] Trash / soft delete (restore accidentally deleted files)
 - [ ] Undo / redo last operation (move, rename, delete)
-- [ ] Delete non-empty directory with confirmation dialog
+- [x] Delete non-empty directory with confirmation dialog
 
 ## Upload & Download
 
