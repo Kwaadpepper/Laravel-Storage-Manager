@@ -24,8 +24,8 @@
 
 ## Navigation & UX
 
-- [ ] Reload button
-- [ ] Full screen button
+- [x] Reload button
+- [x] Full screen button
 - [ ] Favorites / "Places" (pin frequently used folders in the sidebar)
 - [ ] File searching (by name, extension, size)
 - [ ] Search / filter reset button
@@ -64,7 +64,7 @@
 
 ## Events & integrations
 
-- [ ] Events (upload, delete, rename, move...)
+- [x] Events (upload, delete, rename, move...)
 - [ ] WYSIWYG integration (CKEditor 4 - 5, Tiptap, Tinymce 3 - 4 - 5, Standalone - provide plugins)
 - [ ] File type scoping when opening via integration (`type=image|audio|video|archive`)
 - [ ] Multi-panel view (side by side)
