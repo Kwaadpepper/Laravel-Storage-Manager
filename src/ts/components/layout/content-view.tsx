@@ -90,15 +90,28 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     }
   }
 
+  function onClickOutside(e: React.MouseEvent<HTMLElement>) {
+    const isSelectable = (e.target as HTMLElement).closest('[data-selectable]') !== null
+    if (!isSelectable) {
+      selectNodes()
+    }
+  }
+
   return (
     <>
       <div
         ref={listRef}
-        className={`overflow-auto h-full ${viewMode === 'list' ? '' : 'hidden'}`}
+        className={`overflow-auto h-full pb-20 ${viewMode === 'list' ? '' : 'hidden'}`}
         role="grid"
         aria-label="File list"
         tabIndex={rovingIdx === -1 ? 0 : -1}
         onKeyDown={onListKeyDown}
+        onClick={(e) => {
+          console.log('click', e.target, listRef.current)
+          if (e.target === listRef.current) {
+            selectNodes()
+          }
+        }}
       >
         <div className="table table-zebra w-full">
           <div className="table-header-group">
@@ -123,7 +136,14 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
           </div>
         )}
       </div>
-      <div className={`p-2 overflow-y-auto h-full ${viewMode === 'tiles' ? '' : 'hidden'}`}>
+      <div
+        className={`p-2 overflow-y-auto h-full ${viewMode === 'tiles' ? '' : 'hidden'}`}
+        onClick={onClickOutside}
+        role="grid"
+        aria-label="File tiles"
+        tabIndex={rovingIdx === -1 ? 0 : -1}
+        onKeyDown={onListKeyDown}
+      >
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-16 text-base-content/40">
             <FolderOpen size={48} className="mb-2" />

@@ -44,6 +44,7 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
   if (asTile) {
     return (
       <div
+        data-selectable
         data-contextual-menu={anchorName}
         style={{ anchorName }}
         className="flex flex-col items-center gap-1 p-3 rounded-lg w-24 select-none"
@@ -57,7 +58,7 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
 
   return (
     <>
-      <div data-contextual-menu={anchorName} tabIndex={-1} style={{ anchorName }} className="table-cell select-none p-2">
+      <div data-selectable data-contextual-menu={anchorName} tabIndex={-1} style={{ anchorName }} className="table-cell select-none p-2">
         <span className="flex items-center gap-2">
           <FileIcon size={16} className="text-info" />
           <span>{item.name}</span>

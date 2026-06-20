@@ -29,6 +29,7 @@ export default function ContentDirectory({ item, asTile = false }: Readonly<Cont
   if (asTile) {
     return (
       <div
+        data-selectable
         data-contextual-menu={anchorName}
         style={{ anchorName }}
         className="flex flex-col items-center gap-1 p-3 rounded-lg w-24 select-none"
@@ -44,7 +45,7 @@ export default function ContentDirectory({ item, asTile = false }: Readonly<Cont
 
   return (
     <>
-      <div data-contextual-menu={anchorName} tabIndex={-1} style={{ anchorName }} className="table-cell select-none p-2">
+      <div data-selectable data-contextual-menu={anchorName} tabIndex={-1} style={{ anchorName }} className="table-cell select-none p-2">
         <span className="flex items-center gap-2">
           {item.path === rootPath() ? <Folder size={16} className="text-warning" /> : <FolderOpen size={16} className="text-warning" />}
           {item.path === rootPath() ? 'root' : item.name}
