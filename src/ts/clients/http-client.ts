@@ -126,7 +126,6 @@ export class HttpClient {
   }
 
   private checkReponseIs200(response: Response): Response {
-    // ?  Between 200 and 299 status, ignore 4xx ?
     if (!response.ok && !(response.status >= 400 && response.status < 499)) {
       const message = `Server Response was not ok '${response.status}'`
       throw new ServerError(message)

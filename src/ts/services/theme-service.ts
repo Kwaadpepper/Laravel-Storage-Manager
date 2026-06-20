@@ -1,8 +1,6 @@
-import { useUiStore } from "@ts/stores";
+import { Theme, useUiStore } from "@ts/stores";
 
-const AVAILABLE_THEMES = ['auto', 'light', 'dark'] as const;
-
-export type Theme = typeof AVAILABLE_THEMES[number]
+const AVAILABLE_THEMES: Theme[] = ['auto', 'light', 'dark'];
 
 export function isValidTheme(theme: string): theme is Theme {
   return AVAILABLE_THEMES.includes(theme as Theme)
@@ -41,7 +39,6 @@ export class ThemeService {
 
     this.matchMedia.addEventListener('change', (e) => handler(e.matches));
 
-    // * Cleanup function to remove the event listener when it's no longer needed
     return () => {
       this.matchMedia?.removeEventListener('change', (e) => handler(e.matches));
     };

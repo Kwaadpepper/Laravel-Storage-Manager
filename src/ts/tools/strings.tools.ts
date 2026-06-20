@@ -1,5 +1,6 @@
 export abstract class Str {
-  // * CONSTANTS
+  static readonly FILE_EXTENSION_REGEX = /(?:\.([^.]+))?$/
+
   static readonly UNITS = [
     'byte',
     'kilobyte',

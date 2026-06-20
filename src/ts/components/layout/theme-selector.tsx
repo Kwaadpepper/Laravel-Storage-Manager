@@ -33,8 +33,6 @@ export default function ThemeSelector(_: Readonly<ThemeSelectorProps>) {
     }
   }
 
-  // * EVENTS
-
   function onKeyDownThemeSwapInput(e: React.KeyboardEvent<HTMLInputElement>): void {
     if (e.key === 'Enter') {
       rotateTheme()

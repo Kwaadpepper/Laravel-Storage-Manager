@@ -7,13 +7,10 @@ import searchCss from 'prism-react-editor/search.css?inline';
 import darkThemeCss from 'prism-react-editor/themes/vs-code-dark.css?inline';
 import lightThemeCss from 'prism-react-editor/themes/vs-code-light.css?inline';
 
-// * Text indentation
 import 'prism-react-editor/languages';
 
-// * Register all available languages
 import 'prism-react-editor/prism/languages';
 
-// * Register all available grammars
 import { useContainer } from '@ts/container';
 import { Theme } from '@ts/services';
 import { useUiStore } from '@ts/stores';
