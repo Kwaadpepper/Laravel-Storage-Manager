@@ -5,8 +5,28 @@ import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, F
 import { useEffect, useState } from "react";
 import ThemeSelector from "./theme-selector";
 
+function toggleFullscreen() {
+  if (globalThis.document.fullscreenElement) {
+    globalThis.document.exitFullscreen();
+  } else {
+    globalThis.document.documentElement.requestFullscreen().catch((err) => {
+      console.error(`Error attempting to enable fullscreen: ${err.message}`);
+    });
+  }
+}
+
+function listenFullscreenChange(callback: () => void) {
+  globalThis.document.addEventListener('fullscreenchange', callback);
+  return () => globalThis.document.removeEventListener('fullscreenchange', callback);
+}
+
+function isFullscreenActive(): boolean {
+  return !!globalThis.document.fullscreenElement;
+}
+
 interface ActionBarProps {
 }
+
 
 export default function ActionBar(_: Readonly<ActionBarProps>) {
   const container = useContainer()
@@ -19,23 +39,11 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
 
   useEffect(() => {
     function onFullscreenChange() {
-      setIsFullscreen(!!document.fullscreenElement)
+      setIsFullscreen(isFullscreenActive())
     }
-    document.addEventListener('fullscreenchange', onFullscreenChange)
-    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
-  }, [])
 
-  function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-  }
+    return listenFullscreenChange(onFullscreenChange)
+  }, [])
 
   function onReloadClick() {
     navigationService.refreshCurrentPath()
