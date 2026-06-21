@@ -1,6 +1,4 @@
 import { useContainer } from "@ts/container";
-import { isDomainValidationError, isValidationError } from "@ts/errors";
-import { RenameFileValidationField } from "@ts/services";
 import { ModalState, useUiStore } from "@ts/stores";
 import { useState } from "react";
 import { z } from "zod/v4";
@@ -25,9 +23,7 @@ export function useRenameFileViewModel() {
   const { renameFileModal, setRenameFileModal, targetFilePath } = useUiStore()
 
   const container = useContainer()
-  const navigationService = container.resolve('navigationService')
   const fileManagerService = container.resolve('fileManagerService')
-  const toastService = container.resolve('toastService')
 
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null)
   const [baseNameFieldError, setBaseNameFieldError] = useState<string | null>(null)

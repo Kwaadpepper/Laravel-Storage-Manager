@@ -12,7 +12,7 @@ import 'prism-react-editor/languages';
 import 'prism-react-editor/prism/languages';
 
 import { useContainer } from '@ts/container';
-import { Theme } from '@ts/services';
+import { Theme } from '@ts/stores';
 import { useUiStore } from '@ts/stores';
 import { useDefaultCommands, useEditHistory } from 'prism-react-editor/commands';
 import { useCopyButton } from 'prism-react-editor/copy-button';

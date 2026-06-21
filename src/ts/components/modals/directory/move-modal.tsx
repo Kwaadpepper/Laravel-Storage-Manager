@@ -8,8 +8,6 @@ import { useEffect, useRef, useState } from "react";
 export default function MoveModal() {
   const container = useContainer()
   const fileManagerService = container.resolve('fileManagerService')
-  const toastService = container.resolve('toastService')
-  const navigationService = container.resolve('navigationService')
 
   const eventQueueService = container.resolve('eventQueueService')
 

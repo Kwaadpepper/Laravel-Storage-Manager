@@ -1,5 +1,6 @@
 import { useContainer } from "@ts/container";
 import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
+import { Path } from "@ts/types";
 
 export function useDeleteViewModel() {
   const fileManagerService = useContainer().resolve('fileManagerService');
@@ -7,7 +8,7 @@ export function useDeleteViewModel() {
   const { deleteModal, setDeleteModal } = useUiStore();
   const { selectedNodes, selectNodes } = useFileManagerStore();
 
-  const selectedPaths = Object.keys(selectedNodes);
+  const selectedPaths = Object.keys(selectedNodes) as Path[];
   const itemCount = selectedPaths.length;
   const singleItemName = itemCount === 1 ? selectedNodes[selectedPaths[0]].name : '';
 

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 export type ActionStatus = 'pending' | 'success' | 'error'
-export type ActionType = 'DELETE' | 'MOVE' | 'COPY'
+export type ActionType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE'
 
 export interface ActionItem {
   id: string

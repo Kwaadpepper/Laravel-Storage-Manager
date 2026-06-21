@@ -12,7 +12,7 @@ export default function ClipboardButtons({ selectedNodes }: Readonly<ClipboardBu
   const toastService = container.resolve('toastService')
   const clipboardService = container.resolve('clipboardService')
   const fileManagerService = container.resolve('fileManagerService')
-  const navigationService = container.resolve('navigationService')
+
   const { currentPath } = useFileManagerStore()
   const { hasEntries } = useClipboardStore()
   const hasSelection = selectedNodes.length > 0

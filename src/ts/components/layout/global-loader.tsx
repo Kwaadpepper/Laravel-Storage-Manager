@@ -1,5 +1,5 @@
-import { ActionItem, ActionStatus, useActionStore } from "@ts/stores";
-import { CheckCircle2, ChevronDown, Loader2, ListTodo, XCircle } from "lucide-react";
+import { ActionStatus, useActionStore } from "@ts/stores";
+import { CheckCircle2, Loader2, ListTodo, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface GroupedAction {

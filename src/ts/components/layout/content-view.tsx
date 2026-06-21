@@ -249,7 +249,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
           newSelection.push(node)
         }
       }
-      selectNodes(...newSelection)
+      selectNodes(...(newSelection as (TreeNodeDirectory | TreeNodeFile)[]))
     } else {
       selectNodes(...boxNodes)
     }

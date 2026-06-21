@@ -1,5 +1,4 @@
 import { useContainer } from "@ts/container";
-import { isDomainValidationError, isValidationError } from "@ts/errors";
 import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
 import { Path } from "@ts/types";
 import { useState } from "react";
@@ -26,9 +25,7 @@ export function useCreateFileViewModel() {
   const { createFileModal, setCreateFileModal } = useUiStore()
 
   const container = useContainer()
-  const navigationService = container.resolve('navigationService')
   const fileManagerService = container.resolve('fileManagerService')
-  const toastService = container.resolve('toastService')
 
   const [baseName, setBaseName] = useState<string | null>(null)
   const [extension, setExtension] = useState<string | null>(null)
