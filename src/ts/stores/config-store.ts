@@ -15,6 +15,7 @@ interface ConfigState {
   appDescription: string
   appAuthors: AppAuthor[]
   disks: Disk[]
+  readOnlyDisks: Disk[]
   routes: {
     fmInit: string
     fmTree: string
@@ -38,6 +39,7 @@ export const useConfigStore = create<ConfigState>((set) => ({
   appDescription: '',
   appAuthors: [],
   disks: [],
+  readOnlyDisks: [],
   routes: {
     fmInit: '',
     fmTree: '',

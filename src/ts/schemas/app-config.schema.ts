@@ -14,6 +14,7 @@ export const appConfigSchema = z.object({
     })
   ),
   disks: z.record(z.string(), z.string()).transform((disksMap) => Object.values(disksMap) as Disk[]),
+  readOnlyDisks: z.array(z.string()).transform((arr) => arr as Disk[]),
   routes: z.object({
     fmInit: z.url(),
     fmTree: z.url(),

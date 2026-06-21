@@ -1,5 +1,5 @@
 import { useContainer } from "@ts/container";
-import { ModalState, useFileManagerStore, useUiStore } from "@ts/stores";
+import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from "@ts/stores";
 import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus, LayoutGrid, List, Maximize, Minimize, PanelLeft, PanelLeftClose, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import ThemeSelector from "./theme-selector";
@@ -33,6 +33,10 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
   const { canNavigatePrevious, canNavigateNext, canNavigateUp } = useFileManagerStore()
 
   const navigationService = container.resolve('navigationService')
+
+  const { readOnlyDisks } = useConfigStore()
+  const { currentDisk } = useDiskStore()
+  const isReadOnly = currentDisk ? readOnlyDisks.includes(currentDisk) : false
 
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -107,15 +111,15 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
 
       {/* Actions */}
       <div className="navbar-center gap-1">
-        <button className="btn btn-ghost btn-sm" title="New File" onClick={onNewFileClick}>
+        <button className="btn btn-ghost btn-sm" title="New File" onClick={onNewFileClick} disabled={isReadOnly}>
           <FilePlus size={16} />
           <span className="hidden md:inline">New File</span>
         </button>
-        <button className="btn btn-ghost btn-sm" title="New Directory" onClick={onNewDirectoryClick}>
+        <button className="btn btn-ghost btn-sm" title="New Directory" onClick={onNewDirectoryClick} disabled={isReadOnly}>
           <FolderPlus size={16} />
           <span className="hidden md:inline">New Directory</span>
         </button>
-        <button className="btn btn-ghost btn-sm" title="Upload File" onClick={onUploadFileClick}>
+        <button className="btn btn-ghost btn-sm" title="Upload File" onClick={onUploadFileClick} disabled={isReadOnly}>
           <FileUp size={16} />
           <span className="hidden md:inline">Upload File</span>
         </button>
