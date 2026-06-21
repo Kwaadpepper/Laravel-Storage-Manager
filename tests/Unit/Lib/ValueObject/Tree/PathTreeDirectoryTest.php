@@ -18,7 +18,8 @@ describe('PathTreeDirectory', function (): void {
 
         // Then
         expect($dir->path)->toBe($path)
-            ->and($dir->hasSubDirectories)->toBeTrue();
+            ;
+        expect($dir->hasSubDirectories)->toBeTrue();
     });
 
     it('accepts a path with no sub-directories', function (): void {

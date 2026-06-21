@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Provider;
 
 use Composer\InstalledVersions;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanOrphanedUploads;
+use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -29,6 +34,25 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->loadViews();
         $this->loadRoutes();
         $this->publishAssets();
+
+        Route::bind('uploadId', function (string $value) {
+            try {
+                return new UploadId($value);
+            } catch (IllegalDomainStateException $e) {
+                abort(400, 'Invalid Upload ID format.');
+            }
+        });
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                CleanOrphanedUploads::class,
+            ]);
+
+            $this->app->booted(function () {
+                $schedule = $this->app->make(Schedule::class);
+                $schedule->command('sm:clean-orphaned-uploads')->daily();
+            });
+        }
     }
 
     /**
@@ -180,6 +204,12 @@ class StorageManagerServiceProvider extends ServiceProvider
                         'fmCreateFile'      => route('storage-manager.api.fm.create-file'),
                         'fmDelete'          => route('storage-manager.api.fm.delete'),
                         'fmRename'          => route('storage-manager.api.fm.rename'),
+                        'fmUploadInit'      => route('storage-manager.api.fm.upload.init'),
+                        'fmUploadChunk'     => route('storage-manager.api.fm.upload.chunk'),
+                        'fmUploadComplete'  => route('storage-manager.api.fm.upload.complete'),
+                        'fmUploadStatus'    => route('storage-manager.api.fm.upload.status', [
+                            'uploadId' => '__UPLOAD_ID__',
+                        ]),
 
                         'disksList'         => route('storage-manager.api.disks.list'),
                         'disksSelect'       => route('storage-manager.api.disks.select'),

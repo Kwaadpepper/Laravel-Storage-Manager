@@ -8,8 +8,8 @@ use Illuminate\Routing\Controller;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryCopied;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreated;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleted;
-use Kwaadpepper\LaravelStorageManager\Event\DirectoryRenamed;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryMoved;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryRenamed;
 use Kwaadpepper\LaravelStorageManager\Event\FileCopied;
 use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
 use Kwaadpepper\LaravelStorageManager\Event\FileDeleted;
@@ -17,18 +17,18 @@ use Kwaadpepper\LaravelStorageManager\Event\FileMoved;
 use Kwaadpepper\LaravelStorageManager\Event\FileRenamed;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CopiedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
-use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\MovedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedFileDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\DeletedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\ExistsDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\MovedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\PropertiesDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\RenamedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CopyPathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirectoryRequest;
-use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\MovePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateFileRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\MovePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\PropertiesPathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\RenamePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
@@ -162,8 +162,8 @@ class BasicOperationsController extends Controller
             $this->fileManager->isDirectory($path) ?
               DirectoryRenamed::class : FileRenamed::class,
             [
-              'old_path' => $path->value,
-              'new_path' => $newPath->value,
+                'old_path' => $path->value,
+                'new_path' => $newPath->value,
             ]
         );
 
@@ -188,8 +188,8 @@ class BasicOperationsController extends Controller
             $this->fileManager->isDirectory($path) ?
               DirectoryCopied::class : FileCopied::class,
             [
-              'source_path' => $path->value,
-              'target_path' => $newPath->value,
+                'source_path' => $path->value,
+                'target_path' => $newPath->value,
             ]
         );
 
@@ -208,7 +208,7 @@ class BasicOperationsController extends Controller
             basename: $properties->basename,
             dirname: $properties->dirname,
             timestamp: $properties->timestamp,
-            visibility: $properties->visibility->value,
+            visibility: $properties->visibility?->value,
             isFile: $properties->isFile,
             isDirectory: $properties->isDirectory,
             extension: $properties instanceof FilePathProperties ? $properties->extension : null,
@@ -254,8 +254,8 @@ class BasicOperationsController extends Controller
             $this->fileManager->isDirectory($path) ?
               DirectoryMoved::class : FileMoved::class,
             [
-              'source_path' => $path->value,
-              'target_path' => $destinationDir->value,
+                'source_path' => $path->value,
+                'target_path' => $destinationDir->value,
             ]
         );
 

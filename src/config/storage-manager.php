@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 return [
-    'enabled'      => env('STORAGE_MANAGER_ENABLED', true),
+    'enabled'      => filter_var(env('STORAGE_MANAGER_ENABLED', true), FILTER_VALIDATE_BOOL),
 
     'auth' => [
-        'enabled' => env('STORAGE_MANAGER_AUTH_ENABLED', false),
+        'enabled' => filter_var(env('STORAGE_MANAGER_AUTH_ENABLED', true), FILTER_VALIDATE_BOOL),
         'guard'   => env('STORAGE_MANAGER_AUTH_GUARD', 'web'),
     ],
 
@@ -19,9 +19,15 @@ return [
 
     ],
 
+    'upload' => [
+        'chunk_size' => (int) env('STORAGE_MANAGER_UPLOAD_CHUNK_SIZE', 2 * 1024 * 1024),
+        'temp_disk'  => env('STORAGE_MANAGER_UPLOAD_TEMP_DISK', null),
+        'temp_path'  => env('STORAGE_MANAGER_UPLOAD_TEMP_PATH', null),
+    ],
+
     'frontend' => [
         'dev_server' => [
-            'enabled' => env('STORAGE_MANAGER_USE_DEV_SERVER', false),
+            'enabled' => filter_var(env('STORAGE_MANAGER_USE_DEV_SERVER', false), FILTER_VALIDATE_BOOL),
             'url'     => env('STORAGE_MANAGER_DEV_SERVER_URL', 'http://localhost:5173'),
         ],
     ],

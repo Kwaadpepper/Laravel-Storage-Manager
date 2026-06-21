@@ -23,13 +23,20 @@ describe('FilePathProperties', function (): void {
 
         // Then
         expect($props->path)->toBe($path)
-            ->and($props->basename)->toBe($basename)
-            ->and($props->dirname)->toBe($dirname)
-            ->and($props->extension)->toBe($extension)
-            ->and($props->filename)->toBe($filename)
-            ->and($props->size)->toBe($size)
-            ->and($props->timestamp)->toBe($timestamp)
-            ->and($props->visibility)->toBe($visibility);
+            ;
+        expect($props->basename)->toBe($basename)
+            ;
+        expect($props->dirname)->toBe($dirname)
+            ;
+        expect($props->extension)->toBe($extension)
+            ;
+        expect($props->filename)->toBe($filename)
+            ;
+        expect($props->size)->toBe($size)
+            ;
+        expect($props->timestamp)->toBe($timestamp)
+            ;
+        expect($props->visibility)->toBe($visibility);
     });
 
     it('accepts a zero-byte file size', function (): void {

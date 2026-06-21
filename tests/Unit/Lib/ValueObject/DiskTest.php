@@ -19,10 +19,14 @@ describe('Disk', function (): void {
 
         // Then
         expect($disk->driver)->toBe($driver)
-            ->and($disk->name)->toBe($name)
-            ->and($disk->throw)->toBeTrue()
-            ->and($disk->report)->toBeFalse()
-            ->and($disk->readOnly)->toBeTrue();
+            ;
+        expect($disk->name)->toBe($name)
+            ;
+        expect($disk->throw)->toBeTrue()
+            ;
+        expect($disk->report)->toBeFalse()
+            ;
+        expect($disk->readOnly)->toBeTrue();
     });
 
     it('throws a DomainException when driver is empty', function (): void {

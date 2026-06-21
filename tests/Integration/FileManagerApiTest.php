@@ -18,7 +18,9 @@ beforeEach(function () use (&$disk): void {
 });
 
 describe('initialization', function (): void {
+        assert($this instanceof \Tests\TestCase);
     it('initializes the file manager', function (): void {
+        assert($this instanceof \Tests\TestCase);
         // Given
         $route = route('storage-manager.api.fm.init');
 
@@ -26,12 +28,15 @@ describe('initialization', function (): void {
         $response = $this->getJson($route);
 
         // Then
-        $response->assertNoContent();
+        $response->assertSuccessful()
+            ->assertJsonPath('data.chunkSize', 2097152);
     });
 });
 
 describe('disk listing', function (): void {
+        assert($this instanceof \Tests\TestCase);
     it('returns available disks', function (): void {
+        assert($this instanceof \Tests\TestCase);
         // Given
         $route = route('storage-manager.api.disks.list');
 
@@ -46,6 +51,7 @@ describe('disk listing', function (): void {
 
 describe('content listing', function () use (&$disk): void {
     it('returns empty content on a fresh disk', function (): void {
+        assert($this instanceof \Tests\TestCase);
         // Given
         $route = route('storage-manager.api.fm.content', [
             'path' => '/',
@@ -346,7 +352,9 @@ describe('move', function () use (&$disk): void {
 });
 
 describe('validation', function (): void {
+        assert($this instanceof \Tests\TestCase);
     it('returns 422 when required fields are missing', function (): void {
+        assert($this instanceof \Tests\TestCase);
         // Given
         $emptyPayload = [];
         $route        = route('storage-manager.api.fm.create-directory');

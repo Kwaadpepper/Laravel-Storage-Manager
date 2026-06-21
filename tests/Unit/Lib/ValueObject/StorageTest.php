@@ -16,7 +16,8 @@ describe('Storage', function (): void {
 
         // Then
         expect($storage->name)->toBe($name)
-            ->and($storage->disk)->toBe($disk);
+            ;
+        expect($storage->disk)->toBe($disk);
     });
 
     it('throws a DomainException when name is empty', function (): void {

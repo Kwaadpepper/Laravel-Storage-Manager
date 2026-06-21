@@ -1,4 +1,5 @@
 includes:
+    - vendor/pestphp/pest/extension.neon
     - vendor/larastan/larastan/extension.neon
 
 parameters:

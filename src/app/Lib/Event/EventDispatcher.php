@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Lib\Event;
 
 use Illuminate\Events\Dispatcher;
-use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 use Kwaadpepper\LaravelStorageManager\Service\AuthService;
 
 class EventDispatcher
@@ -17,11 +16,10 @@ class EventDispatcher
     }
 
     /**
-     * @template TPayload of array<array-key,mixed>
-     * @template TEvent of SmEvent<TPayload>
+     * @template TPayload of array<array-key,mixed>|array{}
      *
-     * @param  class-string<TEvent> $eventClass
-     * @param  array<string,mixed>  $parameters
+     * @param  class-string<SmEvent<TPayload>>  $eventClass
+     * @param  TPayload  $parameters
      */
     public function dispatch(string $eventClass, array $parameters = []): void
     {
@@ -35,16 +33,14 @@ class EventDispatcher
 
     /**
      * @template TPayload of array<array-key,mixed>
-     * @template TEvent of SmEvent<TPayload>
      *
-     * @param  class-string<TEvent> $eventClass
+     * @param  class-string<SmEvent<TPayload>>  $eventClass
      * @param  TPayload  $parameters
-     *
-     * @return TEvent
+     * @return SmEvent<TPayload>
      */
     private function make(string $eventClass, array $parameters): SmEvent
     {
-        /** @var TEvent */
+        /** @var SmEvent<TPayload> */
         return $eventClass::make(
             $this->authService->user(),
             $parameters

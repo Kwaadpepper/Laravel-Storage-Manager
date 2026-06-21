@@ -7,27 +7,19 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Request;
 use Illuminate\Validation\Rule;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
-use Kwaadpepper\LaravelStorageManager\Service\AuthService;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 
 abstract class RequestWithDisk extends ApiRequest
 {
-    private AuthService $authService;
+    protected DiskService $diskService;
 
-    private DiskService $diskService;
-
-    private FileManager $fileManager;
+    protected FileManager $fileManager;
 
     public function prepareForValidation()
     {
-        $this->authService  = resolve(AuthService::class);
+        parent::prepareForValidation();
         $this->diskService  = resolve(DiskService::class);
         $this->fileManager  = resolve(FileManager::class);
-    }
-
-    public function authorize(): bool
-    {
-        return $this->authService->check();
     }
 
     /**

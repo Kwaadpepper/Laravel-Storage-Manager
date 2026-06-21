@@ -24,26 +24,47 @@ class ConfigRepository
 
     public function isEnabled(): bool
     {
-        return (bool) $this->getConfig('enabled', true);
+        return Arr::boolean($this->config, 'enabled', true);
     }
 
     public function isAuthEnabled(): bool
     {
-        return (bool) $this->getConfig('auth.enabled', true);
+        return Arr::boolean($this->config, 'auth.enabled', true);
     }
 
     public function getAuthGuard(): string
     {
-        $guard = $this->getConfig('auth.guard', 'web');
+        $guard = Arr::get($this->config, 'auth.guard', 'web');
 
         return is_string($guard) && $guard !== '' ? $guard : 'web';
     }
 
     public function getRoutePrefix(): string
     {
-        $prefix = $this->getConfig('route.prefix', self::DEFAULT_PREFIX);
+        $prefix = Arr::get($this->config, 'route.prefix', self::DEFAULT_PREFIX);
 
         return is_string($prefix) && $prefix !== '' ? $prefix : self::DEFAULT_PREFIX;
+    }
+
+    public function getUploadChunkSize(): int
+    {
+        $size = Arr::get($this->config, 'upload.chunk_size', 2 * 1024 * 1024);
+
+        return is_int($size) ? $size : 2 * 1024 * 1024;
+    }
+
+    public function getUploadTempDisk(): ?string
+    {
+        $disk = Arr::get($this->config, 'upload.temp_disk');
+
+        return is_string($disk) && $disk !== '' ? $disk : null;
+    }
+
+    public function getUploadTempPath(): string
+    {
+        $path = Arr::get($this->config, 'upload.temp_path', 'lsm_uploads');
+
+        return is_string($path) && $path !== '' ? $path : 'lsm_uploads';
     }
 
     /**
@@ -51,7 +72,7 @@ class ConfigRepository
      */
     public function getRouteMiddleware(): array
     {
-        $middleware = Arr::wrap($this->getConfig('route.middleware', []));
+        $middleware = Arr::array($this->config, 'route.middleware', []);
 
         return array_values(array_filter(
             $middleware,
@@ -61,13 +82,12 @@ class ConfigRepository
 
     public function getDefaultDisk(): ?Disk
     {
-        $disksConfigRaw = Config::get('filesystems.disks', []);
-        $disksConfig    = is_array($disksConfigRaw) ? $disksConfigRaw : [];
+        $disksConfig = Config::array('filesystems.disks', []);
 
         /** @var int|string|null $fallbackDefaultDiskName */
         $fallbackDefaultDiskName = array_key_first($disksConfig);
 
-        $defaultDiskName = $this->getConfig('filesystems.default', $fallbackDefaultDiskName);
+        $defaultDiskName = Arr::get($this->config, 'filesystems.default', $fallbackDefaultDiskName);
 
         if (! is_string($defaultDiskName) || empty(mb_trim($defaultDiskName))) {
             return null;
@@ -87,8 +107,8 @@ class ConfigRepository
      */
     public function getDisksMap(): array
     {
-        $fsConfig          = Arr::wrap(Config::get('filesystems.disks', []));
-        $disksAvailableRaw = Arr::wrap($this->getConfig('disks.available', []));
+        $fsConfig          = Config::array('filesystems.disks', []);
+        $disksAvailableRaw = Arr::array($this->config, 'disks.available', []);
 
         /** @var list<string> $disksAvailable */
         $disksAvailable = array_values(array_filter(
@@ -103,9 +123,9 @@ class ConfigRepository
                     $diskName => new Disk(
                         driver: is_string($driver = Arr::get($fsConfig, "{$diskName}.driver")) ? $driver : '',
                         name: $diskName,
-                        throw: (bool) Arr::get($fsConfig, "{$diskName}.throw", false),
-                        report: (bool) Arr::get($fsConfig, "{$diskName}.report", false),
-                        readOnly: (bool) Arr::get($fsConfig, "{$diskName}.read-only", false),
+                        throw: Arr::boolean($fsConfig, "{$diskName}.throw", false),
+                        report: Arr::boolean($fsConfig, "{$diskName}.report", false),
+                        readOnly: Arr::boolean($fsConfig, "{$diskName}.read-only", false),
                     ),
                 ]
             )
@@ -115,7 +135,7 @@ class ConfigRepository
 
     public function getStaticConfig(string $key): string | int
     {
-        $value = $this->getConfigValueFrom($key, $this->staticConfig);
+        $value = Arr::get($this->staticConfig, $key);
 
         if (! is_string($value) && ! is_int($value)) {
             throw new \UnexpectedValueException(
@@ -124,40 +144,5 @@ class ConfigRepository
         }
 
         return $value;
-    }
-
-    /**
-     * @param  string|int|float|bool|array<mixed,mixed>|null  $default
-     * @return string|int|float|bool|array<mixed,mixed>|null
-     */
-    public function getConfig(
-        string $key,
-        string | int | float | bool | array | null $default = null
-    ): string | int | float | bool | array | null {
-        return $this->getConfigValueFrom(
-            $key,
-            $this->config
-        ) ?? $default;
-    }
-
-    /**
-     * @param  array<string,mixed>  $from
-     * @return string|int|float|bool|array<mixed,mixed>|null
-     */
-    private function getConfigValueFrom(
-        string $key,
-        array $from
-    ): string | int | float | bool | array | null {
-        $value = Arr::get($from, $key);
-
-        if (
-            is_string($value) || is_int($value) || is_float($value) || is_bool($value) || is_array($value) || $value === null
-        ) {
-            return $value;
-        }
-
-        throw new \UnexpectedValueException(
-            "Invalid config value for key '{$key}'. Expected string, int, float, bool, array or null."
-        );
     }
 }

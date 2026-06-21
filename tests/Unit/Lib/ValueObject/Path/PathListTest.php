@@ -17,7 +17,8 @@ describe('PathList', function (): void {
 
         // Then
         expect($list->files)->toBe($files)
-            ->and($list->directories)->toBe($directories);
+            ;
+        expect($list->directories)->toBe($directories);
     });
 
     it('accepts empty files and directories arrays', function (): void {
@@ -26,7 +27,8 @@ describe('PathList', function (): void {
 
         // Then
         expect($list->files)->toBeEmpty()
-            ->and($list->directories)->toBeEmpty();
+            ;
+        expect($list->directories)->toBeEmpty();
     });
 
     it('throws a DomainException when files contains a non-Path item', function (): void {

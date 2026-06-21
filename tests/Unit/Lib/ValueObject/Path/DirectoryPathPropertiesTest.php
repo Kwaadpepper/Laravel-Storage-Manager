@@ -20,10 +20,14 @@ describe('DirectoryPathProperties', function (): void {
 
         // Then
         expect($props->path)->toBe($path)
-            ->and($props->basename)->toBe($basename)
-            ->and($props->dirname)->toBe($dirname)
-            ->and($props->timestamp)->toBe($timestamp)
-            ->and($props->visibility)->toBe($visibility);
+            ;
+        expect($props->basename)->toBe($basename)
+            ;
+        expect($props->dirname)->toBe($dirname)
+            ;
+        expect($props->timestamp)->toBe($timestamp)
+            ;
+        expect($props->visibility)->toBe($visibility);
     });
 
     it('accepts private visibility', function (): void {

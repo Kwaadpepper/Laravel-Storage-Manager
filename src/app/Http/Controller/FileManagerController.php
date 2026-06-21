@@ -15,12 +15,14 @@ use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
+use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 final class FileManagerController extends Controller
 {
     public function __construct(
         private readonly EventDispatcher $eventDispatcher,
-        private readonly FileManager $fileManager
+        private readonly FileManager $fileManager,
+        private readonly ConfigRepository $configRepository
     ) {
     }
 
@@ -28,9 +30,12 @@ final class FileManagerController extends Controller
     {
         $this->eventDispatcher->dispatch(FileManagerShowed::class);
 
+
+        $chunkSize = $this->configRepository->getUploadChunkSize();
+
         return ApiResponse::json(
-            $this->presentInit(),
-            ApiResponse::HTTP_NO_CONTENT
+            $this->presentInit($chunkSize),
+            ApiResponse::HTTP_OK
         );
     }
 
@@ -56,9 +61,9 @@ final class FileManagerController extends Controller
         );
     }
 
-    private function presentInit(): InitDto
+    private function presentInit(int $chunkSize): InitDto
     {
-        return new InitDto();
+        return new InitDto($chunkSize);
     }
 
     private function presentTree(PathTreeLevel $fileTree): PathTreeLevelDto
