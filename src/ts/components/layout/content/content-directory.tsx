@@ -1,6 +1,6 @@
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { useClipboardStore, ModalState, toAnchorName, useFileManagerStore, useUiStore } from "@ts/stores";
+import { useClipboardStore, ModalState, toAnchorName, useFileManagerStore, useUiStore, useDiskStore } from "@ts/stores";
 import { rootPath, TreeNodeDirectory } from "@ts/types";
 import { Folder, FolderOpen } from "lucide-react";
 import { useMemo } from "react";
@@ -66,6 +66,19 @@ export default function ContentDirectory({ item, asTile = false }: Readonly<Cont
       eventQueueService.pushBatch(events)
       clipboardService.clearEntries()
     }}] : []),
+    { separator: true as const },
+    { label: 'Copy Path', onClick: () => {
+      navigator.clipboard.writeText(item.path).catch(() => {})
+      toastService.pushToast({ message: 'Path copied to clipboard.', type: 'success' })
+    }},
+    { label: 'Copy Link', onClick: () => {
+      const url = new URL(globalThis.location.href)
+      const disk = useDiskStore.getState().currentDisk
+      const hashPath = `/${disk}${item.path}`
+      url.hash = hashPath.split('/').map(encodeURIComponent).join('/')
+      navigator.clipboard.writeText(url.toString()).catch(() => {})
+      toastService.pushToast({ message: 'Link copied to clipboard.', type: 'success' })
+    }},
     { separator: true as const },
     { label: 'Rename', onClick: () => { 
         if (!selectedNodes[item.path]) selectNodes(item);

@@ -1,7 +1,7 @@
 import FileSize from "@ts/components/shared/file-size";
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { ModalState, toAnchorName, useFileManagerStore, useUiStore } from "@ts/stores";
+import { ModalState, toAnchorName, useFileManagerStore, useUiStore, useDiskStore } from "@ts/stores";
 import { TreeNodeFile } from "@ts/types";
 import { FileIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -52,6 +52,23 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
       clipboardService.addEntry(...nodes.map(n => n.path))
       toastService.pushToast({ message: `${nodes.length} item(s) copied to clipboard.`, type: 'info' })
     }},
+    { separator: true as const },
+    { label: 'Copy Path', onClick: () => {
+      navigator.clipboard.writeText(item.path).catch(() => {})
+      toastService.pushToast({ message: 'Path copied to clipboard.', type: 'success' })
+    }},
+    { label: 'Copy Link', onClick: () => {
+      const url = new URL(globalThis.location.href)
+      const disk = useDiskStore.getState().currentDisk
+      const hashPath = `/${disk}${item.path}`
+      url.hash = hashPath.split('/').map(encodeURIComponent).join('/')
+      navigator.clipboard.writeText(url.toString()).catch(() => {})
+      toastService.pushToast({ message: 'Link copied to clipboard.', type: 'success' })
+    }},
+    ...(item.publicUrl ? [{ label: 'Copy Public URL', onClick: () => {
+      navigator.clipboard.writeText(item.publicUrl as string).catch(() => {})
+      toastService.pushToast({ message: 'Public URL copied to clipboard.', type: 'success' })
+    }}] : []),
     { separator: true as const },
     { label: 'Rename', onClick: () => { 
         if (!selectedNodes[item.path]) selectNodes(item);

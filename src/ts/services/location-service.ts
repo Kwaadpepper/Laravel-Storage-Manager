@@ -43,13 +43,15 @@ export class LocationService {
 
   public push(disk: Disk, path: Path): void {
     const url = new URL(globalThis.location.href)
-    url.hash = `/${disk}${path === rootPath() ? '' : path}`
+    const hashPath = `/${disk}${path === rootPath() ? '' : path}`
+    url.hash = hashPath.split('/').map(encodeURIComponent).join('/')
     globalThis.history.pushState({}, '', url.toString())
   }
 
   public replace(disk: Disk, path: Path): void {
     const url = new URL(globalThis.location.href)
-    url.hash = `/${disk}${path === rootPath() ? '' : path}`
+    const hashPath = `/${disk}${path === rootPath() ? '' : path}`
+    url.hash = hashPath.split('/').map(encodeURIComponent).join('/')
     globalThis.history.replaceState({}, '', url.toString())
   }
 
