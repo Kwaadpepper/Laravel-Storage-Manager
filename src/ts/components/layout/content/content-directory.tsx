@@ -93,6 +93,9 @@ export default function ContentDirectory({ item, asTile = false }: Readonly<Cont
           : <FolderOpen size={36} className="text-warning" />
         }
         <span className="text-xs text-center truncate w-full">{isRoot ? 'root' : item.name}</span>
+        <span className={`badge badge-xs mt-1 ${item.visibility === 'public' ? 'badge-success badge-outline' : 'badge-neutral badge-outline'}`}>
+          {item.visibility}
+        </span>
       </div>
     )
   }
@@ -108,6 +111,11 @@ export default function ContentDirectory({ item, asTile = false }: Readonly<Cont
       <div className="table-cell select-none p-2"><span className="badge badge-ghost badge-sm">Directory</span></div>
       <div className="table-cell select-none p-2">-</div>
       <div className="table-cell select-none p-2">-</div>
+      <div className="table-cell select-none p-2">
+        <span className={`badge badge-sm ${item.visibility === 'public' ? 'badge-success badge-outline' : 'badge-neutral badge-outline'}`}>
+          {item.visibility}
+        </span>
+      </div>
     </>
   )
 }

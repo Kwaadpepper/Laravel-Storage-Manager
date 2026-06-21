@@ -4,6 +4,7 @@ export interface TreeNodeDirectory extends TreeNode {
   path: Path
   name: string
   hasSubDirectories: boolean
+  visibility: 'public' | 'private'
 }
 
 export function isDirectory(node: TreeNode): node is TreeNodeDirectory {

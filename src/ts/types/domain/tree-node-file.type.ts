@@ -5,6 +5,7 @@ export interface TreeNodeFile extends TreeNode {
   name: string
   size: number
   extension: string | null
+  visibility: 'public' | 'private'
 }
 
 export function isFile(node: TreeNode): node is TreeNodeFile {

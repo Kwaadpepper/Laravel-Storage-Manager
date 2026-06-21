@@ -282,6 +282,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
               <div className="table-cell p-2 sticky top-0 bg-base-100 z-10 border-b border-base-200">Type</div>
               <div className="table-cell p-2 sticky top-0 bg-base-100 z-10 border-b border-base-200">Size</div>
               <div className="table-cell p-2 sticky top-0 bg-base-100 z-10 border-b border-base-200">Extension</div>
+              <div className="table-cell p-2 sticky top-0 bg-base-100 z-10 border-b border-base-200">Visibility</div>
             </div>
           </div>
           <div className="table-row-group">

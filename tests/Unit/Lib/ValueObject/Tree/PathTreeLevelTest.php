@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathVisibility;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeFile;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
@@ -12,11 +13,11 @@ describe('PathTreeLevel', function (): void {
     it('stores a list of PathTreeDirectory instances', function (): void {
         // Given
         $directories = [
-            new PathTreeDirectory(new Path('/images'), false),
-            new PathTreeDirectory(new Path('/documents'), true),
+            new PathTreeDirectory(new Path('/images'), false, PathVisibility::PUBLIC),
+            new PathTreeDirectory(new Path('/documents'), true, PathVisibility::PRIVATE),
         ];
         $files = [
-            new PathTreeFile(new Path('/documents/report.pdf'), 1024, 'pdf'),
+            new PathTreeFile(new Path('/documents/report.pdf'), 1024, 'pdf', PathVisibility::PUBLIC),
         ];
 
         // When
@@ -40,7 +41,7 @@ describe('PathTreeLevel', function (): void {
 
     it('throws a DomainException when the list contains a non-PathTreeDirectory item', function (): void {
         // Given
-        $invalidList = [new PathTreeDirectory(new Path('/valid'), false), 'not-a-directory'];
+        $invalidList = [new PathTreeDirectory(new Path('/valid'), false, PathVisibility::PUBLIC), 'not-a-directory'];
         $files       = [];
 
         // When / Then

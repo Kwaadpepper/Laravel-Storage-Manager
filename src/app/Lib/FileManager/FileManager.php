@@ -13,6 +13,7 @@ use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\FileStream;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\DirectoryPathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList as PathContent;
@@ -94,10 +95,20 @@ class FileManager
             $filesystem->files($directory)
         );
 
-        $directories = array_map(fn ($dir) => new PathTreeDirectory(
-            new Path($dir),
-            ! empty($filesystem->directories((string) new Path($dir)))
-        ), $directories);
+        $directories = array_map(function ($dir) use ($filesystem) {
+            $path = new Path($dir);
+            $properties = $this->getProperties($path);
+
+            if (! ($properties instanceof DirectoryPathProperties)) {
+                throw new \LogicException("Expected directory properties for path '{$path}', got file properties.");
+            }
+
+            return new PathTreeDirectory(
+                $path,
+                ! empty($filesystem->directories((string) $path)),
+                $properties->visibility
+            );
+        }, $directories);
 
         $files = array_map(function ($file) {
             $path       = new Path($file);
@@ -110,7 +121,8 @@ class FileManager
             return new PathTreeFile(
                 $path,
                 $properties->size,
-                $properties->extension
+                $properties->extension,
+                $properties->visibility
             );
         }, $files);
 

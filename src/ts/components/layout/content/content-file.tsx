@@ -77,6 +77,9 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
         <FileIcon size={36} className="text-info" />
         <span className="text-xs text-center truncate w-full">{item.name}</span>
         <span className="text-xs text-base-content/50"><FileSize bytes={item.size} /></span>
+        <span className={`badge badge-xs mt-1 ${item.visibility === 'public' ? 'badge-success badge-outline' : 'badge-neutral badge-outline'}`}>
+          {item.visibility}
+        </span>
       </div>
     )
   }
@@ -92,6 +95,11 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
       <div className="table-cell select-none p-2"><span className="badge badge-ghost badge-sm">File</span></div>
       <div className="table-cell select-none p-2"><FileSize bytes={item.size} /></div>
       <div className="table-cell select-none p-2">{item.extension ?? <span className="text-base-content/40">N/A</span>}</div>
+      <div className="table-cell select-none p-2">
+        <span className={`badge badge-sm ${item.visibility === 'public' ? 'badge-success badge-outline' : 'badge-neutral badge-outline'}`}>
+          {item.visibility}
+        </span>
+      </div>
     </>
   )
 }

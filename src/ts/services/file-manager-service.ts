@@ -36,12 +36,14 @@ export class FileManagerService {
             path: dir.path,
             name: dir.path.split('/').pop() || '',
             hasSubDirectories: dir.hasSubDirectories,
+            visibility: dir.visibility,
           })),
           files: data.files.map(file => ({
             path: file.path,
             name: file.path.split('/').pop() || '',
             size: file.size,
             extension: file.extension,
+            visibility: file.visibility,
           })),
         }
       })
