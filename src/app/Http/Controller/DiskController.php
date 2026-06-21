@@ -32,9 +32,11 @@ final class DiskController extends Controller
 
     public function select(SelectDiskRequest $request): ApiResponse
     {
-        $this->eventDispatcher->dispatch(DiskSelected::class);
-
         $disk = $request->getDisk();
+
+        $this->eventDispatcher->dispatch(DiskSelected::class, [
+            'disk' => $disk->name,
+        ]);
 
         return ApiResponse::json(
             $this->presentSelected($disk),
