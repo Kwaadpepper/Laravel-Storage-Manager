@@ -1,5 +1,5 @@
 import { NavigationError } from "@ts/errors";
-import { useFileManagerStore, useTreeStore } from "@ts/stores";
+import { useFileManagerStore, useTreeStore, useConfigStore } from "@ts/stores";
 import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { FileManagerService } from "./file-manager-service";
 import { LocationService } from "./location-service";
@@ -161,10 +161,19 @@ export class NavigationService {
   private commitNavigation(path: Path, event: NavigationEvent): void {
     this.fileManagerStore.getState().setCurrentPath(path)
     this.updateNavigationCapabilities()
+    this.updateDocumentTitle(path)
     this.emit(event)
     this.fetchAndApply(path).catch(() => {
       throw new NavigationError(`Error navigating to path: ${path}`)
     })
+  }
+
+  private updateDocumentTitle(path: Path): void {
+    const currentDisk = this.diskStore.getState().currentDisk
+    if (!currentDisk) return
+    const packageName = useConfigStore.getState().packageName || 'Storage Manager'
+    const folderName = path === '/' ? currentDisk : path.split('/').pop()
+    document.title = `${folderName} - ${currentDisk} - ${packageName}`
   }
 
   private navigateToHistoryIndex(offset: 1 | -1, event: NavigationEvent): void {
