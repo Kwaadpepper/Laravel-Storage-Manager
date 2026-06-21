@@ -110,7 +110,7 @@ class FileManager
             );
         }, $directories);
 
-        $files = array_map(function ($file) {
+        $files = array_map(function ($file) use ($filesystem) {
             $path       = new Path($file);
             $properties = $this->getProperties($path);
 
@@ -118,11 +118,18 @@ class FileManager
                 throw new \LogicException("Expected file properties for path '{$path}', got directory properties.");
             }
 
+            try {
+                $publicUrl = $filesystem->url(ltrim($path->value, '/'));
+            } catch (\Throwable $e) {
+                $publicUrl = null;
+            }
+
             return new PathTreeFile(
                 $path,
                 $properties->size,
                 $properties->extension,
-                $properties->visibility
+                $properties->visibility,
+                $publicUrl
             );
         }, $files);
 
