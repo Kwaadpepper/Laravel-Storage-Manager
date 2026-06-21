@@ -7,7 +7,7 @@ export function useAppInitialization(): void {
 
   useEffect(() => {
     fileManagerService.initialize().then(async () => {
-      const initialPath = locationService.getCurrentPath()
+      const initialPath = locationService.getDiskAndPath().path
       try {
         const data = await fileManagerService.listFiles(initialPath)
         navigationService.navigateTo(initialPath, data)

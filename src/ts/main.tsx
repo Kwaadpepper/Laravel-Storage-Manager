@@ -20,7 +20,16 @@ useConfigStore.getState().initialize(globalConfig.data)
 
 const initialDisks = useConfigStore.getState().disks
 if (initialDisks.length > 0) {
-  useDiskStore.getState().setCurrentDisk(initialDisks[0])
+  const locationService = container.resolve('locationService')
+  const { disk } = locationService.getDiskAndPath()
+  
+  if (disk && initialDisks.includes(disk)) {
+    useDiskStore.getState().setCurrentDisk(disk)
+  } else {
+    useDiskStore.getState().setCurrentDisk(initialDisks[0])
+    // The NavigationService will eventually call replace when it does initial navigation,
+    // or locationService can just wait for the first navigateToRoot.
+  }
 }
 
 const rootEl = document.getElementById('file-manager')

@@ -51,7 +51,7 @@ export function buildDiContainer() {
     diskService: asFunction(({ apiService }) => new DiskService(apiService, useConfigStore, useDiskStore)).singleton(),
     fileManagerService: asFunction(({ apiService }) => new FileManagerService(apiService, useDiskStore)).singleton(),
     navigationService: asFunction(({ fileManagerService, locationService }) => new NavigationService(
-      useFileManagerStore, fileManagerService, useTreeStore, locationService)
+      useFileManagerStore, fileManagerService, useTreeStore, locationService, useDiskStore)
     ).singleton(),
     toastService: asFunction(() => new ToastService(useToastStore)).singleton(),
     errorHandlerService: asFunction(({ toastService }) => new ErrorHandlerService(toastService)).singleton(),

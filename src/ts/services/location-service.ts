@@ -1,13 +1,25 @@
-import { Path, rootPath } from "@ts/types";
+import { Disk, Path, rootPath } from "@ts/types";
 
 export class LocationService {
 
-  public getCurrentPath(): Path {
+  public getDiskAndPath(): { disk: Disk | null, path: Path } {
     const hash = globalThis.location.hash
     if (hash.startsWith('#/')) {
-      return decodeURIComponent(hash.slice(1)) as Path
+      const decoded = decodeURIComponent(hash.slice(2))
+      if (!decoded) {
+        return { disk: null, path: rootPath() }
+      }
+      const slashIndex = decoded.indexOf('/')
+      if (slashIndex === -1) {
+        return { disk: decoded as Disk, path: rootPath() }
+      } else {
+        const disk = decoded.substring(0, slashIndex) as Disk
+        let path = decoded.substring(slashIndex) as Path
+        if (path === '') path = rootPath()
+        return { disk, path }
+      }
     }
-    return rootPath()
+    return { disk: null, path: rootPath() }
   }
 
   public getParentPath(path: Path): Path | null {
@@ -29,20 +41,23 @@ export class LocationService {
     return ancestors
   }
 
-  public push(path: Path): void {
+  public push(disk: Disk, path: Path): void {
     const url = new URL(globalThis.location.href)
-    url.hash = path
+    url.hash = `/${disk}${path === rootPath() ? '' : path}`
     globalThis.history.pushState({}, '', url.toString())
   }
 
-  public replace(path: Path): void {
+  public replace(disk: Disk, path: Path): void {
     const url = new URL(globalThis.location.href)
-    url.hash = path
+    url.hash = `/${disk}${path === rootPath() ? '' : path}`
     globalThis.history.replaceState({}, '', url.toString())
   }
 
-  public onPopState(callback: (path: Path) => void): () => void {
-    const handler = () => callback(this.getCurrentPath())
+  public onPopState(callback: (disk: Disk | null, path: Path) => void): () => void {
+    const handler = () => {
+      const { disk, path } = this.getDiskAndPath()
+      callback(disk, path)
+    }
     globalThis.addEventListener('popstate', handler)
     return () => globalThis.removeEventListener('popstate', handler)
   }

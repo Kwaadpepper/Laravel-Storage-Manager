@@ -27,9 +27,17 @@ export class NavigationService {
     private readonly fileManagerStore: typeof useFileManagerStore,
     private readonly fileManagerService: FileManagerService,
     private readonly treeStore: typeof useTreeStore,
-    private readonly locationService: LocationService
+    private readonly locationService: LocationService,
+    private readonly diskStore: typeof import('@ts/stores').useDiskStore
   ) {
-    this.locationService.onPopState(path => this.commitNavigation(path, NavigationEvent.NavigateTo))
+    this.locationService.onPopState((disk, path) => {
+      const currentDisk = this.diskStore.getState().currentDisk
+      if (disk && disk !== currentDisk) {
+        this.diskStore.getState().setCurrentDisk(disk)
+        this.treeStore.getState().reset()
+      }
+      this.commitNavigation(path, NavigationEvent.NavigateTo)
+    })
   }
 
   public on(event: NavigationEvent, callback: () => void): void {
@@ -74,7 +82,10 @@ export class NavigationService {
     this.treeStore.getState().reset()
     this.fileManagerStore.getState().setCurrentPath(root)
     this.updateNavigationCapabilities()
-    this.locationService.replace(root)
+    const currentDisk = this.diskStore.getState().currentDisk
+    if (currentDisk) {
+      this.locationService.replace(currentDisk, root)
+    }
     this.emit(NavigationEvent.NavigateTo)
     this.fetchAndApply(root).catch(() => {
       throw new NavigationError(`Error navigating to root after disk switch`)
@@ -158,7 +169,10 @@ export class NavigationService {
     const targetPath = this.navigationHistory.at(this.navigationIndex + offset)
     if (!targetPath) return
     this.navigationIndex += offset
-    this.locationService.replace(targetPath)
+    const currentDisk = this.diskStore.getState().currentDisk
+    if (currentDisk) {
+      this.locationService.replace(currentDisk, targetPath)
+    }
     this.commitNavigation(targetPath, event)
   }
 
@@ -173,7 +187,10 @@ export class NavigationService {
     if (this.navigationHistory.at(this.navigationIndex) === path) {
       return
     }
-    this.locationService.push(path)
+    const currentDisk = this.diskStore.getState().currentDisk
+    if (currentDisk) {
+      this.locationService.push(currentDisk, path)
+    }
     this.navigationHistory.push(path)
     this.navigationIndex = this.navigationHistory.length - 1
   }
