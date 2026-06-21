@@ -45,8 +45,13 @@ export default function ThemeSelector(_: Readonly<ThemeSelectorProps>) {
 
   return (
     <div className="theme-selector">
-      <label className="swap swap-rotate">
+      <button
+        className="btn btn-ghost btn-sm swap swap-rotate"
+        title="Toggle theme"
+        onClick={rotateTheme}
+      >
         <input
+          className="hidden w-0 h-0"
           ref={themeChangeInputRef}
           type="checkbox"
           checked={theme === 'light'}
@@ -63,7 +68,7 @@ export default function ThemeSelector(_: Readonly<ThemeSelectorProps>) {
         <span className="flex justify-center align-middle items-center swap-on">
           <LucideSun />
         </span>
-      </label>
+      </button>
     </div>
   )
 }
