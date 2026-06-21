@@ -36,7 +36,7 @@ export default function GlobalLoader() {
       <div tabIndex={0} role="button" className="btn btn-ghost btn-sm" title="Tasks">
         <ListTodo size={16} />
       </div>
-      <ul tabIndex={0} className="dropdown-content z-[1] menu p-4 shadow bg-base-100 rounded-box w-64 text-center text-sm text-base-content/60 border border-base-200">
+      <ul tabIndex={0} className="dropdown-content z-50 menu p-4 shadow bg-base-100 rounded-box w-64 text-center text-sm text-base-content/60 border border-base-200">
         No background tasks
       </ul>
     </div>

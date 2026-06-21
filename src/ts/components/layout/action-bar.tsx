@@ -1,6 +1,6 @@
 import { useContainer } from "@ts/container";
 import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from "@ts/stores";
-import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus, LayoutGrid, List, Maximize, Minimize, PanelLeft, PanelLeftClose, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus, Link, Maximize, Minimize, PanelLeft, PanelLeftClose, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import ThemeSelector from "./theme-selector";
 
@@ -29,14 +29,16 @@ interface ActionBarProps {
 
 export default function ActionBar(_: Readonly<ActionBarProps>) {
   const container = useContainer()
-  const { setAboutModal, setCreateFileModal, setNewDirectoryModal, setUploadFileModal, viewMode, setViewMode, treeVisible, setTreeVisible } = useUiStore()
+  const { setAboutModal, setCreateFileModal, setNewDirectoryModal, setUploadFileModal, treeVisible, setTreeVisible } = useUiStore()
   const { canNavigatePrevious, canNavigateNext, canNavigateUp } = useFileManagerStore()
 
   const navigationService = container.resolve('navigationService')
 
   const { readOnlyDisks } = useConfigStore()
   const { currentDisk } = useDiskStore()
+  const currentPath = useFileManagerStore(s => s.currentPath)
   const isReadOnly = currentDisk ? readOnlyDisks.includes(currentDisk) : false
+  const toastService = container.resolve('toastService')
 
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -78,6 +80,20 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
 
   function onAboutClick() {
     setAboutModal(ModalState.Opened)
+  }
+
+  function onCopyPathClick() {
+    navigator.clipboard.writeText(currentPath).catch(() => {})
+    toastService.pushToast({ message: 'Path copied to clipboard.', type: 'success' })
+  }
+
+  function onCopyLinkClick() {
+    const url = new URL(globalThis.location.href)
+    const disk = currentDisk
+    const hashPath = `/${disk}${currentPath === '/' ? '' : currentPath}`
+    url.hash = hashPath.split('/').map(encodeURIComponent).join('/')
+    navigator.clipboard.writeText(url.toString()).catch(() => {})
+    toastService.pushToast({ message: 'Link copied to clipboard.', type: 'success' })
   }
 
   return (
@@ -123,17 +139,21 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
           <FileUp size={16} />
           <span className="hidden md:inline">Upload File</span>
         </button>
+
+        <div className="dropdown dropdown-bottom">
+          <div tabIndex={0} role="button" className="btn btn-ghost btn-sm" title="Copy Links">
+            <Link size={16} />
+            <span className="hidden md:inline">URL</span>
+          </div>
+          <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+            <li><a onClick={onCopyPathClick}>Copy Path</a></li>
+            <li><a onClick={onCopyLinkClick}>Copy Link</a></li>
+          </ul>
+        </div>
       </div>
 
       {/* View Mode and Theme */}
       <div className="navbar-end gap-1">
-        <button
-          className="btn btn-ghost btn-sm"
-          title={viewMode === 'list' ? 'List view' : 'Tiles view'}
-          onClick={() => setViewMode(viewMode === 'list' ? 'tiles' : 'list')}
-        >
-          {viewMode === 'list' ? <List size={16} /> : <LayoutGrid size={16} />}
-        </button>
         <button
           className="btn btn-ghost btn-sm"
           title={isFullscreen ? 'Exit full screen' : 'Full screen'}

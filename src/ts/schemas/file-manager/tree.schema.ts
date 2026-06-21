@@ -12,6 +12,7 @@ export const treeResponseSchema = z.object({
     size: z.number().nonnegative(),
     extension: z.string().nonempty().nullable(),
     visibility: z.enum(['public', 'private']).nullable(),
+    publicUrl: z.string().nullable().optional(),
   }))
 })
 

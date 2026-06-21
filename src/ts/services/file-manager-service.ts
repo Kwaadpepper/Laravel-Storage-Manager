@@ -44,6 +44,7 @@ export class FileManagerService {
             size: file.size,
             extension: file.extension,
             visibility: file.visibility,
+            publicUrl: file.publicUrl,
           })),
         }
       })

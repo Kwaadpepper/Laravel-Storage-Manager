@@ -1,4 +1,5 @@
 import { useUiStore } from '@ts/stores';
+import { LayoutGrid, List } from 'lucide-react';
 import { useRef } from 'react';
 import ActionBar from './layout/action-bar';
 import Breadcrumb from './layout/breadcrumb';
@@ -17,7 +18,7 @@ import GlobalLoader from './layout/global-loader';
 
 function App() {
   const appRef = useRef<HTMLDivElement | null>(null)
-  const { treeVisible } = useUiStore()
+  const { treeVisible, viewMode, setViewMode } = useUiStore()
   useAppInitialization()
   useThemeInitialization()
   useKeyboardNavigation()
@@ -39,11 +40,18 @@ function App() {
           </div>
         )}
         <div className="flex flex-col gap-2 flex-1 min-w-0 overflow-hidden">
-          <div className="bg-base-100 rounded-box px-4 py-2 shadow-sm shrink-0 flex items-center justify-between gap-2">
+          <div className="bg-base-100 rounded-box px-4 py-2 shadow-sm shrink-0 flex items-center justify-between gap-2 z-20 relative">
             <div className="flex-1 min-w-0 overflow-hidden">
               <Breadcrumb />
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 flex items-center gap-1">
+              <button
+                className="btn btn-ghost btn-sm"
+                title={viewMode === 'list' ? 'List view' : 'Tiles view'}
+                onClick={() => setViewMode(viewMode === 'list' ? 'tiles' : 'list')}
+              >
+                {viewMode === 'list' ? <List size={16} /> : <LayoutGrid size={16} />}
+              </button>
               <GlobalLoader />
             </div>
           </div>
