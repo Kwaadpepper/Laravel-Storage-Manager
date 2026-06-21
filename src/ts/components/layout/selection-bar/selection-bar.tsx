@@ -19,7 +19,7 @@ export default function ContextBar(_: Readonly<ContextBarProps>) {
 
   return (
     <div
-      className={`flex items-center gap-2 px-4 h-9 overflow-hidden border-b transition-colors bg-primary/10 border-primary/20`}
+      className={`flex items-center gap-2 px-4 h-9 border-b transition-colors bg-primary/10 border-primary/20`}
     >
 
       {selectedNodesLabel.length ? (
