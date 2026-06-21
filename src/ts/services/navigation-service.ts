@@ -67,6 +67,7 @@ export class NavigationService {
     this.pushHistory(currentDisk, path)
     this.fileManagerStore.getState().setCurrentPath(path)
     this.updateNavigationCapabilities()
+    this.updateDocumentTitle(path)
     this.emit(NavigationEvent.NavigateTo)
     this.fetchAndApply(path, preloadedData).catch(() => {
       throw new NavigationError(`Error navigating to path: ${path}`)
@@ -86,6 +87,7 @@ export class NavigationService {
     this.fileManagerStore.getState().setCurrentPath(root)
     this.pushHistory(currentDisk, root)
     this.updateNavigationCapabilities()
+    this.updateDocumentTitle(root)
     this.emit(NavigationEvent.NavigateTo)
     this.fetchAndApply(root).catch(() => {
       throw new NavigationError(`Error navigating to root after disk switch`)
