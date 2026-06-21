@@ -17,7 +17,7 @@ export interface PreloadedData {
 }
 
 export class NavigationService {
-  private readonly navigationHistory: Path[] = []
+  private readonly navigationHistory: { disk: import('@ts/types').Disk, path: Path }[] = []
   private navigationIndex: number = -1
   private readonly loadingPaths = new Set<string>()
   private readonly eventListeners: { [event in NavigationEvent]?: (() => void)[]
@@ -58,11 +58,13 @@ export class NavigationService {
   }
 
   public navigateTo(path: Path, preloadedData?: PreloadedData): void {
-    const currentHistoryPath = this.navigationHistory.at(this.navigationIndex)
-    if (path === this.getCurrentPath() && currentHistoryPath === path) {
+    const currentDisk = this.diskStore.getState().currentDisk
+    if (!currentDisk) return
+    const currentHistoryEntry = this.navigationHistory.at(this.navigationIndex)
+    if (path === this.getCurrentPath() && currentHistoryEntry?.path === path && currentHistoryEntry?.disk === currentDisk) {
       return
     }
-    this.pushHistory(path)
+    this.pushHistory(currentDisk, path)
     this.fileManagerStore.getState().setCurrentPath(path)
     this.updateNavigationCapabilities()
     this.emit(NavigationEvent.NavigateTo)
@@ -77,15 +79,13 @@ export class NavigationService {
 
   public switchDisk(): void {
     const root = this.locationService.getRootPath()
-    this.navigationHistory.length = 0
-    this.navigationIndex = -1
+    const currentDisk = this.diskStore.getState().currentDisk
+    if (!currentDisk) return
+
     this.treeStore.getState().reset()
     this.fileManagerStore.getState().setCurrentPath(root)
+    this.pushHistory(currentDisk, root)
     this.updateNavigationCapabilities()
-    const currentDisk = this.diskStore.getState().currentDisk
-    if (currentDisk) {
-      this.locationService.replace(currentDisk, root)
-    }
     this.emit(NavigationEvent.NavigateTo)
     this.fetchAndApply(root).catch(() => {
       throw new NavigationError(`Error navigating to root after disk switch`)
@@ -95,7 +95,9 @@ export class NavigationService {
   public navigateToParent(): void {
     const parentPath = this.locationService.getParentPath(this.getCurrentPath())
     if (parentPath === null) return
-    this.pushHistory(parentPath)
+    const currentDisk = this.diskStore.getState().currentDisk
+    if (!currentDisk) return
+    this.pushHistory(currentDisk, parentPath)
     this.commitNavigation(parentPath, NavigationEvent.NavigateUp)
   }
 
@@ -166,32 +168,37 @@ export class NavigationService {
   }
 
   private navigateToHistoryIndex(offset: 1 | -1, event: NavigationEvent): void {
-    const targetPath = this.navigationHistory.at(this.navigationIndex + offset)
-    if (!targetPath) return
+    const targetEntry = this.navigationHistory.at(this.navigationIndex + offset)
+    if (!targetEntry) return
     this.navigationIndex += offset
+    
+    const { disk, path } = targetEntry
+    
+    this.locationService.replace(disk, path)
+    
     const currentDisk = this.diskStore.getState().currentDisk
-    if (currentDisk) {
-      this.locationService.replace(currentDisk, targetPath)
+    if (disk !== currentDisk) {
+      this.diskStore.getState().setCurrentDisk(disk)
+      this.treeStore.getState().reset()
     }
-    this.commitNavigation(targetPath, event)
+    
+    this.commitNavigation(path, event)
   }
 
   private emit(event: NavigationEvent): void {
     this.eventListeners[event]?.forEach(callback => callback())
   }
 
-  private pushHistory(path: Path): void {
+  private pushHistory(disk: import('@ts/types').Disk, path: Path): void {
     if (this.navigationIndex < this.navigationHistory.length - 1) {
       this.navigationHistory.splice(this.navigationIndex + 1)
     }
-    if (this.navigationHistory.at(this.navigationIndex) === path) {
+    const currentEntry = this.navigationHistory.at(this.navigationIndex)
+    if (currentEntry?.disk === disk && currentEntry?.path === path) {
       return
     }
-    const currentDisk = this.diskStore.getState().currentDisk
-    if (currentDisk) {
-      this.locationService.push(currentDisk, path)
-    }
-    this.navigationHistory.push(path)
+    this.locationService.push(disk, path)
+    this.navigationHistory.push({ disk, path })
     this.navigationIndex = this.navigationHistory.length - 1
   }
 
