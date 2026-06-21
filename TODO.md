@@ -20,7 +20,7 @@
 - [ ] Duplicate file handling policy (overwrite / auto-rename / error with confirmation)
 - [ ] Filename sanitization on upload (strip special chars, configurable)
 - [ ] Temporary signed download link (with configurable expiration)
-- [ ] Copy file path / public URL to clipboard
+- [x] Copy file path / public URL to clipboard
 
 ## Navigation & UX
 
@@ -29,7 +29,7 @@
 - [ ] Favorites / "Places" (pin frequently used folders in the sidebar)
 - [ ] File searching (by name, extension, size)
 - [ ] Search / filter reset button
-- [ ] Column ordering (name, size, type)
+- [x] Column ordering (name, size, type)
 - [ ] Keyboard shortcuts (Del, F2, Ctrl+C/V...)
 - [ ] Drag & drop to move files and directories
 - [ ] Directory content lazy loading (for large directories)

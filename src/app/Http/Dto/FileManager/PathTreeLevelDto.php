@@ -29,6 +29,7 @@ final readonly class PathTreeLevelDto implements Dto
                 'size'       => $file->size,
                 'extension'  => empty($file->extension) ? null : $file->extension,
                 'visibility' => $file->visibility?->value,
+                'publicUrl'  => $file->publicUrl,
             ], $this->fileTree->files),
         ];
     }
