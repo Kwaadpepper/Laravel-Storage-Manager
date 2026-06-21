@@ -105,6 +105,7 @@ class ConfigRepository
                         name: $diskName,
                         throw: (bool) Arr::get($fsConfig, "{$diskName}.throw", false),
                         report: (bool) Arr::get($fsConfig, "{$diskName}.report", false),
+                        readOnly: (bool) Arr::get($fsConfig, "{$diskName}.read-only", false),
                     ),
                 ]
             )

@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
-use Illuminate\Filesystem\AwsS3V3Adapter;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathPropertyFactory;
-use League\Flysystem\Ftp\FtpAdapter;
-use League\Flysystem\PhpseclibV3\SftpAdapter;
 
 class FilePropertyExtractor
 {
+    private const DRIVERS_WITHOUT_DIR_METADATA = ['s3', 'ftp'];
+
     public function fileProperties(Disk $disk, Path $path): PathProperties
     {
         $pathValue   = $path->value;
@@ -26,6 +25,18 @@ class FilePropertyExtractor
         $extension = $pathInfo['extension'] ?? '';
         $filename  = $pathInfo['filename'];
 
+        try {
+            $timestamp = $storageDisk->lastModified($pathValue);
+        } catch (\Throwable) {
+            $timestamp = null;
+        }
+
+        try {
+            $visibility = $storageDisk->getVisibility($pathValue);
+        } catch (\Throwable) {
+            $visibility = null;
+        }
+
         return PathPropertyFactory::fromArray([
             'type'       => 'file',
             'path'       => $path,
@@ -34,32 +45,35 @@ class FilePropertyExtractor
             'extension'  => $extension,
             'filename'   => $filename,
             'size'       => $storageDisk->size($pathValue),
-            'timestamp'  => $storageDisk->lastModified($pathValue),
-            'visibility' => $storageDisk->getVisibility($pathValue),
+            'timestamp'  => $timestamp,
+            'visibility' => $visibility,
         ]);
     }
 
     public function directoryProperties(Disk $disk, Path $path): PathProperties
     {
         /** @var \Illuminate\Filesystem\FilesystemAdapter $storageDisk */
-        $storageDisk   = $disk->getStorageDisk();
-        $leagueAdpater = $storageDisk->getAdapter();
-        $pathValue     = $path->value;
+        $storageDisk = $disk->getStorageDisk();
+        $pathValue   = $path->value;
         /** @var array<string,string> $pathInfo */
         $pathInfo = pathinfo($pathValue);
         $dirname  = $pathInfo['dirname'] === '.' ? '' : $pathInfo['dirname'];
         $basename = $pathInfo['basename'];
 
-        if (
-            $leagueAdpater instanceof AwsS3V3Adapter
-            || $leagueAdpater instanceof FtpAdapter
-            || $leagueAdpater instanceof SftpAdapter
-        ) {
+        if (in_array($disk->driver, self::DRIVERS_WITHOUT_DIR_METADATA, true)) {
             $timestamp  = null;
             $visibility = null;
         } else {
-            $timestamp  = $storageDisk->lastModified($pathValue);
-            $visibility = $storageDisk->getVisibility($pathValue);
+            try {
+                $timestamp = $storageDisk->lastModified($pathValue);
+            } catch (\Throwable) {
+                $timestamp = null;
+            }
+            try {
+                $visibility = $storageDisk->getVisibility($pathValue);
+            } catch (\Throwable) {
+                $visibility = null;
+            }
         }
 
         return PathPropertyFactory::fromArray([

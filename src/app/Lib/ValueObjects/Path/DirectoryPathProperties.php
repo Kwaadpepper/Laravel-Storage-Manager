@@ -15,7 +15,7 @@ readonly class DirectoryPathProperties implements PathProperties
         public string $basename,
         public string $dirname,
         public \DateTimeInterface $timestamp,
-        public PathVisibility $visibility
+        public ?PathVisibility $visibility
     ) {
         $this->isFile      = false;
         $this->isDirectory = true;

@@ -12,7 +12,7 @@ class PathTreeDirectory
     public function __construct(
         public readonly Path $path,
         public readonly bool $hasSubDirectories,
-        public readonly PathVisibility $visibility
+        public readonly ?PathVisibility $visibility
     ) {
     }
 }

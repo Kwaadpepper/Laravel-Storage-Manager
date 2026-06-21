@@ -22,13 +22,13 @@ final readonly class PathTreeLevelDto implements Dto
             'directories' => array_map(fn (PathTreeDirectory $dir) => [
                 'path'              => $dir->path->value,
                 'hasSubDirectories' => $dir->hasSubDirectories,
-                'visibility'        => $dir->visibility->value,
+                'visibility'        => $dir->visibility?->value,
             ], $this->fileTree->directories),
             'files'       => array_map(fn (PathTreeFile $file) => [
                 'path'       => $file->path->value,
                 'size'       => $file->size,
                 'extension'  => empty($file->extension) ? null : $file->extension,
-                'visibility' => $file->visibility->value,
+                'visibility' => $file->visibility?->value,
             ], $this->fileTree->files),
         ];
     }

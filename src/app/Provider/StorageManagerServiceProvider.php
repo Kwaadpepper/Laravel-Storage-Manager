@@ -167,6 +167,10 @@ class StorageManagerServiceProvider extends ServiceProvider
                         $configRepository->getDisksMap(),
                         fn (Disk $_, string $diskName) => $diskName
                     ),
+                    'readOnlyDisks'       => array_keys(array_filter(
+                        $configRepository->getDisksMap(),
+                        fn (Disk $disk) => $disk->readOnly
+                    )),
                     'routes'         => [
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),

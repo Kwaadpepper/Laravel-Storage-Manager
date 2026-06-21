@@ -137,6 +137,8 @@ class FileManager
      */
     public function createDirectory(Path $path): void
     {
+        $this->assertNotReadOnly();
+
         $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
@@ -154,6 +156,8 @@ class FileManager
      */
     public function deleteDirectory(Path $path, bool $force = false): void
     {
+        $this->assertNotReadOnly();
+
         $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
@@ -180,6 +184,8 @@ class FileManager
 
     public function createFile(Path $path, string $content = ''): void
     {
+        $this->assertNotReadOnly();
+
         $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
@@ -196,6 +202,8 @@ class FileManager
      */
     public function deleteFile(Path $path): void
     {
+        $this->assertNotReadOnly();
+
         $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
@@ -213,6 +221,8 @@ class FileManager
      */
     public function rename(Path $source, string $newName): Path
     {
+        $this->assertNotReadOnly();
+
         $filesystem       = $this->getStorage();
         $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
         $sourceIsDir      = $this->isDirectory($source);
@@ -236,8 +246,12 @@ class FileManager
             );
         }
 
-        if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
-            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+        if ($sourceIsDir && in_array($this->getDisk()->driver, ['s3', 'ftp'], true)) {
+            $this->polyfillMoveDirectory($normalizedSource, $normalizedDestination);
+        } else {
+            if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
+                FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+            }
         }
 
         return $destination;
@@ -248,6 +262,8 @@ class FileManager
      */
     public function copy(Path $source, Path $destinationDir): Path
     {
+        $this->assertNotReadOnly();
+
         $filesystem       = $this->getStorage();
         $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
         $sourceIsDir      = $this->isDirectory($source);
@@ -307,6 +323,8 @@ class FileManager
      */
     public function move(Path $source, Path $destinationDir): void
     {
+        $this->assertNotReadOnly();
+
         $filesystem       = $this->getStorage();
         $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
         $sourceIsDir      = $this->isDirectory($source);
@@ -333,8 +351,12 @@ class FileManager
 
         $normalizedDestination = (string) $destination;
 
-        if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
-            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+        if ($sourceIsDir && in_array($this->getDisk()->driver, ['s3', 'ftp'], true)) {
+            $this->polyfillMoveDirectory($normalizedSource, $normalizedDestination);
+        } else {
+            if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
+                FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+            }
         }
     }
 
@@ -402,6 +424,38 @@ class FileManager
         }
 
         return $this->activeDisk;
+    }
+
+    private function assertNotReadOnly(): void
+    {
+        if ($this->getDisk()->readOnly) {
+            FileOperationException::throwWith(FileOperationError::READ_ONLY_DISK);
+        }
+    }
+
+    private function polyfillMoveDirectory(string $source, string $destination): void
+    {
+        $filesystem = $this->getStorage();
+
+        if ($filesystem->makeDirectory($destination) === false) {
+            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+        }
+
+        $directories = $filesystem->allDirectories($source);
+        foreach ($directories as $dir) {
+            $normalizedDir = $this->pathNormalizer->normalizePath($dir);
+            $relativePath = substr($normalizedDir, strlen($source) + 1);
+            $filesystem->makeDirectory((string) Path::appendTo(new Path($destination), $relativePath));
+        }
+
+        $files = $filesystem->allFiles($source);
+        foreach ($files as $file) {
+            $normalizedFile = $this->pathNormalizer->normalizePath($file);
+            $relativePath = substr($normalizedFile, strlen($source) + 1);
+            $filesystem->move($file, (string) Path::appendTo(new Path($destination), $relativePath));
+        }
+
+        $filesystem->deleteDirectory($source);
     }
 
     private function getStorage(): Filesystem

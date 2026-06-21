@@ -16,6 +16,7 @@ enum FileOperationError: int implements DomainErrorCode
     case PERMISSION_DENIED        = 1006;
     case UNKNOWN_ERROR            = 1007;
     case DIRECTORY_NOT_EMPTY      = 1008;
+    case READ_ONLY_DISK           = 1009;
 
     public function message(): string
     {
@@ -28,6 +29,7 @@ enum FileOperationError: int implements DomainErrorCode
             self::PERMISSION_DENIED        => 'Permission denied for the requested operation.',
             self::UNKNOWN_ERROR            => 'An unknown error occurred during the file operation.',
             self::DIRECTORY_NOT_EMPTY      => 'The directory is not empty.',
+            self::READ_ONLY_DISK           => 'The operation is not allowed on a read-only disk.',
         };
     }
 

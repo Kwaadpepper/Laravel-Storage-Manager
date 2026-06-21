@@ -13,7 +13,7 @@ class PathTreeFile
         public readonly Path $path,
         public readonly int $size,
         public readonly string $extension,
-        public readonly PathVisibility $visibility,
+        public readonly ?PathVisibility $visibility,
     ) {
     }
 }

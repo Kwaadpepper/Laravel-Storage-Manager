@@ -53,7 +53,7 @@ describe('PathPropertyFactory', function (): void {
                 ->and($result->extension)->toBe('')
                 ->and($result->filename)->toBe('')
                 ->and($result->size)->toBe(0)
-                ->and($result->visibility)->toBe(PathVisibility::PRIVATE);
+                ->and($result->visibility)->toBeNull();
         });
 
         it('parses a Unix timestamp integer', function (): void {
@@ -112,7 +112,7 @@ describe('PathPropertyFactory', function (): void {
 
             // Then
             expect($result)->toBeInstanceOf(DirectoryPathProperties::class)
-                ->and($result->visibility)->toBe(PathVisibility::PRIVATE);
+                ->and($result->visibility)->toBeNull();
         });
     });
 

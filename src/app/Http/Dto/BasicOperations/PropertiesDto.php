@@ -13,7 +13,7 @@ final readonly class PropertiesDto implements Dto
         public string $basename,
         public string $dirname,
         public \DateTimeInterface $timestamp,
-        public string $visibility,
+        public ?string $visibility,
         public bool $isFile,
         public bool $isDirectory,
         public ?string $extension = null,

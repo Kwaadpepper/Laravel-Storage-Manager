@@ -56,8 +56,8 @@ class PathPropertyFactory
             extension: $data['extension'] ?? '',
             filename: $data['filename']   ?? '',
             size: $data['size']           ?? 0,
-            timestamp: self::parseTimestamp($data['timestamp'] ?? 'now'),
-            visibility: self::parseVisibility($data['visibility'] ?? Filesystem::VISIBILITY_PRIVATE)
+            timestamp: self::parseTimestamp($data['timestamp'] ?? null),
+            visibility: self::parseVisibility($data['visibility'] ?? null)
         );
     }
 
@@ -80,13 +80,17 @@ class PathPropertyFactory
             path: $path,
             basename: $data['basename'] ?? basename($path->value),
             dirname: $data['dirname']   ?? dirname($path->value),
-            timestamp: self::parseTimestamp($data['timestamp'] ?? 'now'),
-            visibility: self::parseVisibility($data['visibility'] ?? Filesystem::VISIBILITY_PRIVATE)
+            timestamp: self::parseTimestamp($data['timestamp'] ?? null),
+            visibility: self::parseVisibility($data['visibility'] ?? null)
         );
     }
 
-    private static function parseTimestamp(string | int $timestamp): DateTimeInterface
+    private static function parseTimestamp(string | int | null $timestamp): \DateTimeInterface
     {
+        if ($timestamp === null) {
+            $timestamp = 'now';
+        }
+
         try {
             // Support du format string ou timestamp UNIX
             return is_numeric($timestamp)
@@ -97,8 +101,12 @@ class PathPropertyFactory
         }
     }
 
-    private static function parseVisibility(string $visibility): PathVisibility
+    private static function parseVisibility(?string $visibility): ?PathVisibility
     {
+        if ($visibility === null) {
+            return null;
+        }
+
         return match ($visibility) {
             Filesystem::VISIBILITY_PUBLIC  => PathVisibility::PUBLIC,
             Filesystem::VISIBILITY_PRIVATE => PathVisibility::PRIVATE,

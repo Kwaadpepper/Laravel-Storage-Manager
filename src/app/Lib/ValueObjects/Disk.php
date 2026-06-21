@@ -14,7 +14,8 @@ final class Disk
         public readonly string $driver,
         public readonly string $name,
         public readonly bool $throw,
-        public readonly bool $report
+        public readonly bool $report,
+        public readonly bool $readOnly = false,
     ) {
         if (empty($this->driver)) {
             throw new IllegalDomainStateException('Disk driver cannot be empty.');

@@ -18,7 +18,7 @@ readonly class FilePathProperties implements PathProperties
         public readonly string $filename,
         public readonly int $size,
         public readonly \DateTimeInterface $timestamp,
-        public readonly PathVisibility $visibility
+        public readonly ?PathVisibility $visibility
     ) {
         $this->isFile      = true;
         $this->isDirectory = false;

@@ -8,19 +8,21 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 describe('Disk', function (): void {
     it('stores all constructor arguments as readonly properties', function (): void {
         // Given
-        $driver = 'local';
-        $name   = 'my-disk';
-        $throw  = true;
-        $report = false;
+        $driver   = 'local';
+        $name     = 'my-disk';
+        $throw    = true;
+        $report   = false;
+        $readOnly = true;
 
         // When
-        $disk = new Disk($driver, $name, $throw, $report);
+        $disk = new Disk($driver, $name, $throw, $report, $readOnly);
 
         // Then
         expect($disk->driver)->toBe($driver)
             ->and($disk->name)->toBe($name)
             ->and($disk->throw)->toBeTrue()
-            ->and($disk->report)->toBeFalse();
+            ->and($disk->report)->toBeFalse()
+            ->and($disk->readOnly)->toBeTrue();
     });
 
     it('throws a DomainException when driver is empty', function (): void {
