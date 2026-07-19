@@ -15,6 +15,7 @@ const cleanOutputDirs = (): Plugin => ({
 
 export default defineConfig({
   server: {
+    cors: true,
     watch: {
       ignored: [
         '**/.git/**',
