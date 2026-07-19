@@ -72,10 +72,14 @@ class UploadSessionService
         if (! $disk->exists($path)) {
             return null;
         }
-        /** @var array<string, mixed> $data */
-        $data = json_decode((string) $disk->get($path), true, 512, JSON_THROW_ON_ERROR);
+        try {
+            /** @var array<string, mixed> $data */
+            $data = json_decode((string) $disk->get($path), true, 512, JSON_THROW_ON_ERROR);
 
-        return is_array($data) ? UploadSessionStatus::fromArray($data) : null;
+            return is_array($data) ? UploadSessionStatus::fromArray($data) : null;
+        } catch (\JsonException $e) {
+            return null;
+        }
     }
 
     public function writeStatus(UploadId $uploadId, UploadStatus $status, int $progress): void
@@ -126,7 +130,7 @@ class UploadSessionService
      * Verify all chunks exist, assemble them, stream to final destination, and clean up.
      * Throws an exception if any chunk is missing.
      */
-    public function assembleAndTransfer(UploadId $uploadId, Path $finalDestination, string $diskName): void
+    public function assembleAndTransfer(UploadId $uploadId, Path $finalDestination, string $diskName, ?callable $onProgress = null): void
     {
         $metadata = $this->readMetadata($uploadId);
         if (! $metadata) {
@@ -146,7 +150,7 @@ class UploadSessionService
             $this->pathResolver->getAssembledFilePath($uploadId)
         );
 
-        $this->assembleChunks($uploadId, $totalChunks, $assembledFilePath);
+        $this->assembleChunks($uploadId, $totalChunks, $assembledFilePath, $onProgress);
 
         $this->writeStatus($uploadId, UploadStatus::TRANSFERRING, 0);
 
@@ -154,13 +158,14 @@ class UploadSessionService
             $uploadId,
             $assembledFilePath,
             $finalDestination,
-            $diskName
+            $diskName,
+            $onProgress
         );
 
         $this->deleteSession($uploadId);
     }
 
-    private function assembleChunks(UploadId $uploadId, int $totalChunks, string $assembledFilePath): void
+    private function assembleChunks(UploadId $uploadId, int $totalChunks, string $assembledFilePath, ?callable $onProgress = null): void
     {
         $outputHandle = fopen($assembledFilePath, 'wb');
         if ($outputHandle === false) {
@@ -178,23 +183,30 @@ class UploadSessionService
                 fclose($outputHandle);
                 throw new AssembleFailedException("Failed to open chunk {$i}");
             }
-            while (! feof($chunkHandle)) {
-                $content = fread($chunkHandle, 8192);
-                if ($content !== false) {
-                    fwrite($outputHandle, $content);
-                }
-            }
+
+            stream_copy_to_stream($chunkHandle, $outputHandle);
             fclose($chunkHandle);
             $this->deleteChunk($uploadId, $i);
+
+            // Update status every 5% or so to avoid spamming the disk
+            $progress = (int) (($i + 1) / $totalChunks * 100);
+            if ($progress % 5 === 0 || $progress === 100) {
+                $this->writeStatus($uploadId, UploadStatus::ASSEMBLING, $progress);
+                if ($onProgress !== null) {
+                    $onProgress('assembling', $progress);
+                }
+            }
         }
         fclose($outputHandle);
     }
 
-    private function transferFile(UploadId $uploadId, string $assembledFilePath, Path $finalDestination, string $diskName): void
+    private function transferFile(UploadId $uploadId, string $assembledFilePath, Path $finalDestination, string $diskName, ?callable $onProgress = null): void
     {
         $totalSize = filesize($assembledFilePath);
 
-        stream_filter_register('lsm_upload_progress', UploadProgressFilter::class);
+        if (! in_array('lsm_upload_progress', stream_get_filters(), true)) {
+            stream_filter_register('lsm_upload_progress', UploadProgressFilter::class);
+        }
         $statusFilePath = $this->pathResolver->getAbsolutePath(
             $this->pathResolver->getStatusPath($uploadId)
         );
@@ -204,10 +216,15 @@ class UploadSessionService
             throw new TransferFailedException('Failed to open assembled file for transfer.');
         }
 
-        $filter = stream_filter_append($stream, 'lsm_upload_progress', STREAM_FILTER_READ, [
+        $filterParams = [
             UploadProgressFilter::STATUS_FILE_PARAM => $statusFilePath,
             UploadProgressFilter::TOTAL_SIZE_PARAM  => $totalSize,
-        ]);
+        ];
+        if ($onProgress !== null) {
+            $filterParams[UploadProgressFilter::ON_PROGRESS_PARAM] = $onProgress;
+        }
+
+        $filter = stream_filter_append($stream, 'lsm_upload_progress', STREAM_FILTER_READ, $filterParams);
 
         Storage::disk($diskName)->put($finalDestination->value, $stream);
 
@@ -215,5 +232,9 @@ class UploadSessionService
             stream_filter_remove($filter);
         }
         fclose($stream);
+
+        if ($onProgress !== null) {
+            $onProgress('transferring', 100);
+        }
     }
 }

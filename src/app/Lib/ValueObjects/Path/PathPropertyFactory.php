@@ -85,7 +85,7 @@ class PathPropertyFactory
         );
     }
 
-    private static function parseTimestamp(string | int | null $timestamp): \DateTimeInterface
+    private static function parseTimestamp(string | int | null $timestamp): DateTimeInterface
     {
         if ($timestamp === null) {
             $timestamp = 'now';

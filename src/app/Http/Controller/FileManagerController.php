@@ -30,11 +30,11 @@ final class FileManagerController extends Controller
     {
         $this->eventDispatcher->dispatch(FileManagerShowed::class);
 
-
-        $chunkSize = $this->configRepository->getUploadChunkSize();
+        $chunkMinSize = $this->configRepository->getUploadChunkMinSize();
+        $chunkMaxSize = $this->configRepository->getUploadChunkMaxSize();
 
         return ApiResponse::json(
-            $this->presentInit($chunkSize),
+            $this->presentInit($chunkMinSize, $chunkMaxSize),
             ApiResponse::HTTP_OK
         );
     }
@@ -61,9 +61,9 @@ final class FileManagerController extends Controller
         );
     }
 
-    private function presentInit(int $chunkSize): InitDto
+    private function presentInit(int $chunkMinSize, int $chunkMaxSize): InitDto
     {
-        return new InitDto($chunkSize);
+        return new InitDto($chunkMinSize, $chunkMaxSize);
     }
 
     private function presentTree(PathTreeLevel $fileTree): PathTreeLevelDto

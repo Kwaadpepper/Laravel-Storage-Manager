@@ -46,11 +46,78 @@ class ConfigRepository
         return is_string($prefix) && $prefix !== '' ? $prefix : self::DEFAULT_PREFIX;
     }
 
-    public function getUploadChunkSize(): int
+    public function getUploadChunkMinSize(): int
     {
-        $size = Arr::get($this->config, 'upload.chunk_size', 2 * 1024 * 1024);
+        $size = Arr::get($this->config, 'upload.chunk_min_size', 2 * 1024 * 1024);
+        $size = is_int($size) ? $size : 2 * 1024 * 1024;
 
-        return is_int($size) ? $size : 2 * 1024 * 1024;
+        $maxSize = $this->getUploadChunkMaxSize();
+        if ($size > $maxSize) {
+            $size = $maxSize;
+        }
+
+        return $size;
+    }
+
+    public function getUploadChunkMaxSize(): int
+    {
+        $size = Arr::get($this->config, 'upload.chunk_max_size', 20 * 1024 * 1024);
+        $size = is_int($size) ? $size : 20 * 1024 * 1024;
+
+        $phpMax = $this->getPhpMaxUploadSize();
+        if ($phpMax > 0 && $size > $phpMax) {
+            $size = $phpMax;
+        }
+
+        return $size;
+    }
+
+    private function getPhpMaxUploadSize(): int
+    {
+        $postMax   = $this->parseIniBytes(ini_get('post_max_size'));
+        $uploadMax = $this->parseIniBytes(ini_get('upload_max_filesize'));
+
+        if ($postMax === 0 && $uploadMax === 0) {
+            return 0; // Unlimited
+        }
+
+        if ($postMax === 0) {
+            return $uploadMax;
+        }
+
+        if ($uploadMax === 0) {
+            return $postMax;
+        }
+
+        return min($postMax, $uploadMax);
+    }
+
+    private function parseIniBytes(string | false $value): int
+    {
+        if (! $value) {
+            return 0;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return 0;
+        }
+
+        $last = strtolower($value[strlen($value) - 1]);
+        $val  = (int) $value;
+
+        switch ($last) {
+            case 'g':
+                $val *= 1024;
+                // no break
+            case 'm':
+                $val *= 1024;
+                // no break
+            case 'k':
+                $val *= 1024;
+        }
+
+        return $val;
     }
 
     public function getUploadTempDisk(): ?string
@@ -64,7 +131,15 @@ class ConfigRepository
     {
         $path = Arr::get($this->config, 'upload.temp_path', 'lsm_uploads');
 
-        return is_string($path) && $path !== '' ? $path : 'lsm_uploads';
+        if (! is_string($path) || $path === '') {
+            $path = 'lsm_uploads';
+        }
+
+        if (function_exists('posix_getuid')) {
+            $path .= '_' . posix_getuid();
+        }
+
+        return $path;
     }
 
     /**

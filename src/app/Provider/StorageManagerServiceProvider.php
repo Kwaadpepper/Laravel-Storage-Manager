@@ -195,7 +195,9 @@ class StorageManagerServiceProvider extends ServiceProvider
                         $configRepository->getDisksMap(),
                         fn (Disk $disk) => $disk->readOnly
                     )),
-                    'routes'         => [
+                    'chunkMinSize'        => $configRepository->getUploadChunkMinSize(),
+                    'chunkMaxSize'        => $configRepository->getUploadChunkMaxSize(),
+                    'routes'              => [
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),
                         'fmContent'         => route('storage-manager.api.fm.content'),

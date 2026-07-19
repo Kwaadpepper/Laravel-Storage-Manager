@@ -9,20 +9,25 @@ use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 final readonly class InitDto implements Dto
 {
     public function __construct(
-        public int $chunkSize
+        public int $chunkMinSize,
+        public int $chunkMaxSize
     ) {
-        if ($this->chunkSize <= 0) {
-            throw new \InvalidArgumentException('chunkSize must be greater than 0.');
+        if ($this->chunkMinSize <= 0) {
+            throw new \InvalidArgumentException('chunkMinSize must be greater than 0.');
         }
-        if ($this->chunkSize > 104857600) {
-            throw new \InvalidArgumentException('chunkSize must be less than or equal to 100MB.');
+        if ($this->chunkMaxSize > 104857600) {
+            throw new \InvalidArgumentException('chunkMaxSize must be less than or equal to 100MB.');
+        }
+        if ($this->chunkMinSize > $this->chunkMaxSize) {
+            throw new \InvalidArgumentException('chunkMinSize must be less than or equal to chunkMaxSize.');
         }
     }
 
     public function jsonSerialize(): mixed
     {
         return [
-            'chunkSize' => $this->chunkSize,
+            'chunkMinSize' => $this->chunkMinSize,
+            'chunkMaxSize' => $this->chunkMaxSize,
         ];
     }
 }

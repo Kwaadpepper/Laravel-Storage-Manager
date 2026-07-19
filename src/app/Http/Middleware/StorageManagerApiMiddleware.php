@@ -9,6 +9,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Exception\ApiExceptionHandler;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Service\ApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 final class StorageManagerApiMiddleware
@@ -19,7 +20,7 @@ final class StorageManagerApiMiddleware
     ) {
     }
 
-    public function handle(Request $request, \Closure $next): ApiResponse
+    public function handle(Request $request, \Closure $next): Response
     {
         if (! $this->apiService->isAllowedToRequestApi($request)) {
             abort(403);
@@ -31,7 +32,7 @@ final class StorageManagerApiMiddleware
             $response = $this->apiExceptionHandler->toApiResponse($exception);
         }
 
-        if ($response instanceof JsonResponse) {
+        if ($response instanceof JsonResponse && ! $response instanceof ApiResponse) {
             $normalizedErrorResponse = $this->apiExceptionHandler->toApiResponseFromRenderedJsonResponse($response);
             $response                = $normalizedErrorResponse ?? $this->apiService->wrapResponse($response);
         }

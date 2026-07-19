@@ -7,7 +7,6 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 use Carbon\CarbonImmutable;
 use Illuminate\Routing\Controller;
 use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
-use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Upload\UploadInitDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Upload\UploadStatusDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Upload\UploadSuccessDto;
@@ -21,6 +20,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadSessionStatus;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UploadController extends Controller
 {
@@ -79,7 +79,7 @@ class UploadController extends Controller
         );
     }
 
-    public function complete(UploadCompleteRequest $request): ApiResponse
+    public function complete(UploadCompleteRequest $request): StreamedResponse
     {
         // NOTE: Disabling time limit and ignoring user abort to ensure the upload completes even if the client disconnects
         set_time_limit(0);
@@ -92,28 +92,44 @@ class UploadController extends Controller
         $finalDestination = Path::appendTo($destinationPath, $fileName);
         $selectedDiskName = $request->getDisk()->name;
 
-        try {
-            $this->sessionService->assembleAndTransfer(
-                $uploadId,
-                $finalDestination,
-                $selectedDiskName
-            );
-        } catch (\RuntimeException $e) {
-            return ApiResponse::json(
-                $this->presentError($e->getMessage()),
-                ApiResponse::HTTP_BAD_REQUEST
-            );
-        }
+        return response()->stream(function () use ($uploadId, $finalDestination, $selectedDiskName) {
+            try {
+                $this->sessionService->assembleAndTransfer(
+                    $uploadId,
+                    $finalDestination,
+                    $selectedDiskName,
+                    onProgress: function (string $status, int $progress): void {
+                        echo 'data: ' . json_encode(compact('status', 'progress')) . "\n\n";
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        }
+                        flush();
+                    }
+                );
 
-        $this->eventDispatcher->dispatch(
-            FileCreated::class,
-            ['path' => $finalDestination->value]
-        );
+                $this->eventDispatcher->dispatch(
+                    FileCreated::class,
+                    ['path' => $finalDestination->value]
+                );
 
-        return ApiResponse::json(
-            $this->presentSuccess(),
-            ApiResponse::HTTP_OK
-        );
+                echo 'data: ' . json_encode(['status' => 'completed', 'progress' => 100]) . "\n\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            } catch (\RuntimeException $e) {
+                echo 'data: ' . json_encode(['status' => 'error', 'message' => $e->getMessage()]) . "\n\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            }
+        }, 200, [
+            'Content-Type'      => 'text/event-stream',
+            'Cache-Control'     => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
+        ]);
     }
 
     private function presentStatus(UploadSessionStatus $status): UploadStatusDto
@@ -132,10 +148,5 @@ class UploadController extends Controller
     private function presentSuccess(): UploadSuccessDto
     {
         return new UploadSuccessDto();
-    }
-
-    private function presentError(string $message): ErrorDto
-    {
-        return new ErrorDto($message);
     }
 }

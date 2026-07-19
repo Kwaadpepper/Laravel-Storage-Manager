@@ -15,11 +15,16 @@ class UploadProgressFilter extends php_user_filter
 
     public const TOTAL_SIZE_PARAM = 'total_size';
 
+    public const ON_PROGRESS_PARAM = 'on_progress';
+
     private int $bytesRead = 0;
 
     private int $totalSize = 0;
 
     private string $statusFilePath = '';
+
+    /** @var callable|null */
+    private $onProgress = null;
 
     private int $lastUpdate = 0;
 
@@ -33,6 +38,8 @@ class UploadProgressFilter extends php_user_filter
 
         $this->statusFilePath = trim(Arr::string($params, self::STATUS_FILE_PARAM));
         $this->totalSize      = Arr::integer($params, self::TOTAL_SIZE_PARAM);
+        $onProgress           = Arr::get($params, self::ON_PROGRESS_PARAM);
+        $this->onProgress     = is_callable($onProgress) ? $onProgress : null;
 
         return true;
     }
@@ -48,6 +55,9 @@ class UploadProgressFilter extends php_user_filter
             if ($now > $this->lastUpdate) {
                 $progress = $this->getProgressPercentage();
                 $this->updateStatusFile($progress);
+                if (is_callable($this->onProgress)) {
+                    ($this->onProgress)('transferring', $progress);
+                }
                 $this->lastUpdate = $now;
             }
 

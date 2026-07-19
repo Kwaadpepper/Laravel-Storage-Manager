@@ -12,7 +12,9 @@ use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 class UploadPathResolver
 {
     private const METADATA_FILE = 'metadata.json';
+
     private const STATUS_FILE = 'status.json';
+
     private const ASSEMBLED_FILE = 'assembled_file';
 
     public function __construct(private readonly ConfigRepository $configRepository)

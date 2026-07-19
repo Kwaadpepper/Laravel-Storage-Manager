@@ -20,9 +20,10 @@ return [
     ],
 
     'upload' => [
-        'chunk_size' => (int) env('STORAGE_MANAGER_UPLOAD_CHUNK_SIZE', 2 * 1024 * 1024),
-        'temp_disk'  => env('STORAGE_MANAGER_UPLOAD_TEMP_DISK', null),
-        'temp_path'  => env('STORAGE_MANAGER_UPLOAD_TEMP_PATH', null),
+        'chunk_min_size' => (int) env('STORAGE_MANAGER_UPLOAD_CHUNK_MIN_SIZE', 2 * 1024 * 1024),   // 2 MB
+        'chunk_max_size' => (int) env('STORAGE_MANAGER_UPLOAD_CHUNK_MAX_SIZE', 20 * 1024 * 1024),  // 20 MB
+        'temp_disk'      => env('STORAGE_MANAGER_UPLOAD_TEMP_DISK', null),
+        'temp_path'      => env('STORAGE_MANAGER_UPLOAD_TEMP_PATH', null),
     ],
 
     'frontend' => [

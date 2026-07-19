@@ -26,10 +26,12 @@ class UploadChunkRequest extends ApiRequest
      */
     public function rules(): array
     {
+        $uploadChunkMaxSize = $this->configRepository->getUploadChunkMaxSize();
+
         return array_merge($this->getUploadIdRules(), [
             'chunk_index'    => ['required', 'integer', 'min:0'],
             'chunk_checksum' => ['required', 'string', 'regex:/^[a-f0-9]{32}$/i'],
-            'file'           => ['required', 'file', 'min:1', 'max:' . $this->configRepository->getUploadChunkSize()],
+            'file'           => ['required', 'file', 'min:1', 'max:' . ceil($uploadChunkMaxSize / 1024)],
         ]);
     }
 

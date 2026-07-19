@@ -96,7 +96,7 @@ class FileManager
         );
 
         $directories = array_map(function ($dir) use ($filesystem) {
-            $path = new Path($dir);
+            $path       = new Path($dir);
             $properties = $this->getProperties($path);
 
             if (! ($properties instanceof DirectoryPathProperties)) {
@@ -177,7 +177,7 @@ class FileManager
         }
 
         if (! $force) {
-            $files = $filesystem->files($normalizedPath);
+            $files       = $filesystem->files($normalizedPath);
             $directories = $filesystem->directories($normalizedPath);
             if (count($files) > 0 || count($directories) > 0) {
                 FileOperationException::throwWith(FileOperationError::DIRECTORY_NOT_EMPTY);
@@ -310,14 +310,14 @@ class FileManager
             $directories = $filesystem->allDirectories($normalizedSource);
             foreach ($directories as $dir) {
                 $normalizedDir = $this->pathNormalizer->normalizePath($dir);
-                $relativePath = substr($normalizedDir, strlen($normalizedSource) + 1);
+                $relativePath  = substr($normalizedDir, strlen($normalizedSource) + 1);
                 $filesystem->makeDirectory((string) Path::appendTo($destination, $relativePath));
             }
 
             $files = $filesystem->allFiles($normalizedSource);
             foreach ($files as $file) {
                 $normalizedFile = $this->pathNormalizer->normalizePath($file);
-                $relativePath = substr($normalizedFile, strlen($normalizedSource) + 1);
+                $relativePath   = substr($normalizedFile, strlen($normalizedSource) + 1);
                 $filesystem->copy($file, (string) Path::appendTo($destination, $relativePath));
             }
         }
@@ -451,14 +451,14 @@ class FileManager
         $directories = $filesystem->allDirectories($source);
         foreach ($directories as $dir) {
             $normalizedDir = $this->pathNormalizer->normalizePath($dir);
-            $relativePath = substr($normalizedDir, strlen($source) + 1);
+            $relativePath  = substr($normalizedDir, strlen($source) + 1);
             $filesystem->makeDirectory((string) Path::appendTo(new Path($destination), $relativePath));
         }
 
         $files = $filesystem->allFiles($source);
         foreach ($files as $file) {
             $normalizedFile = $this->pathNormalizer->normalizePath($file);
-            $relativePath = substr($normalizedFile, strlen($source) + 1);
+            $relativePath   = substr($normalizedFile, strlen($source) + 1);
             $filesystem->move($file, (string) Path::appendTo(new Path($destination), $relativePath));
         }
 

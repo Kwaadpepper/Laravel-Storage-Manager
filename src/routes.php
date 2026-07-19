@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\AssetController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\BasicOperationsController;
@@ -21,7 +22,7 @@ if (! $config->isEnabled()) {
 
 $middlewares   = $config->getRouteMiddleware();
 $middlewares[] = StorageManagerMiddleware::class;
-$middlewares[] = \Illuminate\Routing\Middleware\SubstituteBindings::class;
+$middlewares[] = SubstituteBindings::class;
 
 if ($config->isAuthEnabled()) {
     $middlewares[] = 'auth:' . $config->getAuthGuard();

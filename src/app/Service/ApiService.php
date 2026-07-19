@@ -38,7 +38,8 @@ class ApiService
 
     public function isApiRequest(Request $request): bool
     {
-        return $request->expectsJson() && $request->routeIs('storage-manager.api.*');
+        return ($request->expectsJson() || $request->accepts('text/event-stream'))
+            && $request->routeIs('storage-manager.api.*');
     }
 
     public function wrapResponse(JsonResponse $response): ApiResponse
