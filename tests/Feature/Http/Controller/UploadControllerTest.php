@@ -210,8 +210,130 @@ describe('UploadController', function (): void {
         expect($content)->toContain('data: ');
         expect($content)->toContain('"status":"completed"');
         expect($content)->toContain('"progress":100');
+        expect($content)->toContain('"fileName":"test.txt"');
 
         expect(Storage::disk('local')->exists('test.txt'))->toBeTrue();
         expect(Storage::disk('local')->get('test.txt'))->toBe($file1Content . $file2Content);
+    });
+
+    it('sanitizes filename on complete', function (): void {
+        assert($this instanceof TestCase);
+        Config::set('storage-manager.upload.sanitize_filenames', true); app()->forgetInstance(\Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository::class);
+
+        $uploadId       = UploadId::generate();
+        $sessionService = resolve(UploadSessionService::class);
+        $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test:file?.txt', 1, 10, CarbonImmutable::now()));
+
+        $fileContent = str_repeat('a', 10);
+        $file        = UploadedFile::fake()->createWithContent('chunk0.part', $fileContent);
+        $sessionService->storeChunk($uploadId, 0, $file);
+
+        $payload = [
+            'upload_id'   => $uploadId->value,
+            'fileName'    => 'test:file?.txt',
+            'totalChunks' => 1,
+            'disk'        => 'local',
+            'path'        => '/',
+        ];
+
+        $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+        $response->assertOk();
+
+        $content = $response->streamedContent();
+        expect($content)->toContain('"status":"completed"');
+        expect($content)->toContain('"fileName":"test file .txt"');
+        expect(Storage::disk('local')->exists('test file .txt'))->toBeTrue();
+    });
+
+    it('applies auto_rename duplicate policy on complete', function (): void {
+        assert($this instanceof TestCase);
+        Config::set('storage-manager.upload.duplicate_policy', 'auto_rename'); app()->forgetInstance(\Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository::class);
+        Storage::disk('local')->put('test.txt', 'existing content');
+
+        $uploadId       = UploadId::generate();
+        $sessionService = resolve(UploadSessionService::class);
+        $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 1, 10, CarbonImmutable::now()));
+
+        $fileContent = str_repeat('a', 10);
+        $file        = UploadedFile::fake()->createWithContent('chunk0.part', $fileContent);
+        $sessionService->storeChunk($uploadId, 0, $file);
+
+        $payload = [
+            'upload_id'   => $uploadId->value,
+            'fileName'    => 'test.txt',
+            'totalChunks' => 1,
+            'disk'        => 'local',
+            'path'        => '/',
+        ];
+
+        $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+        $response->assertOk();
+
+        $content = $response->streamedContent();
+        expect($content)->toContain('"status":"completed"');
+        expect($content)->toContain('"fileName":"test (1).txt"');
+        expect(Storage::disk('local')->exists('test (1).txt'))->toBeTrue();
+        expect(Storage::disk('local')->get('test (1).txt'))->toBe($fileContent);
+    });
+
+    it('applies error duplicate policy on complete', function (): void {
+        assert($this instanceof TestCase);
+        Config::set('storage-manager.upload.duplicate_policy', 'error'); app()->forgetInstance(\Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository::class);
+        Storage::disk('local')->put('test.txt', 'existing content');
+
+        $uploadId       = UploadId::generate();
+        $sessionService = resolve(UploadSessionService::class);
+        $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 1, 10, CarbonImmutable::now()));
+
+        $fileContent = str_repeat('a', 10);
+        $file        = UploadedFile::fake()->createWithContent('chunk0.part', $fileContent);
+        $sessionService->storeChunk($uploadId, 0, $file);
+
+        $payload = [
+            'upload_id'   => $uploadId->value,
+            'fileName'    => 'test.txt',
+            'totalChunks' => 1,
+            'disk'        => 'local',
+            'path'        => '/',
+        ];
+
+        $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+        $response->assertOk();
+
+        $content = $response->streamedContent();
+        expect($content)->toContain('"status":"error"');
+        expect($content)->toContain('File already exists: test.txt');
+        expect(Storage::disk('local')->get('test.txt'))->toBe('existing content'); // Intact
+    });
+
+    it('applies overwrite duplicate policy on complete', function (): void {
+        assert($this instanceof TestCase);
+        Config::set('storage-manager.upload.duplicate_policy', 'overwrite'); app()->forgetInstance(\Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository::class);
+        Storage::disk('local')->put('test.txt', 'existing content');
+
+        $uploadId       = UploadId::generate();
+        $sessionService = resolve(UploadSessionService::class);
+        $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 1, 10, CarbonImmutable::now()));
+
+        $fileContent = str_repeat('a', 10);
+        $file        = UploadedFile::fake()->createWithContent('chunk0.part', $fileContent);
+        $sessionService->storeChunk($uploadId, 0, $file);
+
+        $payload = [
+            'upload_id'   => $uploadId->value,
+            'fileName'    => 'test.txt',
+            'totalChunks' => 1,
+            'disk'        => 'local',
+            'path'        => '/',
+        ];
+
+        $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+        $response->assertOk();
+
+        $content = $response->streamedContent();
+        expect($content)->toContain('"status":"completed"');
+        expect($content)->toContain('"fileName":"test.txt"');
+        expect(Storage::disk('local')->exists('test.txt'))->toBeTrue();
+        expect(Storage::disk('local')->get('test.txt'))->toBe($fileContent); // Overwritten
     });
 });

@@ -7,6 +7,7 @@ export interface UploadItem {
   id: string
   file?: File
   fileName: string
+  finalFileName?: string
   destinationPath: string
   disk: string
   totalSize: number
@@ -20,7 +21,7 @@ interface UploadState {
   uploads: UploadItem[]
   addUpload: (upload: Omit<UploadItem, 'uploadedBytes' | 'progress' | 'status'>) => void
   updateProgress: (id: string, uploadedBytes: number, totalSize: number, status?: UploadStatus) => void
-  setStatus: (id: string, status: UploadStatus, error?: string) => void
+  setStatus: (id: string, status: UploadStatus, error?: string, finalFileName?: string) => void
   removeUpload: (id: string) => void
   clearCompleted: () => void
 }
@@ -53,12 +54,12 @@ export const useUploadStore = create<UploadState>()(
         })
       })),
 
-      setStatus: (id, status, error) => set((state) => ({
+      setStatus: (id, status, error, finalFileName) => set((state) => ({
         uploads: state.uploads.map(u => {
           if (u.id === id) {
             // When success, ensure progress is 100%
             const progress = status === 'success' ? 100 : u.progress;
-            return { ...u, status, error, progress }
+            return { ...u, status, error, progress, ...(finalFileName && { finalFileName }) }
           }
           return u
         })

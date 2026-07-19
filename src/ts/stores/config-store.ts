@@ -34,6 +34,8 @@ interface ConfigState {
   },
   chunkMinSize: number
   chunkMaxSize: number
+  duplicatePolicy: 'overwrite' | 'auto_rename' | 'error'
+  sanitizeFilenames: boolean
   initialize: (config: AppConfig) => void
 }
 
@@ -64,5 +66,7 @@ export const useConfigStore = create<ConfigState>((set) => ({
   },
   chunkMinSize: 1048576 * 2, // Default 2MB
   chunkMaxSize: 1048576 * 20, // Default 20MB
+  duplicatePolicy: 'auto_rename',
+  sanitizeFilenames: true,
   initialize: (config: AppConfig) => set(config)
 }))

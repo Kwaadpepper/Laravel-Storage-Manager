@@ -109,8 +109,13 @@ export default function UploadModal() {
               {uploads.slice().reverse().map(upload => (
                 <div key={upload.id} className="bg-base-200/50 p-3 rounded-lg flex flex-col gap-2">
                   <div className="flex justify-between items-center">
-                    <div className="min-w-0 flex items-center gap-2 pr-2">
+                    <div className="min-w-0 flex flex-wrap items-center gap-2 pr-2">
                       <span className="font-medium truncate text-sm" title={upload.fileName}>{upload.fileName}</span>
+                      {upload.finalFileName && upload.finalFileName !== upload.fileName && (
+                        <span className="text-xs opacity-70 truncate" title={`Saved as: ${upload.finalFileName}`}>
+                          → {upload.finalFileName}
+                        </span>
+                      )}
                       <span className="badge badge-outline badge-sm shrink-0" title={`Upload disk: ${upload.disk}`}>
                         {upload.disk}
                       </span>

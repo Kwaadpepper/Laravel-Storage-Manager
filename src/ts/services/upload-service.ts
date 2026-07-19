@@ -130,9 +130,9 @@ export class UploadService {
       // 3. Complete (with SSE streaming)
       setStatus(item.id, 'assembling');
       
-      await this.streamComplete(upload_id, item, totalChunks);
+      const finalFileName = await this.streamComplete(upload_id, item, totalChunks);
       
-      setStatus(item.id, 'success');
+      setStatus(item.id, 'success', undefined, finalFileName);
 
       // Trigger directory refresh with a debounce
       if (useFileManagerStore.getState().currentPath === item.destinationPath) {
@@ -157,7 +157,7 @@ export class UploadService {
     upload_id: string,
     item: UploadItem,
     totalChunks: number
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     const url  = useConfigStore.getState().routes.fmUploadComplete.toString();
     const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 
@@ -200,14 +200,14 @@ export class UploadService {
         if (!dataStr.trim()) continue;
         
         try {
-          const data = JSON.parse(dataStr) as { status: string; progress?: number; message?: string };
+          const data = JSON.parse(dataStr) as { status: string; progress?: number; message?: string; fileName?: string };
 
           if (data.status === 'error') {
             throw new Error(data.message ?? 'Assembly failed');
           }
 
           if (data.status === 'completed') {
-            return;  // finished
+            return data.fileName;  // finished
           }
 
           if ((data.status === 'assembling' || data.status === 'transferring') && data.progress !== undefined) {

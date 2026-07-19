@@ -17,6 +17,8 @@ export const appConfigSchema = z.object({
   readOnlyDisks: z.array(z.string()).transform((arr) => arr as Disk[]),
   chunkMinSize: z.number(),
   chunkMaxSize: z.number(),
+  duplicatePolicy: z.enum(['overwrite', 'auto_rename', 'error']),
+  sanitizeFilenames: z.boolean(),
   routes: z.object({
     fmInit: z.url(),
     fmTree: z.url(),

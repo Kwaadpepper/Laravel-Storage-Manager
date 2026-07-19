@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Repository;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
+use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 
 class ConfigRepository
@@ -140,6 +141,19 @@ class ConfigRepository
         }
 
         return $path;
+    }
+
+    public function getUploadDuplicatePolicy(): DuplicatePolicy
+    {
+        $value = Arr::get($this->config, 'upload.duplicate_policy', 'auto_rename');
+        $value = is_string($value) ? $value : 'auto_rename';
+
+        return DuplicatePolicy::tryFrom($value) ?? DuplicatePolicy::AUTO_RENAME;
+    }
+
+    public function shouldSanitizeUploadFileNames(): bool
+    {
+        return Arr::boolean($this->config, 'upload.sanitize_filenames', true);
     }
 
     /**

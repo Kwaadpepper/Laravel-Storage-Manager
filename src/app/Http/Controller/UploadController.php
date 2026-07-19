@@ -6,6 +6,8 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
 use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Upload\UploadInitDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Upload\UploadStatusDto;
@@ -15,18 +17,22 @@ use Kwaadpepper\LaravelStorageManager\Http\Request\Upload\UploadCompleteRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Upload\UploadInitRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadSessionStatus;
+use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UploadController extends Controller
 {
     public function __construct(
         private readonly UploadSessionService $sessionService,
-        private readonly EventDispatcher $eventDispatcher
+        private readonly EventDispatcher $eventDispatcher,
+        private readonly ConfigRepository $configRepository,
+        private readonly PathSanitizer $pathSanitizer
     ) {
     }
 
@@ -88,12 +94,21 @@ class UploadController extends Controller
         $uploadId        = $request->getUploadId();
         $fileName        = $request->string('fileName')->value();
         $destinationPath = $request->getPath();
-
-        $finalDestination = Path::appendTo($destinationPath, $fileName);
         $selectedDiskName = $request->getDisk()->name;
 
-        return response()->stream(function () use ($uploadId, $finalDestination, $selectedDiskName) {
+        // Sanitize filename if enabled
+        if ($this->configRepository->shouldSanitizeUploadFileNames()) {
+            $fileName = $this->pathSanitizer->sanitizeFileName($fileName);
+        }
+
+        // Apply duplicate file policy
+        $duplicatePolicy = $this->configRepository->getUploadDuplicatePolicy();
+
+        return response()->stream(function () use ($uploadId, $destinationPath, $selectedDiskName, $fileName, $duplicatePolicy) {
             try {
+                $fileName = $this->resolveDuplicateFileName($fileName, $destinationPath, $selectedDiskName, $duplicatePolicy);
+                $finalDestination = Path::appendTo($destinationPath, $fileName);
+
                 $this->sessionService->assembleAndTransfer(
                     $uploadId,
                     $finalDestination,
@@ -112,7 +127,7 @@ class UploadController extends Controller
                     ['path' => $finalDestination->value]
                 );
 
-                echo 'data: ' . json_encode(['status' => 'completed', 'progress' => 100]) . "\n\n";
+                echo 'data: ' . json_encode(['status' => 'completed', 'progress' => 100, 'fileName' => $fileName]) . "\n\n";
                 if (ob_get_level() > 0) {
                     ob_flush();
                 }
@@ -130,6 +145,44 @@ class UploadController extends Controller
             'X-Accel-Buffering' => 'no',
             'Connection'        => 'keep-alive',
         ]);
+    }
+
+    /**
+     * Resolve the file name based on the duplicate policy.
+     *
+     * @throws \RuntimeException when policy is ERROR and file already exists
+     */
+    private function resolveDuplicateFileName(string $fileName, Path $destinationPath, string $diskName, DuplicatePolicy $policy): string
+    {
+        $disk = Storage::disk($diskName);
+        $targetPath = ltrim($destinationPath->value . '/' . $fileName, '/');
+
+        if (! $disk->exists($targetPath)) {
+            return $fileName;
+        }
+
+        return match ($policy) {
+            DuplicatePolicy::OVERWRITE   => $fileName,
+            DuplicatePolicy::ERROR       => throw new \RuntimeException("File already exists: {$fileName}"),
+            DuplicatePolicy::AUTO_RENAME => $this->autoRenameFile($fileName, $destinationPath, $disk),
+        };
+    }
+
+    private function autoRenameFile(string $fileName, Path $destinationPath, \Illuminate\Contracts\Filesystem\Filesystem $disk): string
+    {
+        $extension = pathinfo($fileName, PATHINFO_EXTENSION);
+        $baseName  = pathinfo($fileName, PATHINFO_FILENAME);
+        $suffix    = 1;
+
+        do {
+            $candidate = $extension !== ''
+                ? "{$baseName} ({$suffix}).{$extension}"
+                : "{$baseName} ({$suffix})";
+            $candidatePath = ltrim($destinationPath->value . '/' . $candidate, '/');
+            $suffix++;
+        } while ($disk->exists($candidatePath));
+
+        return $candidate;
     }
 
     private function presentStatus(UploadSessionStatus $status): UploadStatusDto

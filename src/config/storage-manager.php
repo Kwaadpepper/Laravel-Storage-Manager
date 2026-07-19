@@ -20,10 +20,12 @@ return [
     ],
 
     'upload' => [
-        'chunk_min_size' => (int) env('STORAGE_MANAGER_UPLOAD_CHUNK_MIN_SIZE', 2 * 1024 * 1024),   // 2 MB
-        'chunk_max_size' => (int) env('STORAGE_MANAGER_UPLOAD_CHUNK_MAX_SIZE', 20 * 1024 * 1024),  // 20 MB
-        'temp_disk'      => env('STORAGE_MANAGER_UPLOAD_TEMP_DISK', null),
-        'temp_path'      => env('STORAGE_MANAGER_UPLOAD_TEMP_PATH', null),
+        'chunk_min_size'      => (int) env('STORAGE_MANAGER_UPLOAD_CHUNK_MIN_SIZE', 2 * 1024 * 1024),   // 2 MB
+        'chunk_max_size'      => (int) env('STORAGE_MANAGER_UPLOAD_CHUNK_MAX_SIZE', 20 * 1024 * 1024),  // 20 MB
+        'temp_disk'           => env('STORAGE_MANAGER_UPLOAD_TEMP_DISK', null),
+        'temp_path'           => env('STORAGE_MANAGER_UPLOAD_TEMP_PATH', null),
+        'duplicate_policy'    => env('STORAGE_MANAGER_UPLOAD_DUPLICATE_POLICY', 'auto_rename'),
+        'sanitize_filenames'  => filter_var(env('STORAGE_MANAGER_UPLOAD_SANITIZE_FILENAMES', true), FILTER_VALIDATE_BOOL),
     ],
 
     'frontend' => [

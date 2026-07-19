@@ -197,6 +197,8 @@ class StorageManagerServiceProvider extends ServiceProvider
                     )),
                     'chunkMinSize'        => $configRepository->getUploadChunkMinSize(),
                     'chunkMaxSize'        => $configRepository->getUploadChunkMaxSize(),
+                    'duplicatePolicy'     => $configRepository->getUploadDuplicatePolicy()->value,
+                    'sanitizeFilenames'   => $configRepository->shouldSanitizeUploadFileNames(),
                     'routes'              => [
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),
