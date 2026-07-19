@@ -58,8 +58,8 @@ export class EventQueueService {
       try {
         await event.execute();
         store.markActionComplete(event.id, 'success');
-      } catch (error: any) {
-        store.markActionComplete(event.id, 'error', error.message || 'Operation failed');
+      } catch (error: unknown) {
+        store.markActionComplete(event.id, 'error', error instanceof Error ? error.message : 'Operation failed');
       }
 
       this.queuedRefreshes++;
