@@ -1,7 +1,7 @@
 import { SortHeader } from "@ts/components/shared/sort-header";
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { ModalState, toAnchorName, useClipboardStore, useFileManagerStore, useUiStore } from "@ts/stores";
+import { ModalState, toAnchorName, useClipboardStore, useFileManagerStore, useUiStore, useDiskStore } from "@ts/stores";
 import { isDirectory, TreeNode, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { SelectionArea, SelectionEvent } from "@viselect/react";
 import { FolderOpen } from "lucide-react";
@@ -20,11 +20,13 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
   const navigationService = container.resolve('navigationService')
   const clipboardService = container.resolve('clipboardService')
   const fileManagerService = container.resolve('fileManagerService')
+  const uploadService = container.resolve('uploadService')
   const toastService = container.resolve('toastService')
   const { hasEntries } = useClipboardStore()
 
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null)
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
 
   const items = useMemo(() => {
     if (!sortColumn || !sortDirection) {
@@ -308,8 +310,41 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     }
   }
 
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDraggingOver(true)
+    }
+  }
+
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDraggingOver(false)
+  }
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDraggingOver(false)
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files)
+      const currentDisk = useDiskStore.getState().currentDisk
+      if (currentDisk) {
+        uploadService.enqueueUploads(files, currentPath, currentDisk)
+      }
+    }
+  }
+
   return (
-    <>
+    <div className="relative h-full" onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
+      {isDraggingOver && (
+        <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none rounded-box border-2 border-primary border-dashed m-2">
+          <div className="bg-base-100 p-8 rounded-xl shadow-2xl flex flex-col items-center gap-4 text-primary">
+            <FolderOpen size={64} />
+            <h2 className="text-2xl font-bold">Drop files to upload to {currentPath}</h2>
+          </div>
+        </div>
+      )}
       <SelectionArea
         className={`overflow-auto h-full pb-20 ${viewMode === 'list' ? '' : 'hidden'}`}
         onBeforeStart={onBeforeDragStart}
@@ -399,6 +434,6 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
           )}
         </div>
       </SelectionArea>
-    </>
+    </div>
   );
 }

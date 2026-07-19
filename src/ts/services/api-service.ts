@@ -37,6 +37,18 @@ export class ApiService {
     return undefined
   }
 
+  async postMultiPart(path: string, data: FormData): Promise<void>;
+  async postMultiPart<T extends z.ZodTypeAny>(path: string, data: FormData, schema: T): Promise<z.output<T>>;
+  async postMultiPart<T extends z.ZodTypeAny>(path: string, data: FormData, schema?: T): Promise<z.output<T> | void> {
+    const response = await this.httpClient.sendMultiPartFile(path, data)
+    if (schema) {
+      return this.reponseToData(response, schema)
+    }
+
+    await this.throwForErrorStatus(response)
+    return undefined
+  }
+
   async put(path: string, data: RequestParameters): Promise<void>;
   async put<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema: T): Promise<z.output<T>>;
   async put<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema?: T): Promise<z.output<T> | void> {

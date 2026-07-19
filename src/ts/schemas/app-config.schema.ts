@@ -15,6 +15,8 @@ export const appConfigSchema = z.object({
   ),
   disks: z.record(z.string(), z.string()).transform((disksMap) => Object.values(disksMap) as Disk[]),
   readOnlyDisks: z.array(z.string()).transform((arr) => arr as Disk[]),
+  chunkMinSize: z.number(),
+  chunkMaxSize: z.number(),
   routes: z.object({
     fmInit: z.url(),
     fmTree: z.url(),
@@ -24,6 +26,10 @@ export const appConfigSchema = z.object({
     fmCreateFile: z.url(),
     fmDelete: z.url(),
     fmRename: z.url(),
+    fmUploadInit: z.url(),
+    fmUploadChunk: z.url(),
+    fmUploadComplete: z.url(),
+    fmUploadStatus: z.url(),
     disksList: z.url(),
     disksSelect: z.url()
   })

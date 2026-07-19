@@ -1,4 +1,4 @@
-import { ActionStatus, useActionStore } from "@ts/stores";
+import { ActionStatus, useActionStore, useUploadStore } from "@ts/stores";
 import { CheckCircle2, Loader2, ListTodo, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -15,23 +15,24 @@ interface GroupedAction {
 }
 
 export default function GlobalLoader() {
-  const { actions, clearCompleted } = useActionStore()
+  const { actions, clearCompleted: clearCompletedActions } = useActionStore()
+  const { uploads, clearCompleted: clearCompletedUploads } = useUploadStore()
 
-  const pendingCount = actions.filter(a => a.status === 'pending').length
+  const pendingActionCount = actions.filter(a => a.status === 'pending').length
+  const pendingUploadCount = uploads.filter(u => ['pending', 'uploading', 'assembling'].includes(u.status)).length
+  const pendingCount = pendingActionCount + pendingUploadCount
   const isSpinning = pendingCount > 0
 
   const [debouncedSpinning, setDebouncedSpinning] = useState(false);
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    if (isSpinning) {
-      timeout = setTimeout(() => setDebouncedSpinning(true), 200);
-    } else {
-      setDebouncedSpinning(false);
-    }
+    const timeout = setTimeout(
+      () => setDebouncedSpinning(isSpinning),
+      isSpinning ? 200 : 0
+    );
     return () => clearTimeout(timeout);
   }, [isSpinning]);
 
-  if (actions.length === 0) return (
+  if (actions.length === 0 && uploads.length === 0) return (
     <div className="dropdown dropdown-end">
       <div tabIndex={0} role="button" className="btn btn-ghost btn-sm" title="Tasks">
         <ListTodo size={16} />
@@ -75,7 +76,9 @@ export default function GlobalLoader() {
     }
   }
 
-  const hasError = actions.some(a => a.status === 'error');
+  const hasActionError = actions.some(a => a.status === 'error');
+  const hasUploadError = uploads.some(u => u.status === 'error');
+  const hasError = hasActionError || hasUploadError;
 
   return (
     <div className="dropdown dropdown-end">
@@ -90,14 +93,40 @@ export default function GlobalLoader() {
           <h3 className="font-bold text-sm">Background Tasks</h3>
           <button 
             className="btn btn-xs btn-ghost text-base-content/60" 
-            onClick={clearCompleted}
-            disabled={actions.every(a => a.status === 'pending')}
+            onClick={() => { clearCompletedActions(); clearCompletedUploads(); }}
+            disabled={actions.every(a => a.status === 'pending') && uploads.every(u => ['pending', 'uploading', 'assembling'].includes(u.status))}
           >
             Clear Done
           </button>
         </div>
         
         <div className="flex flex-col gap-2">
+          {uploads.map(upload => (
+            <div key={upload.id} className="flex flex-col gap-1 text-sm bg-base-200/50 p-2 rounded">
+              <div className="flex justify-between items-center">
+                <div className="min-w-0 flex items-center gap-2 pr-2">
+                  <span className="font-medium truncate" title={upload.fileName}>Upload: {upload.fileName}</span>
+                  <span className="badge badge-outline badge-xs shrink-0" title={`Upload disk: ${upload.disk}`}>
+                    {upload.disk}
+                  </span>
+                </div>
+                {['pending', 'uploading', 'assembling'].includes(upload.status) && <Loader2 className="animate-spin text-primary" size={14} />}
+                {upload.status === 'success' && <CheckCircle2 className="text-success" size={14} />}
+                {upload.status === 'error' && <XCircle className="text-error" size={14} />}
+              </div>
+              {['pending', 'uploading', 'assembling'].includes(upload.status) && (
+                <progress 
+                  className={`progress w-full ${upload.status === 'assembling' ? 'progress-secondary' : 'progress-primary'}`} 
+                  value={upload.progress} 
+                  max="100"
+                ></progress>
+              )}
+              {upload.status === 'error' && upload.error && (
+                <span className="text-xs text-error truncate">{upload.error}</span>
+              )}
+            </div>
+          ))}
+
           {groupedActions.map(group => (
             <div key={group.id} className="flex flex-col gap-1 text-sm bg-base-200/50 p-2 rounded">
               <div className="flex justify-between items-center">
