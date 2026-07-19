@@ -27,8 +27,8 @@
 - [x] Reload button
 - [x] Full screen button
 - [ ] Favorites / "Places" (pin frequently used folders in the sidebar)
-- [ ] File searching (by name, extension, size)
-- [ ] Search / filter reset button
+- [x] File searching (by name, extension, size)
+- [x] Search / filter reset button
 - [x] Column ordering (name, size, type)
 - [ ] Keyboard shortcuts (Del, F2, Ctrl+C/V...)
 - [ ] Drag & drop to move files and directories

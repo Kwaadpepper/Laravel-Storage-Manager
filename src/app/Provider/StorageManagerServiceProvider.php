@@ -203,6 +203,7 @@ class StorageManagerServiceProvider extends ServiceProvider
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),
                         'fmContent'         => route('storage-manager.api.fm.content'),
+                        'fmSearch'          => route('storage-manager.api.fm.search'),
                         'fmProperties'      => route('storage-manager.api.fm.properties'),
                         'fmCreateDirectory' => route('storage-manager.api.fm.create-directory'),
                         'fmCreateFile'      => route('storage-manager.api.fm.create-file'),

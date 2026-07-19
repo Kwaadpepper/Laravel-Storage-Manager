@@ -7,10 +7,14 @@ export function useAppInitialization(): void {
 
   useEffect(() => {
     fileManagerService.initialize().then(async () => {
-      const initialPath = locationService.getDiskAndPath().path
+      const { path: initialPath, searchParams } = locationService.getDiskAndPath()
       try {
-        const data = await fileManagerService.listFiles(initialPath)
-        navigationService.navigateTo(initialPath, data)
+        if (initialPath === '/:search') {
+          navigationService.navigateTo(initialPath, undefined, searchParams)
+        } else {
+          const data = await fileManagerService.listFiles(initialPath)
+          navigationService.navigateTo(initialPath, data, searchParams)
+        }
       } catch {
         navigationService.navigateTo(rootPath())
       }

@@ -9,6 +9,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Controller\BasicOperationsController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DownloadController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
+use Kwaadpepper\LaravelStorageManager\Http\Controller\SearchController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\UploadController;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApiMiddleware;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerMiddleware;
@@ -49,6 +50,7 @@ Route::group([
             Route::get('init', [FileManagerController::class, 'init'])->name('init');
             Route::get('tree', [FileManagerController::class, 'tree'])->name('tree');
             Route::get('content', [FileManagerController::class, 'content'])->name('content');
+            Route::post('search', [SearchController::class, 'search'])->name('search');
 
             // Basic operations routes
             Route::get('properties', [BasicOperationsController::class, 'properties'])->name('properties');

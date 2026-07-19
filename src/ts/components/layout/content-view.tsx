@@ -1,7 +1,7 @@
 import { SortHeader } from "@ts/components/shared/sort-header";
 import { useContextualMenuRegistration } from "@ts/components/shared/use-contextual-menu-registration";
 import { useContainer } from "@ts/container";
-import { ModalState, toAnchorName, useClipboardStore, useFileManagerStore, useUiStore, useDiskStore } from "@ts/stores";
+import { ModalState, toAnchorName, useClipboardStore, useFileManagerStore, useUiStore, useDiskStore, useSearchStore } from "@ts/stores";
 import { isDirectory, TreeNode, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { SelectionArea, SelectionEvent } from "@viselect/react";
 import { FolderOpen } from "lucide-react";
@@ -13,8 +13,9 @@ type ContentViewProps = Record<string, never>;
 type SortColumn = 'name' | 'type' | 'size' | 'extension' | 'visibility'
 
 export default function ContentView(_: Readonly<ContentViewProps>) {
-  const { directoryNodes, fileNodes, selectedNodes, selectNodes, currentPath } = useFileManagerStore()
+  const { directoryNodes: fmDirectoryNodes, fileNodes: fmFileNodes, selectedNodes, selectNodes, currentPath } = useFileManagerStore()
   const { viewMode, setTargetFilePath, setViewFileModal } = useUiStore()
+  const { files: searchFiles, directories: searchDirectories, isSearching, scannedPathsCount } = useSearchStore()
   const container = useContainer()
   const navigationService = container.resolve('navigationService')
   const clipboardService = container.resolve('clipboardService')
@@ -22,6 +23,10 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
   const uploadService = container.resolve('uploadService')
   const toastService = container.resolve('toastService')
   const { hasEntries } = useClipboardStore()
+  
+  const isSearchMode = currentPath === '/:search'
+  const directoryNodes = isSearchMode ? searchDirectories : fmDirectoryNodes
+  const fileNodes = isSearchMode ? searchFiles : fmFileNodes
 
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null)
@@ -33,18 +38,18 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     }
 
     const dirFactor = sortDirection === 'asc' ? 1 : -1
-    const sortFn = (a: TreeNode & { extension?: string; size?: number; visibility?: string }, b: TreeNode & { extension?: string; size?: number; visibility?: string }) => {
+    const sortFn = (a: TreeNodeDirectory | TreeNodeFile, b: TreeNodeDirectory | TreeNodeFile) => {
       if (sortColumn === 'name') {
-        return a.name.localeCompare(b.name) * dirFactor
+        return ('name' in a && 'name' in b ? a.name.localeCompare(b.name) : 0) * dirFactor
       }
       if (sortColumn === 'size') {
-        const sizeA = a.size || 0
-        const sizeB = b.size || 0
+        const sizeA = 'size' in a && a.size != null ? a.size : 0
+        const sizeB = 'size' in b && b.size != null ? b.size : 0
         return (sizeA - sizeB) * dirFactor
       }
       if (sortColumn === 'extension' || sortColumn === 'type') {
-        const extA = a.extension || ''
-        const extB = b.extension || ''
+        const extA = 'extension' in a && a.extension ? a.extension : ''
+        const extB = 'extension' in b && b.extension ? b.extension : ''
         return extA.localeCompare(extB) * dirFactor
       }
       if (sortColumn === 'visibility') {
@@ -55,8 +60,8 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
       return 0
     }
 
-    const dirs = [...directoryNodes].sort(sortFn)
-    const files = [...fileNodes].sort(sortFn)
+    const dirs = [...directoryNodes].sort((a, b) => sortFn(a, b))
+    const files = [...fileNodes].sort((a, b) => sortFn(a, b))
     return [...dirs, ...files]
   }, [directoryNodes, fileNodes, sortColumn, sortDirection])
   const isEmpty = items.length === 0
@@ -390,7 +395,14 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
           {isEmpty && (
             <div className="flex flex-col items-center justify-center py-16 text-base-content/40 pointer-events-none">
               <FolderOpen size={48} className="mb-2" />
-              <p>Directory is empty</p>
+              {isSearchMode ? (
+                <>
+                  <p>{isSearching ? 'Recherche en cours...' : 'Aucun résultat'}</p>
+                  <p className="text-sm mt-1">{scannedPathsCount} dossiers analysés</p>
+                </>
+              ) : (
+                <p>Ce dossier est vide</p>
+              )}
             </div>
           )}
         </div>
@@ -413,9 +425,16 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
           onClick={onClickOutside}
         >
           {isEmpty ? (
-            <div className="flex flex-col items-center justify-center py-16 text-base-content/40 pointer-events-none">
+            <div className="flex flex-col items-center justify-center py-16 text-base-content/40 pointer-events-none w-full">
               <FolderOpen size={48} className="mb-2" />
-              <p>Directory is empty</p>
+              {isSearchMode ? (
+                <>
+                  <p>{isSearching ? 'Recherche en cours...' : 'Aucun résultat'}</p>
+                  <p className="text-sm mt-1">{scannedPathsCount} dossiers analysés</p>
+                </>
+              ) : (
+                <p>Ce dossier est vide</p>
+              )}
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">

@@ -16,6 +16,8 @@ import { useThemeInitialization } from './shared/use-theme-initialization';
 import GlobalLoader from './layout/global-loader';
 
 
+import { useSearchWorker } from './shared/use-search-worker';
+
 function App() {
   const appRef = useRef<HTMLDivElement | null>(null)
   const { treeVisible, viewMode, setViewMode } = useUiStore()
@@ -23,6 +25,7 @@ function App() {
   useThemeInitialization()
   useKeyboardNavigation()
   useContextMenuTrigger(appRef)
+  useSearchWorker()
 
   return (
     <div ref={appRef} className="h-screen bg-base-200 flex flex-col overflow-hidden">

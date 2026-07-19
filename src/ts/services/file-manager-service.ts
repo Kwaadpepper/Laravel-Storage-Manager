@@ -1,5 +1,5 @@
 import { isValidationError, ValidationError } from "@ts/errors";
-import { existsResponseSchema, treeResponseSchema } from "@ts/schemas";
+import { existsResponseSchema, searchResponseSchema, treeResponseSchema } from "@ts/schemas";
 import { useDiskStore } from "@ts/stores";
 import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { ApiService } from "./api-service";
@@ -39,6 +39,41 @@ export class FileManagerService {
             visibility: dir.visibility,
           })),
           files: data.files.map(file => ({
+            path: file.path,
+            name: file.path.split('/').pop() || '',
+            size: file.size,
+            extension: file.extension,
+            visibility: file.visibility,
+            publicUrl: file.publicUrl,
+          })),
+        }
+      })
+  }
+
+  async search(paths: Path[], query?: string, extension?: string, minSize?: number, maxSize?: number): Promise<{
+    directoriesToScan: Path[]
+    matchedDirectories: import('@ts/types').TreeNodeDirectory[]
+    matchedFiles: import('@ts/types').TreeNodeFile[]
+  }> {
+    return this.apiService
+      .post(`${this.prefix}/search`, {
+        disk: this.getDisk(),
+        paths,
+        ...(query ? { query } : {}),
+        ...(extension ? { extension } : {}),
+        ...(minSize ? { minSize } : {}),
+        ...(maxSize ? { maxSize } : {}),
+      }, searchResponseSchema)
+      .then(data => {
+        return {
+          directoriesToScan: data.directoriesToScan,
+          matchedDirectories: data.matchedDirectories.map(dir => ({
+            path: dir.path,
+            name: dir.path.split('/').pop() || '',
+            hasSubDirectories: dir.hasSubDirectories,
+            visibility: dir.visibility,
+          })),
+          matchedFiles: data.matchedFiles.map(file => ({
             path: file.path,
             name: file.path.split('/').pop() || '',
             size: file.size,

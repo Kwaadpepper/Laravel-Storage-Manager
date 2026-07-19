@@ -140,8 +140,134 @@ class FileManager
     }
 
     /**
+     * @param  Path[]  $paths
+     */
+    /**
+     * @param  Path[]  $paths
+     */
+    public function searchContent(array $paths, ?string $query, ?string $extension, ?int $minSize, ?int $maxSize): SearchResult
+    {
+        $filesystem         = $this->getStorage();
+        $directoriesToScan  = [];
+        $matchedDirectories = [];
+        $matchedFiles       = [];
+
+        foreach ($paths as $pathObj) {
+            $directory = $this->pathNormalizer->normalizePath($pathObj->value);
+
+            $directories = array_map(
+                fn ($dir) => $this->pathNormalizer->normalizePath($dir),
+                $filesystem->directories($directory)
+            );
+
+            $files = array_map(
+                fn ($file) => $this->pathNormalizer->normalizePath($file),
+                $filesystem->files($directory)
+            );
+
+            foreach ($directories as $dir) {
+                $path                = new Path($dir);
+                $directoriesToScan[] = $path;
+
+                $properties = $this->getProperties($path);
+
+                if ($properties instanceof DirectoryPathProperties) {
+                    if ($this->isDirectoryMatchingFilters($path, $query, $extension, $minSize, $maxSize)) {
+                        $matchedDirectories[] = new PathTreeDirectory(
+                            $path,
+                            ! empty($filesystem->directories((string) $path)),
+                            $properties->visibility
+                        );
+                    }
+                }
+            }
+
+            foreach ($files as $file) {
+                $path       = new Path($file);
+                $properties = $this->getProperties($path);
+
+                if (! ($properties instanceof FilePathProperties)) {
+                    continue;
+                }
+
+                if (! $this->isFileMatchingFilters($path, $properties, $query, $extension, $minSize, $maxSize)) {
+                    continue;
+                }
+
+                try {
+                    $publicUrl = $filesystem->url(ltrim($path->value, '/'));
+                } catch (\Throwable $e) {
+                    $publicUrl = null;
+                }
+
+                $matchedFiles[] = new PathTreeFile(
+                    $path,
+                    $properties->size,
+                    $properties->extension,
+                    $properties->visibility,
+                    $publicUrl
+                );
+            }
+        }
+
+        return new SearchResult($directoriesToScan, $matchedDirectories, $matchedFiles);
+    }
+
+    private function isDirectoryMatchingFilters(
+        Path $path,
+        ?string $query,
+        ?string $extension,
+        ?int $minSize,
+        ?int $maxSize
+    ): bool {
+        // Directories don't have extension or size. If the user filters by them, directories shouldn't match.
+        if ($extension !== null || $minSize !== null || $maxSize !== null) {
+            return false;
+        }
+
+        if ($query !== null) {
+            $dirname = basename($path->value);
+            if (stripos($dirname, $query) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * @throws FileOperationException
      */
+    private function isFileMatchingFilters(
+        Path $path,
+        FilePathProperties $properties,
+        ?string $query,
+        ?string $extension,
+        ?int $minSize,
+        ?int $maxSize
+    ): bool {
+        if ($extension !== null && strtolower($properties->extension) !== strtolower($extension)) {
+            return false;
+        }
+
+        if ($minSize !== null && $properties->size < $minSize) {
+            return false;
+        }
+
+        if ($maxSize !== null && $properties->size > $maxSize) {
+            return false;
+        }
+
+        if ($query !== null) {
+            $filename = basename($path->value);
+            if (stripos($filename, $query) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public function createDirectory(Path $path): void
     {
         $this->assertNotReadOnly();

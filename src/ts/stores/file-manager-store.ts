@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 type State = {
   currentPath: Path
+  currentSearchParams?: URLSearchParams
   currentBaseName: string
   directoryNodes: readonly TreeNodeDirectory[]
   fileNodes: readonly TreeNodeFile[]
@@ -12,7 +13,7 @@ type State = {
   canNavigateUp: boolean
 }
 type Actions = {
-  setCurrentPath: (path: Path) => void
+  setCurrentPath: (path: Path, searchParams?: URLSearchParams) => void
   setDirectoryNodes: (nodes: TreeNodeDirectory[]) => void
   setFileNodes: (nodes: TreeNodeFile[]) => void
   selectNodes: (...nodes: (TreeNodeFile | TreeNodeDirectory)[]) => void
@@ -30,6 +31,7 @@ function computeBaseName(path: Path): string {
 
 export const useFileManagerStore = create<FileManagerState>((set) => ({
   currentPath: rootPath(),
+  currentSearchParams: undefined,
   currentBaseName: computeBaseName(rootPath()),
   directoryNodes: [],
   fileNodes: [],
@@ -38,8 +40,9 @@ export const useFileManagerStore = create<FileManagerState>((set) => ({
   canNavigateNext: false,
   canNavigateUp: false,
 
-  setCurrentPath: (path) => set({
+  setCurrentPath: (path, searchParams) => set({
     currentPath: path,
+    currentSearchParams: searchParams,
     currentBaseName: computeBaseName(path),
     selectedNodes: {}
   }),

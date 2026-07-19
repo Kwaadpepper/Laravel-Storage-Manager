@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
@@ -91,9 +92,9 @@ class UploadController extends Controller
         set_time_limit(0);
         ignore_user_abort(true);
 
-        $uploadId        = $request->getUploadId();
-        $fileName        = $request->string('fileName')->value();
-        $destinationPath = $request->getPath();
+        $uploadId         = $request->getUploadId();
+        $fileName         = $request->string('fileName')->value();
+        $destinationPath  = $request->getPath();
         $selectedDiskName = $request->getDisk()->name;
 
         // Sanitize filename if enabled
@@ -106,7 +107,7 @@ class UploadController extends Controller
 
         return response()->stream(function () use ($uploadId, $destinationPath, $selectedDiskName, $fileName, $duplicatePolicy) {
             try {
-                $fileName = $this->resolveDuplicateFileName($fileName, $destinationPath, $selectedDiskName, $duplicatePolicy);
+                $fileName         = $this->resolveDuplicateFileName($fileName, $destinationPath, $selectedDiskName, $duplicatePolicy);
                 $finalDestination = Path::appendTo($destinationPath, $fileName);
 
                 $this->sessionService->assembleAndTransfer(
@@ -154,7 +155,7 @@ class UploadController extends Controller
      */
     private function resolveDuplicateFileName(string $fileName, Path $destinationPath, string $diskName, DuplicatePolicy $policy): string
     {
-        $disk = Storage::disk($diskName);
+        $disk       = Storage::disk($diskName);
         $targetPath = ltrim($destinationPath->value . '/' . $fileName, '/');
 
         if (! $disk->exists($targetPath)) {
@@ -168,7 +169,7 @@ class UploadController extends Controller
         };
     }
 
-    private function autoRenameFile(string $fileName, Path $destinationPath, \Illuminate\Contracts\Filesystem\Filesystem $disk): string
+    private function autoRenameFile(string $fileName, Path $destinationPath, Filesystem $disk): string
     {
         $extension = pathinfo($fileName, PATHINFO_EXTENSION);
         $baseName  = pathinfo($fileName, PATHINFO_FILENAME);

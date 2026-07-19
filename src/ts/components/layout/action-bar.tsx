@@ -3,6 +3,7 @@ import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useUiSto
 import { ArrowLeft, ArrowRight, ArrowUp, CircleQuestionMark, FilePlus, FileUp, FolderPlus, Link, Maximize, Minimize, PanelLeft, PanelLeftClose, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import ThemeSelector from "./theme-selector";
+import { SearchBar } from "./search-bar";
 
 function toggleFullscreen() {
   if (globalThis.document.fullscreenElement) {
@@ -96,7 +97,7 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
   }
 
   return (
-    <div className="navbar bg-base-100 shadow-sm px-4">
+    <div className="navbar bg-base-100 shadow-sm px-4 relative z-50">
       {/* Navigation */}
       <div className="navbar-start gap-1">
         <button
@@ -149,6 +150,11 @@ export default function ActionBar(_: Readonly<ActionBarProps>) {
             <li><a onClick={onCopyLinkClick}>Copy Link</a></li>
           </ul>
         </div>
+      </div>
+      
+      {/* Search Bar */}
+      <div className="navbar-center hidden lg:flex ml-4 mr-auto">
+        <SearchBar />
       </div>
 
       {/* View Mode and Theme */}

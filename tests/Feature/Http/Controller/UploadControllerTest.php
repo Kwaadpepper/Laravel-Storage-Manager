@@ -10,6 +10,7 @@ use Kwaadpepper\LaravelStorageManager\Enum\UploadStatus;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
+use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Tests\TestCase;
 
 describe('UploadController', function (): void {
@@ -218,7 +219,8 @@ describe('UploadController', function (): void {
 
     it('sanitizes filename on complete', function (): void {
         assert($this instanceof TestCase);
-        Config::set('storage-manager.upload.sanitize_filenames', true); app()->forgetInstance(\Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository::class);
+        Config::set('storage-manager.upload.sanitize_filenames', true);
+        app()->forgetInstance(ConfigRepository::class);
 
         $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
@@ -247,7 +249,8 @@ describe('UploadController', function (): void {
 
     it('applies auto_rename duplicate policy on complete', function (): void {
         assert($this instanceof TestCase);
-        Config::set('storage-manager.upload.duplicate_policy', 'auto_rename'); app()->forgetInstance(\Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository::class);
+        Config::set('storage-manager.upload.duplicate_policy', 'auto_rename');
+        app()->forgetInstance(ConfigRepository::class);
         Storage::disk('local')->put('test.txt', 'existing content');
 
         $uploadId       = UploadId::generate();
@@ -278,7 +281,8 @@ describe('UploadController', function (): void {
 
     it('applies error duplicate policy on complete', function (): void {
         assert($this instanceof TestCase);
-        Config::set('storage-manager.upload.duplicate_policy', 'error'); app()->forgetInstance(\Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository::class);
+        Config::set('storage-manager.upload.duplicate_policy', 'error');
+        app()->forgetInstance(ConfigRepository::class);
         Storage::disk('local')->put('test.txt', 'existing content');
 
         $uploadId       = UploadId::generate();
@@ -308,7 +312,8 @@ describe('UploadController', function (): void {
 
     it('applies overwrite duplicate policy on complete', function (): void {
         assert($this instanceof TestCase);
-        Config::set('storage-manager.upload.duplicate_policy', 'overwrite'); app()->forgetInstance(\Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository::class);
+        Config::set('storage-manager.upload.duplicate_policy', 'overwrite');
+        app()->forgetInstance(ConfigRepository::class);
         Storage::disk('local')->put('test.txt', 'existing content');
 
         $uploadId       = UploadId::generate();

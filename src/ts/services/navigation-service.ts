@@ -17,7 +17,7 @@ export interface PreloadedData {
 }
 
 export class NavigationService {
-  private readonly navigationHistory: { disk: import('@ts/types').Disk, path: Path }[] = []
+  private readonly navigationHistory: { disk: import('@ts/types').Disk, path: Path, searchParams?: URLSearchParams }[] = []
   private navigationIndex: number = -1
   private readonly loadingPaths = new Set<string>()
   private readonly eventListeners: { [event in NavigationEvent]?: (() => void)[]
@@ -30,13 +30,13 @@ export class NavigationService {
     private readonly locationService: LocationService,
     private readonly diskStore: typeof import('@ts/stores').useDiskStore
   ) {
-    this.locationService.onPopState((disk, path) => {
+    this.locationService.onPopState((disk, path, searchParams) => {
       const currentDisk = this.diskStore.getState().currentDisk
       if (disk && disk !== currentDisk) {
         this.diskStore.getState().setCurrentDisk(disk)
         this.treeStore.getState().reset()
       }
-      this.commitNavigation(path, NavigationEvent.NavigateTo)
+      this.commitNavigation(path, NavigationEvent.NavigateTo, searchParams)
     })
   }
 
@@ -57,15 +57,15 @@ export class NavigationService {
     return this.navigationIndex > 0
   }
 
-  public navigateTo(path: Path, preloadedData?: PreloadedData): void {
+  public navigateTo(path: Path, preloadedData?: PreloadedData, searchParams?: URLSearchParams): void {
     const currentDisk = this.diskStore.getState().currentDisk
     if (!currentDisk) return
     const currentHistoryEntry = this.navigationHistory.at(this.navigationIndex)
-    if (path === this.getCurrentPath() && currentHistoryEntry?.path === path && currentHistoryEntry?.disk === currentDisk) {
+    if (path === this.getCurrentPath() && currentHistoryEntry?.path === path && currentHistoryEntry?.disk === currentDisk && currentHistoryEntry?.searchParams?.toString() === searchParams?.toString()) {
       return
     }
-    this.pushHistory(currentDisk, path)
-    this.fileManagerStore.getState().setCurrentPath(path)
+    this.pushHistory(currentDisk, path, searchParams)
+    this.fileManagerStore.getState().setCurrentPath(path, searchParams)
     this.updateNavigationCapabilities()
     this.updateDocumentTitle(path)
     this.emit(NavigationEvent.NavigateTo)
@@ -138,6 +138,11 @@ export class NavigationService {
   }
 
   private async fetchAndApply(path: Path, data?: PreloadedData): Promise<void> {
+    if (path === '/:search') {
+      this.fileManagerStore.setState({ directoryNodes: [], fileNodes: [] })
+      return
+    }
+
     const { directories, files } = data ?? await this.fileManagerService.listFiles(path)
     this.fileManagerStore.setState({ directoryNodes: directories, fileNodes: files })
     this.treeStore.getState().setNodeChildren(path, directories)
@@ -160,8 +165,8 @@ export class NavigationService {
     }
   }
 
-  private commitNavigation(path: Path, event: NavigationEvent): void {
-    this.fileManagerStore.getState().setCurrentPath(path)
+  private commitNavigation(path: Path, event: NavigationEvent, searchParams?: URLSearchParams): void {
+    this.fileManagerStore.getState().setCurrentPath(path, searchParams)
     this.updateNavigationCapabilities()
     this.updateDocumentTitle(path)
     this.emit(event)
@@ -183,9 +188,9 @@ export class NavigationService {
     if (!targetEntry) return
     this.navigationIndex += offset
     
-    const { disk, path } = targetEntry
+    const { disk, path, searchParams } = targetEntry
     
-    this.locationService.replace(disk, path)
+    this.locationService.replace(disk, path, searchParams)
     
     const currentDisk = this.diskStore.getState().currentDisk
     if (disk !== currentDisk) {
@@ -193,23 +198,23 @@ export class NavigationService {
       this.treeStore.getState().reset()
     }
     
-    this.commitNavigation(path, event)
+    this.commitNavigation(path, event, searchParams)
   }
 
   private emit(event: NavigationEvent): void {
     this.eventListeners[event]?.forEach(callback => callback())
   }
 
-  private pushHistory(disk: import('@ts/types').Disk, path: Path): void {
+  private pushHistory(disk: import('@ts/types').Disk, path: Path, searchParams?: URLSearchParams): void {
     if (this.navigationIndex < this.navigationHistory.length - 1) {
       this.navigationHistory.splice(this.navigationIndex + 1)
     }
     const currentEntry = this.navigationHistory.at(this.navigationIndex)
-    if (currentEntry?.disk === disk && currentEntry?.path === path) {
+    if (currentEntry?.disk === disk && currentEntry?.path === path && currentEntry?.searchParams?.toString() === searchParams?.toString()) {
       return
     }
-    this.locationService.push(disk, path)
-    this.navigationHistory.push({ disk, path })
+    this.locationService.push(disk, path, searchParams)
+    this.navigationHistory.push({ disk, path, searchParams })
     this.navigationIndex = this.navigationHistory.length - 1
   }
 
