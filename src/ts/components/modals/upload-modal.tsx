@@ -1,4 +1,4 @@
-import { ModalState, useDiskStore, useFileManagerStore, useUiStore, useUploadStore } from "@ts/stores";
+import { ModalState, useDiskStore, useFileManagerStore, useUiStore, useUploadStore, UploadItem } from "@ts/stores";
 import { useContainer } from "@ts/container";
 import { CheckCircle2, Clock, FileUp, FolderOpen, Loader2, X, XCircle } from "lucide-react";
 import { useRef, useState } from "react";
@@ -57,6 +57,58 @@ export default function UploadModal() {
     }
   };
 
+  const activeUploads = uploads.filter(u => ['uploading', 'assembling'].includes(u.status)).reverse();
+  const finishedUploads = uploads.filter(u => ['success', 'error'].includes(u.status)).reverse();
+  const pendingUploads = uploads.filter(u => u.status === 'pending').reverse();
+  const mainList = [...activeUploads, ...finishedUploads];
+
+  const renderUploadRow = (upload: UploadItem) => (
+    <div key={upload.id} className="bg-base-200/50 p-3 rounded-lg flex flex-col gap-2">
+      <div className="flex justify-between items-center">
+        <div className="min-w-0 flex flex-wrap items-center gap-2 pr-2">
+          <span className="font-medium truncate text-sm" title={upload.fileName}>{upload.fileName}</span>
+          {upload.finalFileName && upload.finalFileName !== upload.fileName && (
+            <span className="text-xs opacity-70 truncate" title={`Saved as: ${upload.finalFileName}`}>
+              → {upload.finalFileName}
+            </span>
+          )}
+          <span className="badge badge-outline badge-sm shrink-0" title={`Upload disk: ${upload.disk}`}>
+            {upload.disk}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {upload.status === 'pending' && (
+            <>
+              <span className="text-xs opacity-50 italic">En attente...</span>
+              <Clock className="text-base-content/50" size={16} />
+            </>
+          )}
+          {['uploading', 'assembling'].includes(upload.status) && (
+            <>
+              <span className="text-xs opacity-70">{upload.progress}%</span>
+              <Loader2 className="animate-spin text-primary" size={16} />
+            </>
+          )}
+          {upload.status === 'success' && <CheckCircle2 className="text-success" size={16} />}
+          {upload.status === 'error' && <XCircle className="text-error" size={16} />}
+        </div>
+      </div>
+      {['uploading', 'assembling'].includes(upload.status) && (
+        <progress 
+          className={`progress w-full ${upload.status === 'assembling' ? 'progress-secondary' : 'progress-primary'}`} 
+          value={upload.progress} 
+          max="100"
+        ></progress>
+      )}
+      {upload.status === 'pending' && (
+        <progress className="progress w-full opacity-20" value="0" max="100"></progress>
+      )}
+      {upload.status === 'error' && upload.error && (
+        <span className="text-xs text-error truncate">{upload.error}</span>
+      )}
+    </div>
+  );
+
   return (
     <dialog className={`modal ${isOpen ? 'modal-open' : ''}`}>
       <div className="modal-box max-w-2xl flex flex-col max-h-[80vh]">
@@ -93,7 +145,6 @@ export default function UploadModal() {
         </div>
 
         {/* Upload list */}
-        {uploads.length > 0 && (
           <div className="mt-6 flex-1 min-h-0 flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold text-sm">Upload Tasks</h4>
@@ -105,56 +156,27 @@ export default function UploadModal() {
                 Clear Done
               </button>
             </div>
-            <div className="overflow-y-auto flex-1 pr-2 space-y-2">
-              {uploads.slice().reverse().map(upload => (
-                <div key={upload.id} className="bg-base-200/50 p-3 rounded-lg flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <div className="min-w-0 flex flex-wrap items-center gap-2 pr-2">
-                      <span className="font-medium truncate text-sm" title={upload.fileName}>{upload.fileName}</span>
-                      {upload.finalFileName && upload.finalFileName !== upload.fileName && (
-                        <span className="text-xs opacity-70 truncate" title={`Saved as: ${upload.finalFileName}`}>
-                          → {upload.finalFileName}
-                        </span>
-                      )}
-                      <span className="badge badge-outline badge-sm shrink-0" title={`Upload disk: ${upload.disk}`}>
-                        {upload.disk}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {upload.status === 'pending' && (
-                        <>
-                          <span className="text-xs opacity-50 italic">En attente...</span>
-                          <Clock className="text-base-content/50" size={16} />
-                        </>
-                      )}
-                      {['uploading', 'assembling'].includes(upload.status) && (
-                        <>
-                          <span className="text-xs opacity-70">{upload.progress}%</span>
-                          <Loader2 className="animate-spin text-primary" size={16} />
-                        </>
-                      )}
-                      {upload.status === 'success' && <CheckCircle2 className="text-success" size={16} />}
-                      {upload.status === 'error' && <XCircle className="text-error" size={16} />}
-                    </div>
-                  </div>
-                  {['uploading', 'assembling'].includes(upload.status) && (
-                    <progress 
-                      className={`progress w-full ${upload.status === 'assembling' ? 'progress-secondary' : 'progress-primary'}`} 
-                      value={upload.progress} 
-                      max="100"
-                    ></progress>
-                  )}
-                  {upload.status === 'pending' && (
-                    <progress className="progress w-full opacity-20" value="0" max="100"></progress>
-                  )}
-                  {upload.status === 'error' && upload.error && (
-                    <span className="text-xs text-error truncate">{upload.error}</span>
-                  )}
+            <div className="overflow-y-auto flex-1 pr-2 space-y-4">
+              
+              {mainList.length > 0 && (
+                <div className="space-y-2">
+                  {mainList.map(renderUploadRow)}
                 </div>
-              ))}
+              )}
+
+              {pendingUploads.length > 0 && (
+                <div className="collapse collapse-arrow bg-base-200/30 border border-base-300 rounded-lg">
+                  <input type="checkbox" /> 
+                  <div className="collapse-title font-medium text-sm text-base-content/70 py-3 min-h-0">
+                    Fichiers en attente ({pendingUploads.length})
+                  </div>
+                  <div className="collapse-content space-y-2"> 
+                    {pendingUploads.map(renderUploadRow)}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
       </div>
       <form method="dialog" className="modal-backdrop">
         <button onClick={onBackdropClose} type="button">close</button>
