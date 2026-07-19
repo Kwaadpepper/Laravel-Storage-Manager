@@ -158,12 +158,6 @@ export default function UploadModal() {
             </div>
             <div className="overflow-y-auto flex-1 pr-2 space-y-4">
               
-              {mainList.length > 0 && (
-                <div className="space-y-2">
-                  {mainList.map(renderUploadRow)}
-                </div>
-              )}
-
               {pendingUploads.length > 0 && (
                 <div className="collapse collapse-arrow bg-base-200/30 border border-base-300 rounded-lg">
                   <input type="checkbox" /> 
@@ -173,6 +167,12 @@ export default function UploadModal() {
                   <div className="collapse-content space-y-2"> 
                     {pendingUploads.map(renderUploadRow)}
                   </div>
+                </div>
+              )}
+
+              {mainList.length > 0 && (
+                <div className="space-y-2">
+                  {mainList.map(renderUploadRow)}
                 </div>
               )}
             </div>
