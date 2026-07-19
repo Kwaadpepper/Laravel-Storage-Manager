@@ -14,8 +14,8 @@
 
 ## Upload & Download
 
-- [ ] File upload: multiple files, chunked with progress bar
-- [ ] Drag & drop upload from OS
+- [x] File upload: multiple files, chunked with progress bar
+- [x] Drag & drop upload from OS
 - [ ] Upload from URL (paste a URL, server downloads the file)
 - [ ] Duplicate file handling policy (overwrite / auto-rename / error with confirmation)
 - [ ] Filename sanitization on upload (strip special chars, configurable)
