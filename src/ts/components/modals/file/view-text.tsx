@@ -10,11 +10,6 @@ function detectLanguage(extension: string | null): keyof typeof SUPPORTED_LANGUA
   return keys.find(label => (SUPPORTED_LANGUAGES[label] as readonly string[]).includes(ext)) ?? 'Text';
 }
 
-export const SUPPORTED_EXTENSIONS: readonly string[] = [
-  ...new Set(Object.values(SUPPORTED_LANGUAGES).flat()),
-  'txt', 'text', 'log', 'env',
-];
-
 interface ViewTextProps {
   readonly blob: Blob;
   readonly extension: string | null;

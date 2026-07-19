@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-export const SUPPORTED_EXTENSIONS: readonly string[] = [
-  'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif', 'tiff', 'tif',
-];
 
 interface ViewImageProps {
   readonly blob: Blob;
@@ -15,7 +12,7 @@ export default function ViewImage({ blob, fileName }: Readonly<ViewImageProps>) 
 
   useEffect(() => {
     const url = URL.createObjectURL(blob);
-    setObjectUrl(url);
+    setTimeout(() => setObjectUrl(url), 0);
     prevUrlRef.current = url;
 
     return () => {

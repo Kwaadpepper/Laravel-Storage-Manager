@@ -1,8 +1,9 @@
 import { Loader, X } from "lucide-react";
 import { useEffect, useRef } from "react";
-import ViewAudio, { SUPPORTED_EXTENSIONS as AUDIO_EXTENSIONS } from "./view-audio";
-import ViewImage, { SUPPORTED_EXTENSIONS as IMAGE_EXTENSIONS } from "./view-image";
-import ViewText, { SUPPORTED_EXTENSIONS as TEXT_EXTENSIONS } from "./view-text";
+import { SUPPORTED_AUDIO_EXTENSIONS as AUDIO_EXTENSIONS, SUPPORTED_IMAGE_EXTENSIONS as IMAGE_EXTENSIONS, SUPPORTED_TEXT_EXTENSIONS as TEXT_EXTENSIONS } from "../../utils/supported-extensions";
+import ViewAudio from "./view-audio";
+import ViewImage from "./view-image";
+import ViewText from "./view-text";
 import ViewUnsupported from "./view-unsupported";
 import { useViewFileViewModel } from "./view-viewmodel";
 

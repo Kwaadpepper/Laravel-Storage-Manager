@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-export const SUPPORTED_EXTENSIONS: readonly string[] = [
-  'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'opus', 'weba',
-];
 
 interface ViewAudioProps {
   readonly blob: Blob;
@@ -15,7 +12,7 @@ export default function ViewAudio({ blob, fileName }: Readonly<ViewAudioProps>) 
 
   useEffect(() => {
     const url = URL.createObjectURL(blob);
-    setObjectUrl(url);
+    setTimeout(() => setObjectUrl(url), 0);
     prevUrlRef.current = url;
 
     return () => {
@@ -28,7 +25,6 @@ export default function ViewAudio({ blob, fileName }: Readonly<ViewAudioProps>) 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4">
       <p className="text-base-content/60 text-sm">{fileName}</p>
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio controls src={objectUrl} className="w-full max-w-md" />
     </div>
   );
