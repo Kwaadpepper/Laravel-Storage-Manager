@@ -12,8 +12,7 @@ import {
   useRenameDirectoryViewModel,
 } from "./rename-viewmodel";
 
-interface RenameDirectoryModalProps {
-}
+type RenameDirectoryModalProps = Record<string, never>;
 
 export default function RenameDirectoryModal(_: Readonly<RenameDirectoryModalProps>) {
   const vm = useRenameDirectoryViewModel()
@@ -45,7 +44,7 @@ export default function RenameDirectoryModal(_: Readonly<RenameDirectoryModalPro
     if (vm.directoryNameFieldError) {
       setError(directoryNameInputName, { message: vm.directoryNameFieldError })
     }
-  }, [vm.directoryNameFieldError])
+  }, [vm.directoryNameFieldError, setError])
 
   const onFormSubmit = async (data: FormData) => {
     const success = await vm.submit(data.directoryName)

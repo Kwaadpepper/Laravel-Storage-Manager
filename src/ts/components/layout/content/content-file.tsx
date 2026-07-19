@@ -4,7 +4,7 @@ import { useContainer } from "@ts/container";
 import { ModalState, toAnchorName, useFileManagerStore, useUiStore, useDiskStore } from "@ts/stores";
 import { TreeNodeFile } from "@ts/types";
 import { FileIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 
 interface ContentFileProps {
   readonly asTile?: boolean
@@ -20,7 +20,7 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
   const toastService = container.resolve('toastService')
   const anchorName = toAnchorName(item.path)
 
-  async function download() {
+  const download = useCallback(async () => {
     try {
       const blob = await downloadService.downloadFile(item.path)
       const url = URL.createObjectURL(blob)
@@ -32,7 +32,7 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
     } catch {
       toastService.pushToast({ message: 'Failed to download file.', type: 'error' })
     }
-  }
+  }, [downloadService, item.path, item.name, toastService])
 
   const entries = useMemo(() => [
     { label: 'View', onClick: () => { setTargetFilePath(item.path); setViewFileModal(ModalState.Opened) } },
@@ -79,7 +79,7 @@ export default function ContentFile({ item, asTile = false }: Readonly<ContentFi
         if (!selectedNodes[item.path]) selectNodes(item);
         setDeleteModal(ModalState.Opened);
     } },
-  ], [item.path, item, selectedNodes, selectNodes])
+  ], [item, selectedNodes, selectNodes, clipboardService, download, setDeleteModal, setRenameFileModal, setTargetFilePath, setViewFileModal, toastService])
 
   useContextualMenuRegistration(anchorName, entries)
 

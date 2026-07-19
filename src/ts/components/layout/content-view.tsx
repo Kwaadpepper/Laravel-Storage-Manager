@@ -8,8 +8,7 @@ import { FolderOpen } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ContentWrapper from "./content/content-wrapper";
 
-interface ContentViewProps {
-}
+type ContentViewProps = Record<string, never>;
 
 type SortColumn = 'name' | 'type' | 'size' | 'extension' | 'visibility'
 
@@ -34,7 +33,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
     }
 
     const dirFactor = sortDirection === 'asc' ? 1 : -1
-    const sortFn = (a: any, b: any) => {
+    const sortFn = (a: TreeNode & { extension?: string; size?: number; visibility?: string }, b: TreeNode & { extension?: string; size?: number; visibility?: string }) => {
       if (sortColumn === 'name') {
         return a.name.localeCompare(b.name) * dirFactor
       }
@@ -110,7 +109,7 @@ export default function ContentView(_: Readonly<ContentViewProps>) {
         clipboardService.clearEntries()
       }
     }] : []),
-  ], [currentPath, hasEntries])
+  ], [currentPath, hasEntries, clipboardService, container, fileManagerService, toastService])
   useContextualMenuRegistration(bgAnchorName, bgEntries)
 
   /** Index of the currently focused item for keyboard navigation */

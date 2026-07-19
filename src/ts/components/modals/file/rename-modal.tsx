@@ -14,8 +14,7 @@ import {
   useRenameFileViewModel,
 } from "./rename-viewmodel";
 
-interface RenameFileModalProps {
-}
+type RenameFileModalProps = Record<string, never>;
 
 export default function RenameFileModal(_: Readonly<RenameFileModalProps>) {
   const vm = useRenameFileViewModel()
@@ -43,13 +42,13 @@ export default function RenameFileModal(_: Readonly<RenameFileModalProps>) {
     } else {
       dialogRef.current?.close()
     }
-  }, [vm.isOpen])
+  }, [vm.isOpen, reset, vm.targetBaseName, vm.targetExtension])
 
   useEffect(() => {
     if (vm.baseNameFieldError) {
       setError(baseNameInputName, { message: vm.baseNameFieldError })
     }
-  }, [vm.baseNameFieldError])
+  }, [vm.baseNameFieldError, setError])
 
   const onFormSubmit = async (data: FormData) => {
     const success = await vm.submit(data.baseName, data.extension)

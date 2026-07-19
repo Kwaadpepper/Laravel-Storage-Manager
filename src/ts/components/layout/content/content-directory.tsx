@@ -89,7 +89,7 @@ export default function ContentDirectory({ item, asTile = false }: Readonly<Cont
         if (!selectedNodes[item.path]) selectNodes(item);
         setDeleteModal(ModalState.Opened);
     } },
-  ], [item.path, item, selectedNodes, selectNodes, hasEntries])
+  ], [item, selectedNodes, selectNodes, hasEntries, clipboardService, container, fileManagerService, navigationService, setDeleteModal, setRenameDirectoryModal, setTargetDirectoryPath, toastService])
 
   useContextualMenuRegistration(anchorName, entries)
 

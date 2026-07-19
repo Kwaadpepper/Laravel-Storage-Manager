@@ -12,8 +12,7 @@ import {
   useCreateDirectoryViewModel,
 } from "./create-viewmodel";
 
-interface CreateDirectoryModalProps {
-}
+type CreateDirectoryModalProps = Record<string, never>;
 
 export default function CreateDirectoryModal(_: Readonly<CreateDirectoryModalProps>) {
   const vm = useCreateDirectoryViewModel()
@@ -45,7 +44,7 @@ export default function CreateDirectoryModal(_: Readonly<CreateDirectoryModalPro
     if (vm.directoryNameFieldError) {
       setError(directoryNameInputName, { message: vm.directoryNameFieldError })
     }
-  }, [vm.directoryNameFieldError])
+  }, [vm.directoryNameFieldError, setError])
 
   const onFormSubmit = async (data: FormData) => {
     const success = await vm.submit(data.directoryName)

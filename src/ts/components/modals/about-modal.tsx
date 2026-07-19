@@ -2,8 +2,7 @@ import { ModalState, useConfigStore, useUiStore } from "@ts/stores";
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-interface AboutModalProps {
-}
+type AboutModalProps = Record<string, never>;
 
 export default function AboutModal(_: Readonly<AboutModalProps>) {
 
@@ -22,17 +21,17 @@ export default function AboutModal(_: Readonly<AboutModalProps>) {
     }
   }, [aboutModal])
 
-  useEffect(() => {
-    closeInnerButtonRef.current?.addEventListener('click', onInnerCloseButtonClick)
-    return () => {
-      closeInnerButtonRef.current?.removeEventListener('click', onInnerCloseButtonClick)
-    }
-  }, [])
-
-
   function onInnerCloseButtonClick() {
     closeButtonRef.current?.click()
   }
+
+  useEffect(() => {
+    const btn = closeInnerButtonRef.current;
+    btn?.addEventListener('click', onInnerCloseButtonClick)
+    return () => {
+      btn?.removeEventListener('click', onInnerCloseButtonClick)
+    }
+  }, [])
 
   return (
     <dialog className="modal" ref={dialogRef} onClose={() => setAboutModal(ModalState.Closed)}>
