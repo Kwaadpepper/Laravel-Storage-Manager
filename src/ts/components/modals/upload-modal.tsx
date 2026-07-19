@@ -1,6 +1,6 @@
 import { ModalState, useDiskStore, useFileManagerStore, useUiStore, useUploadStore } from "@ts/stores";
 import { useContainer } from "@ts/container";
-import { CheckCircle2, FileUp, FolderOpen, Loader2, X, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, FileUp, FolderOpen, Loader2, X, XCircle } from "lucide-react";
 import { useRef, useState } from "react";
 
 export default function UploadModal() {
@@ -121,18 +121,31 @@ export default function UploadModal() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {['pending', 'uploading', 'assembling'].includes(upload.status) && <span className="text-xs opacity-70">{upload.progress}%</span>}
-                      {['pending', 'uploading', 'assembling'].includes(upload.status) && <Loader2 className="animate-spin text-primary" size={16} />}
+                      {upload.status === 'pending' && (
+                        <>
+                          <span className="text-xs opacity-50 italic">En attente...</span>
+                          <Clock className="text-base-content/50" size={16} />
+                        </>
+                      )}
+                      {['uploading', 'assembling'].includes(upload.status) && (
+                        <>
+                          <span className="text-xs opacity-70">{upload.progress}%</span>
+                          <Loader2 className="animate-spin text-primary" size={16} />
+                        </>
+                      )}
                       {upload.status === 'success' && <CheckCircle2 className="text-success" size={16} />}
                       {upload.status === 'error' && <XCircle className="text-error" size={16} />}
                     </div>
                   </div>
-                  {['pending', 'uploading', 'assembling'].includes(upload.status) && (
+                  {['uploading', 'assembling'].includes(upload.status) && (
                     <progress 
                       className={`progress w-full ${upload.status === 'assembling' ? 'progress-secondary' : 'progress-primary'}`} 
                       value={upload.progress} 
                       max="100"
                     ></progress>
+                  )}
+                  {upload.status === 'pending' && (
+                    <progress className="progress w-full opacity-20" value="0" max="100"></progress>
                   )}
                   {upload.status === 'error' && upload.error && (
                     <span className="text-xs text-error truncate">{upload.error}</span>
