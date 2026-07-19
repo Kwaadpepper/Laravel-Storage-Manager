@@ -8,7 +8,9 @@
   ],
   "laravel-pint.enable": true,
   "[php]": {
-    "editor.defaultFormatter": "open-southeners.laravel-pint"
+    "editor.defaultFormatter": "open-southeners.laravel-pint",
+    "editor.formatOnType": false,
+    "editor.formatOnSave": true
   },
   "editor.formatOnSave": true,
   "eslint.validate": ["javascript", "typescript", "html", "vue"],
@@ -46,7 +48,6 @@
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "always"
     },
-    "editor.defaultFormatter": "TypeScriptTeam.native-preview",
     "editor.detectIndentation": false,
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file"
@@ -68,12 +69,19 @@
     "statusBar.background": "#022922",
     "statusBar.foreground": "#e7e7e7",
     "statusBarItem.hoverBackground": "#045a4a",
-    "statusBarItem.remoteBackground": "#022922",
+    "statusBarItem.remoteBackground": "#9709b6",
     "statusBarItem.remoteForeground": "#e7e7e7",
     "titleBar.activeBackground": "#022922",
     "titleBar.activeForeground": "#e7e7e7",
     "titleBar.inactiveBackground": "#02292299",
-    "titleBar.inactiveForeground": "#e7e7e799"
+    "titleBar.inactiveForeground": "#e7e7e799",
+    "activityBarTop.activeBackground": "#045a4a",
+    "activityBarTop.background": "#045a4a",
+    "activityBarTop.foreground": "#e7e7e7",
+    "activityBarTop.inactiveForeground": "#e7e7e799",
+    "commandCenter.foreground": "#e7e7e7",
+    "statusBar.debuggingBackground": "#022922",
+    "statusBar.debuggingForeground": "#e7e7e7"
   },
   "peacock.color": "#022922",
   "phpcs.ignorePatterns": [
