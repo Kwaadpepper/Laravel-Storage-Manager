@@ -200,8 +200,13 @@ class UploadSessionService
         fclose($outputHandle);
     }
 
-    private function transferFile(UploadId $uploadId, string $assembledFilePath, Path $finalDestination, string $diskName, ?callable $onProgress = null): void
-    {
+    private function transferFile(
+        UploadId $uploadId,
+        string $assembledFilePath,
+        Path $finalDestination,
+        string $diskName,
+        ?callable $onProgress = null
+    ): void {
         $totalSize = filesize($assembledFilePath);
 
         if (! in_array('lsm_upload_progress', stream_get_filters(), true)) {
