@@ -17,8 +17,8 @@
 - [x] File upload: multiple files, chunked with progress bar
 - [x] Drag & drop upload from OS
 - [ ] Upload from URL (paste a URL, server downloads the file)
-- [ ] Duplicate file handling policy (overwrite / auto-rename / error with confirmation)
-- [ ] Filename sanitization on upload (strip special chars, configurable)
+- [x] Duplicate file handling policy (overwrite / auto-rename / error with confirmation)
+- [x] Filename sanitization on upload (strip special chars, configurable)
 - [ ] Temporary signed download link (with configurable expiration)
 - [x] Copy file path / public URL to clipboard
 
