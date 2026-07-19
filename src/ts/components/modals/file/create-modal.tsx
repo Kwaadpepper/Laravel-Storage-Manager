@@ -1,4 +1,4 @@
-import { SUPPORTED_LANGUAGES } from "@ts/components/editor/text-editor";
+import { SUPPORTED_LANGUAGES } from "@ts/utils/supported-languages";
 import { X } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import CreateFileAskFileName from "./create-modal-ask-file-name";

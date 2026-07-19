@@ -1,4 +1,4 @@
-import { SUPPORTED_LANGUAGES } from "@ts/components/editor/text-editor";
+import { SUPPORTED_LANGUAGES } from "@ts/utils/supported-languages";
 import { lazy, Suspense, useEffect, useState } from "react";
 
 const TextEditor = lazy(() => import("@ts/components/editor/text-editor"));
