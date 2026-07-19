@@ -9,24 +9,25 @@ use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadPathResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
+use Tests\TestCase;
 
 describe('CleanOrphanedUploadsCommand', function (): void {
-        assert($this instanceof \Tests\TestCase);
+    assert($this instanceof TestCase);
     beforeEach(function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         Storage::fake('temp_disk');
         Config::set('storage-manager.upload.temp_disk', 'temp_disk');
         Config::set('storage-manager.upload.temp_path', 'temp_uploads');
     });
 
     it('cleans up orphaned uploads older than 24 hours', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
         $sessionService = resolve(UploadSessionService::class);
-        $pathResolver = resolve(UploadPathResolver::class);
+        $pathResolver   = resolve(UploadPathResolver::class);
 
         // Create an old session
-        $oldUploadId = UploadId::generate();
+        $oldUploadId  = UploadId::generate();
         $oldCreatedAt = CarbonImmutable::now()->subHours(25);
         $sessionService->createSession($oldUploadId, new UploadMetadata($oldUploadId, 'old.txt', 1, 100, $oldCreatedAt));
 
@@ -36,7 +37,7 @@ describe('CleanOrphanedUploadsCommand', function (): void {
 
         // Back-date the old session folder by 25 hours
         $oldDirAbsPath = $pathResolver->getAbsolutePath($pathResolver->getUploadDir($oldUploadId));
-        $oldTime = $oldCreatedAt->timestamp;
+        $oldTime       = $oldCreatedAt->timestamp;
         touch($oldDirAbsPath, $oldTime);
         touch($pathResolver->getAbsolutePath($pathResolver->getMetadataPath($oldUploadId)), $oldTime);
 
@@ -49,9 +50,8 @@ describe('CleanOrphanedUploadsCommand', function (): void {
             ->run();
 
         // Verify old session is gone
-        expect($sessionService->sessionExists($oldUploadId))->toBeFalse()
-            // Verify new session remains
-            ;
+        expect($sessionService->sessionExists($oldUploadId))->toBeFalse();
+        // Verify new session remains
         expect($sessionService->sessionExists($newUploadId))->toBeTrue();
     });
 });

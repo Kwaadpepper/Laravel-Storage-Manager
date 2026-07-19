@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadPathResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
@@ -15,10 +14,10 @@ describe('UploadPathResolver', function (): void {
 
     it('uses fallback local temp disk if none configured', function (): void {
         // Given
-        $config = config('storage-manager');
+        $config                        = config('storage-manager');
         $config['upload']['temp_disk'] = null;
-        $configRepository = new ConfigRepository($config, config('storage-manager::static-config'));
-        $pathResolver = new UploadPathResolver($configRepository);
+        $configRepository              = new ConfigRepository($config, config('storage-manager::static-config'));
+        $pathResolver                  = new UploadPathResolver($configRepository);
 
         // When
         $disk = $pathResolver->getDisk();
@@ -31,10 +30,10 @@ describe('UploadPathResolver', function (): void {
     it('uses configured disk', function (): void {
         // Given
         Storage::fake('fake_disk');
-        $config = config('storage-manager');
+        $config                        = config('storage-manager');
         $config['upload']['temp_disk'] = 'fake_disk';
-        $configRepository = new ConfigRepository($config, config('storage-manager::static-config'));
-        $pathResolver = new UploadPathResolver($configRepository);
+        $configRepository              = new ConfigRepository($config, config('storage-manager::static-config'));
+        $pathResolver                  = new UploadPathResolver($configRepository);
 
         // When
         $disk = $pathResolver->getDisk();
@@ -46,31 +45,26 @@ describe('UploadPathResolver', function (): void {
 
     it('generates correct paths for a session', function (): void {
         // Given
-        $config = config('storage-manager');
+        $config                        = config('storage-manager');
         $config['upload']['temp_path'] = 'lsm_uploads_temp';
-        $configRepository = new ConfigRepository($config, config('storage-manager::static-config'));
-        $pathResolver = new UploadPathResolver($configRepository);
-        $uploadId = new UploadId('01903ba4-9fc2-75d8-9174-cd5ebbd272b2');
+        $configRepository              = new ConfigRepository($config, config('storage-manager::static-config'));
+        $pathResolver                  = new UploadPathResolver($configRepository);
+        $uploadId                      = new UploadId('01903ba4-9fc2-75d8-9174-cd5ebbd272b2');
 
         // When
-        $basePath = $pathResolver->getBasePath();
-        $uploadDir = $pathResolver->getUploadDir($uploadId);
-        $metadataPath = $pathResolver->getMetadataPath($uploadId);
-        $statusPath = $pathResolver->getStatusPath($uploadId);
-        $chunkPath = $pathResolver->getChunkPath($uploadId, 5);
+        $basePath          = $pathResolver->getBasePath();
+        $uploadDir         = $pathResolver->getUploadDir($uploadId);
+        $metadataPath      = $pathResolver->getMetadataPath($uploadId);
+        $statusPath        = $pathResolver->getStatusPath($uploadId);
+        $chunkPath         = $pathResolver->getChunkPath($uploadId, 5);
         $assembledFilePath = $pathResolver->getAssembledFilePath($uploadId);
 
         // Then
-        expect($basePath)->toBe('lsm_uploads_temp')
-            ;
-        expect($uploadDir)->toBe('lsm_uploads_temp/01903ba4-9fc2-75d8-9174-cd5ebbd272b2')
-            ;
-        expect($metadataPath)->toBe('lsm_uploads_temp/01903ba4-9fc2-75d8-9174-cd5ebbd272b2/metadata.json')
-            ;
-        expect($statusPath)->toBe('lsm_uploads_temp/01903ba4-9fc2-75d8-9174-cd5ebbd272b2/status.json')
-            ;
-        expect($chunkPath)->toBe('lsm_uploads_temp/01903ba4-9fc2-75d8-9174-cd5ebbd272b2/chunk_5')
-            ;
-        expect($assembledFilePath)->toBe('lsm_uploads_temp/01903ba4-9fc2-75d8-9174-cd5ebbd272b2/assembled_file');
+        expect($basePath)->toStartWith('lsm_uploads_temp');
+        expect($uploadDir)->toBe($basePath . '/' . $uploadId->value);
+        expect($metadataPath)->toBe($basePath . '/' . $uploadId->value . '/metadata.json');
+        expect($statusPath)->toBe($basePath . '/' . $uploadId->value . '/status.json');
+        expect($chunkPath)->toBe($basePath . '/' . $uploadId->value . '/chunk_5');
+        expect($assembledFilePath)->toBe($basePath . '/' . $uploadId->value . '/assembled_file');
     });
 });

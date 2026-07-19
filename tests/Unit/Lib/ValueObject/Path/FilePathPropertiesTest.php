@@ -22,20 +22,13 @@ describe('FilePathProperties', function (): void {
         $props = new FilePathProperties($path, $basename, $dirname, $extension, $filename, $size, $timestamp, $visibility);
 
         // Then
-        expect($props->path)->toBe($path)
-            ;
-        expect($props->basename)->toBe($basename)
-            ;
-        expect($props->dirname)->toBe($dirname)
-            ;
-        expect($props->extension)->toBe($extension)
-            ;
-        expect($props->filename)->toBe($filename)
-            ;
-        expect($props->size)->toBe($size)
-            ;
-        expect($props->timestamp)->toBe($timestamp)
-            ;
+        expect($props->path)->toBe($path);
+        expect($props->basename)->toBe($basename);
+        expect($props->dirname)->toBe($dirname);
+        expect($props->extension)->toBe($extension);
+        expect($props->filename)->toBe($filename);
+        expect($props->size)->toBe($size);
+        expect($props->timestamp)->toBe($timestamp);
         expect($props->visibility)->toBe($visibility);
     });
 

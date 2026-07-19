@@ -19,14 +19,10 @@ describe('DirectoryPathProperties', function (): void {
         $props = new DirectoryPathProperties($path, $basename, $dirname, $timestamp, $visibility);
 
         // Then
-        expect($props->path)->toBe($path)
-            ;
-        expect($props->basename)->toBe($basename)
-            ;
-        expect($props->dirname)->toBe($dirname)
-            ;
-        expect($props->timestamp)->toBe($timestamp)
-            ;
+        expect($props->path)->toBe($path);
+        expect($props->basename)->toBe($basename);
+        expect($props->dirname)->toBe($dirname);
+        expect($props->timestamp)->toBe($timestamp);
         expect($props->visibility)->toBe($visibility);
     });
 

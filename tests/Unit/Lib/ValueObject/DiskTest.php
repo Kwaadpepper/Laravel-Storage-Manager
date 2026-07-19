@@ -18,14 +18,10 @@ describe('Disk', function (): void {
         $disk = new Disk($driver, $name, $throw, $report, $readOnly);
 
         // Then
-        expect($disk->driver)->toBe($driver)
-            ;
-        expect($disk->name)->toBe($name)
-            ;
-        expect($disk->throw)->toBeTrue()
-            ;
-        expect($disk->report)->toBeFalse()
-            ;
+        expect($disk->driver)->toBe($driver);
+        expect($disk->name)->toBe($name);
+        expect($disk->throw)->toBeTrue();
+        expect($disk->report)->toBeFalse();
         expect($disk->readOnly)->toBeTrue();
     });
 

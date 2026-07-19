@@ -15,8 +15,7 @@ describe('Storage', function (): void {
         $storage = new Storage($name, $disk);
 
         // Then
-        expect($storage->name)->toBe($name)
-            ;
+        expect($storage->name)->toBe($name);
         expect($storage->disk)->toBe($disk);
     });
 

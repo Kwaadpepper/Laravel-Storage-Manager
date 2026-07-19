@@ -2,27 +2,29 @@
 
 declare(strict_types=1);
 
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
-use Carbon\CarbonImmutable;
 use Kwaadpepper\LaravelStorageManager\Enum\UploadStatus;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
+use Tests\TestCase;
 
 describe('UploadController', function (): void {
-        assert($this instanceof \Tests\TestCase);
+    assert($this instanceof TestCase);
     beforeEach(function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         Storage::fake('temp_disk');
         Storage::fake('local'); // Default disk
         Config::set('storage-manager.upload.temp_disk', 'temp_disk');
+        Config::set('storage-manager.upload.temp_path', '/tmp/lsm_tests_uploads_' . uniqid());
         Config::set('storage-manager.auth.enabled', false);
     });
 
     it('can init an upload session', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
         $payload = [
             'fileName'    => 'video.mp4',
@@ -39,14 +41,14 @@ describe('UploadController', function (): void {
 
         $uploadIdStr = $response->json('data.upload_id');
         expect($uploadIdStr)->toBeString();
-        
-        $uploadId = new UploadId($uploadIdStr);
+
+        $uploadId       = new UploadId($uploadIdStr);
         $sessionService = resolve(UploadSessionService::class);
         expect($sessionService->sessionExists($uploadId))->toBeTrue();
     });
 
     it('rejects init with invalid data', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
         $payload = [
             'fileName'    => '',
@@ -63,15 +65,15 @@ describe('UploadController', function (): void {
     });
 
     it('can store a chunk', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
-        $uploadId = UploadId::generate();
+        $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
 
         $fileContent = str_repeat('a', 1024);
-        $file = UploadedFile::fake()->createWithContent('chunk.part', $fileContent);
-        $checksum = md5($fileContent);
+        $file        = UploadedFile::fake()->createWithContent('chunk.part', $fileContent);
+        $checksum    = md5($fileContent);
 
         $payload = [
             'upload_id'      => $uploadId->value,
@@ -91,14 +93,14 @@ describe('UploadController', function (): void {
     });
 
     it('rejects chunk with invalid checksum', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
-        $uploadId = UploadId::generate();
+        $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
 
         $fileContent = str_repeat('a', 1024);
-        $file = UploadedFile::fake()->createWithContent('chunk.part', $fileContent);
+        $file        = UploadedFile::fake()->createWithContent('chunk.part', $fileContent);
 
         $payload = [
             'upload_id'      => $uploadId->value,
@@ -116,9 +118,9 @@ describe('UploadController', function (): void {
     });
 
     it('can get upload status', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
-        $uploadId = UploadId::generate();
+        $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
         $sessionService->writeStatus($uploadId, UploadStatus::ASSEMBLING, 20);
@@ -137,9 +139,9 @@ describe('UploadController', function (): void {
     });
 
     it('returns waiting for non-existent status file', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
-        $uploadId = UploadId::generate();
+        $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
 
@@ -157,7 +159,7 @@ describe('UploadController', function (): void {
     });
 
     it('returns waiting for unknown upload id', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
         $uploadId = UploadId::generate()->value;
 
@@ -175,18 +177,18 @@ describe('UploadController', function (): void {
     });
 
     it('can complete an upload', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
-        $uploadId = UploadId::generate();
+        $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 11, CarbonImmutable::now()));
-        
+
         $file1Content = str_repeat('a', 1024);
-        $file1 = UploadedFile::fake()->createWithContent('chunk0.part', $file1Content);
+        $file1        = UploadedFile::fake()->createWithContent('chunk0.part', $file1Content);
         $sessionService->storeChunk($uploadId, 0, $file1);
-        
+
         $file2Content = str_repeat('b', 1024);
-        $file2 = UploadedFile::fake()->createWithContent('chunk1.part', $file2Content);
+        $file2        = UploadedFile::fake()->createWithContent('chunk1.part', $file2Content);
         $sessionService->storeChunk($uploadId, 1, $file2);
 
         $payload = [
@@ -201,11 +203,15 @@ describe('UploadController', function (): void {
         $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
 
         // Then
-        $response->assertOk()
-            ->assertJson(['data' => ['success' => true]]);
+        $response->assertOk();
+        expect($response->headers->get('Content-Type'))->toContain('text/event-stream');
 
-        expect(Storage::disk('local')->exists('test.txt'))->toBeTrue()
-            ;
+        $content = $response->streamedContent();
+        expect($content)->toContain('data: ');
+        expect($content)->toContain('"status":"completed"');
+        expect($content)->toContain('"progress":100');
+
+        expect(Storage::disk('local')->exists('test.txt'))->toBeTrue();
         expect(Storage::disk('local')->get('test.txt'))->toBe($file1Content . $file2Content);
     });
 });

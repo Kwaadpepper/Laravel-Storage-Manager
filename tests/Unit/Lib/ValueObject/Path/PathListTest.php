@@ -16,8 +16,7 @@ describe('PathList', function (): void {
         $list = new PathList($files, $directories);
 
         // Then
-        expect($list->files)->toBe($files)
-            ;
+        expect($list->files)->toBe($files);
         expect($list->directories)->toBe($directories);
     });
 
@@ -26,8 +25,7 @@ describe('PathList', function (): void {
         $list = new PathList([], []);
 
         // Then
-        expect($list->files)->toBeEmpty()
-            ;
+        expect($list->files)->toBeEmpty();
         expect($list->directories)->toBeEmpty();
     });
 

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\ServiceProvider;
-use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 $libraryNamespace = 'Kwaadpepper\LaravelStorageManager';
@@ -20,7 +21,7 @@ function controllerClassNames(string $libraryNamespace): array
     $controllerPath  = __DIR__ . '/../../src/app/Http/Controller';
     $controllerFiles = array_filter(
         glob($controllerPath . '/*Controller.php') ?: [],
-        static fn (string $controllerFile): bool => !in_array(pathinfo($controllerFile, PATHINFO_FILENAME), ['AssetController', 'DownloadController'])
+        static fn (string $controllerFile): bool => ! in_array(pathinfo($controllerFile, PATHINFO_FILENAME), ['AssetController', 'DownloadController'])
     );
 
     return array_map(
@@ -49,7 +50,7 @@ function assertMethodReturnsApiResponse(\ReflectionMethod $method, string $contr
 
     expect($returnType)
         ->not->toBeNull(sprintf(
-            '%s::%s() must declare a ApiResponse return type.',
+            '%s::%s() must declare a ApiResponse or StreamedResponse return type.',
             $controllerClass,
             $method->getName()
         ));
@@ -67,12 +68,13 @@ function assertMethodReturnsApiResponse(\ReflectionMethod $method, string $contr
     $returnTypeName = $returnType instanceof \ReflectionNamedType ? $returnType->getName() : null;
 
     expect(
-        is_string($returnTypeName) && is_a($returnTypeName, ApiResponse::class, true)
+        is_string($returnTypeName) && (is_a($returnTypeName, ApiResponse::class, true) || is_a($returnTypeName, StreamedResponse::class, true))
     )->toBeTrue(sprintf(
-        '%s::%s() must return %s or a subtype.',
+        '%s::%s() must return %s or %s or a subtype.',
         $controllerClass,
         $method->getName(),
-        ApiResponse::class
+        ApiResponse::class,
+        StreamedResponse::class
     ));
 }
 

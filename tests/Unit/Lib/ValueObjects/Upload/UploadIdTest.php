@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Str;
+use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Ramsey\Uuid\Uuid;
 
@@ -15,10 +16,8 @@ describe('UploadId', function (): void {
         $uploadId = UploadId::generate();
 
         // Then
-        expect($uploadId->value)->toBeString()
-            ;
-        expect(Str::isUuid($uploadId->value))->toBeTrue()
-            ;
+        expect($uploadId->value)->toBeString();
+        expect(Str::isUuid($uploadId->value))->toBeTrue();
         expect(Uuid::fromString($uploadId->value)->getVersion())->toBe(7);
     });
 
@@ -30,8 +29,7 @@ describe('UploadId', function (): void {
         $uploadId = new UploadId($validUuid);
 
         // Then
-        expect($uploadId->value)->toBe($validUuid)
-            ;
+        expect($uploadId->value)->toBe($validUuid);
         expect((string) $uploadId)->toBe($validUuid);
     });
 
@@ -43,6 +41,6 @@ describe('UploadId', function (): void {
         $action = fn () => new UploadId($invalidUuid);
 
         // Then
-        expect($action)->toThrow(Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException::class, 'UploadId must be a valid UUID.');
+        expect($action)->toThrow(IllegalDomainStateException::class, 'UploadId must be a valid UUID.');
     });
 });

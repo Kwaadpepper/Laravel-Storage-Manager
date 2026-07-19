@@ -28,7 +28,7 @@ describe('FileStream Value Object', function (): void {
 
     it('throws exception when accessing a closed stream', function (): void {
         // Given
-        $resource = fopen('php://temp', 'r+');
+        $resource   = fopen('php://temp', 'r+');
         $fileStream = new FileStream($resource);
 
         // When
@@ -54,7 +54,7 @@ describe('FileStream Value Object', function (): void {
 
     it('returns zero size when accessing a closed stream size', function (): void {
         // Given
-        $resource = fopen('php://temp', 'r+');
+        $resource   = fopen('php://temp', 'r+');
         $fileStream = new FileStream($resource);
 
         // When

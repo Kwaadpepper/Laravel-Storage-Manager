@@ -22,7 +22,7 @@ describe('UploadSessionService', function (): void {
         Config::set('storage-manager.upload.temp_disk', 'temp_disk');
         Config::set('storage-manager.upload.temp_path', 'temp_uploads');
 
-        $this->pathResolver = resolve(UploadPathResolver::class);
+        $this->pathResolver   = resolve(UploadPathResolver::class);
         $this->sessionService = new UploadSessionService($this->pathResolver);
     });
 
@@ -38,8 +38,7 @@ describe('UploadSessionService', function (): void {
         expect($this->sessionService->sessionExists($uploadId))->toBeTrue();
 
         $savedMetadata = $this->sessionService->readMetadata($uploadId);
-        expect($savedMetadata)->not->toBeNull()
-            ;
+        expect($savedMetadata)->not->toBeNull();
         expect($savedMetadata->uploadId->value)->toBe($uploadId->value);
     });
 
@@ -66,10 +65,8 @@ describe('UploadSessionService', function (): void {
         $status = $this->sessionService->readStatus($uploadId);
 
         // Then
-        expect($status)->not->toBeNull()
-            ;
-        expect($status->status)->toBe(UploadStatus::ASSEMBLING)
-            ;
+        expect($status)->not->toBeNull();
+        expect($status->status)->toBe(UploadStatus::ASSEMBLING);
         expect($status->progress)->toBe(50);
     });
 
@@ -107,7 +104,7 @@ describe('UploadSessionService', function (): void {
 
         $file1 = UploadedFile::fake()->createWithContent('chunk0.part', 'Hello ');
         $this->sessionService->storeChunk($uploadId, 0, $file1);
-        
+
         $file2 = UploadedFile::fake()->createWithContent('chunk1.part', 'World!');
         $this->sessionService->storeChunk($uploadId, 1, $file2);
 
@@ -116,8 +113,7 @@ describe('UploadSessionService', function (): void {
 
         // Then
         // Verify it was assembled and transferred
-        expect(Storage::disk('final_disk')->exists('/final/test.txt'))->toBeTrue()
-            ;
+        expect(Storage::disk('final_disk')->exists('/final/test.txt'))->toBeTrue();
         expect(Storage::disk('final_disk')->get('/final/test.txt'))->toBe('Hello World!');
 
         // Verify cleanup

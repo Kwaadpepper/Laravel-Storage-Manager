@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
 /** @var FilesystemAdapter $disk */
 $disk = null;
@@ -18,9 +19,9 @@ beforeEach(function () use (&$disk): void {
 });
 
 describe('initialization', function (): void {
-        assert($this instanceof \Tests\TestCase);
+    assert($this instanceof TestCase);
     it('initializes the file manager', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
         $route = route('storage-manager.api.fm.init');
 
@@ -29,14 +30,15 @@ describe('initialization', function (): void {
 
         // Then
         $response->assertSuccessful()
-            ->assertJsonPath('data.chunkSize', 2097152);
+            ->assertJsonPath('data.chunkMinSize', 2097152)
+            ->assertJsonPath('data.chunkMaxSize', 2097152);
     });
 });
 
 describe('disk listing', function (): void {
-        assert($this instanceof \Tests\TestCase);
+    assert($this instanceof TestCase);
     it('returns available disks', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
         $route = route('storage-manager.api.disks.list');
 
@@ -51,7 +53,7 @@ describe('disk listing', function (): void {
 
 describe('content listing', function () use (&$disk): void {
     it('returns empty content on a fresh disk', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
         $route = route('storage-manager.api.fm.content', [
             'path' => '/',
@@ -239,8 +241,8 @@ describe('delete', function () use (&$disk): void {
 
         // When
         $response = $this->deleteJson($route, [
-            'path' => '/to-remove',
-            'disk' => 'local',
+            'path'  => '/to-remove',
+            'disk'  => 'local',
             'force' => true,
         ]);
 
@@ -276,9 +278,9 @@ describe('copy', function () use (&$disk): void {
 
         // When
         $response = $this->postJson($route, [
-            'path' => '/source.txt',
+            'path'            => '/source.txt',
             'destination_dir' => '/dest',
-            'disk' => 'local',
+            'disk'            => 'local',
         ]);
 
         // Then
@@ -296,9 +298,9 @@ describe('copy', function () use (&$disk): void {
 
         // When
         $response = $this->postJson($route, [
-            'path' => '/source-dir',
+            'path'            => '/source-dir',
             'destination_dir' => '/dest-dir',
-            'disk' => 'local',
+            'disk'            => 'local',
         ]);
 
         // Then
@@ -318,9 +320,9 @@ describe('move', function () use (&$disk): void {
 
         // When
         $response = $this->postJson($route, [
-            'path' => '/source.txt',
+            'path'            => '/source.txt',
             'destination_dir' => '/dest',
-            'disk' => 'local',
+            'disk'            => 'local',
         ]);
 
         // Then
@@ -338,9 +340,9 @@ describe('move', function () use (&$disk): void {
 
         // When
         $response = $this->postJson($route, [
-            'path' => '/source-dir',
+            'path'            => '/source-dir',
             'destination_dir' => '/dest-dir',
-            'disk' => 'local',
+            'disk'            => 'local',
         ]);
 
         // Then
@@ -352,9 +354,9 @@ describe('move', function () use (&$disk): void {
 });
 
 describe('validation', function (): void {
-        assert($this instanceof \Tests\TestCase);
+    assert($this instanceof TestCase);
     it('returns 422 when required fields are missing', function (): void {
-        assert($this instanceof \Tests\TestCase);
+        assert($this instanceof TestCase);
         // Given
         $emptyPayload = [];
         $route        = route('storage-manager.api.fm.create-directory');

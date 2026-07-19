@@ -27,21 +27,14 @@ describe('PathPropertyFactory', function (): void {
             $result = PathPropertyFactory::fromArray($metadata);
 
             // Then
-            expect($result)->toBeInstanceOf(FilePathProperties::class)
-                ;
-        expect($result->path->value)->toBe('/uploads/photo.jpg')
-                ;
-        expect($result->basename)->toBe('photo.jpg')
-                ;
-        expect($result->dirname)->toBe('/uploads')
-                ;
-        expect($result->extension)->toBe('jpg')
-                ;
-        expect($result->filename)->toBe('photo')
-                ;
-        expect($result->size)->toBe(2048)
-                ;
-        expect($result->visibility)->toBe(PathVisibility::PUBLIC);
+            expect($result)->toBeInstanceOf(FilePathProperties::class);
+            expect($result->path->value)->toBe('/uploads/photo.jpg');
+            expect($result->basename)->toBe('photo.jpg');
+            expect($result->dirname)->toBe('/uploads');
+            expect($result->extension)->toBe('jpg');
+            expect($result->filename)->toBe('photo');
+            expect($result->size)->toBe(2048);
+            expect($result->visibility)->toBe(PathVisibility::PUBLIC);
         });
 
         it('falls back to defaults when optional file fields are absent', function (): void {
@@ -56,15 +49,11 @@ describe('PathPropertyFactory', function (): void {
             $result = PathPropertyFactory::fromArray($metadata);
 
             // Then
-            expect($result)->toBeInstanceOf(FilePathProperties::class)
-                ;
-        expect($result->extension)->toBe('')
-                ;
-        expect($result->filename)->toBe('')
-                ;
-        expect($result->size)->toBe(0)
-                ;
-        expect($result->visibility)->toBeNull();
+            expect($result)->toBeInstanceOf(FilePathProperties::class);
+            expect($result->extension)->toBe('');
+            expect($result->filename)->toBe('');
+            expect($result->size)->toBe(0);
+            expect($result->visibility)->toBeNull();
         });
 
         it('parses a Unix timestamp integer', function (): void {
@@ -107,15 +96,11 @@ describe('PathPropertyFactory', function (): void {
             $result = PathPropertyFactory::fromArray($metadata);
 
             // Then
-            expect($result)->toBeInstanceOf(DirectoryPathProperties::class)
-                ;
-        expect($result->path->value)->toBe('/documents')
-                ;
-        expect($result->basename)->toBe('documents')
-                ;
-        expect($result->dirname)->toBe('/')
-                ;
-        expect($result->visibility)->toBe(PathVisibility::PRIVATE);
+            expect($result)->toBeInstanceOf(DirectoryPathProperties::class);
+            expect($result->path->value)->toBe('/documents');
+            expect($result->basename)->toBe('documents');
+            expect($result->dirname)->toBe('/');
+            expect($result->visibility)->toBe(PathVisibility::PRIVATE);
         });
 
         it('falls back to defaults when optional directory fields are absent', function (): void {
@@ -126,9 +111,8 @@ describe('PathPropertyFactory', function (): void {
             $result = PathPropertyFactory::fromArray($metadata);
 
             // Then
-            expect($result)->toBeInstanceOf(DirectoryPathProperties::class)
-                ;
-        expect($result->visibility)->toBeNull();
+            expect($result)->toBeInstanceOf(DirectoryPathProperties::class);
+            expect($result->visibility)->toBeNull();
         });
     });
 

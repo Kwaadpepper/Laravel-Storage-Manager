@@ -17,8 +17,7 @@ describe('PathTreeDirectory', function (): void {
         $dir = new PathTreeDirectory($path, $hasSubDirectories, PathVisibility::PUBLIC);
 
         // Then
-        expect($dir->path)->toBe($path)
-            ;
+        expect($dir->path)->toBe($path);
         expect($dir->hasSubDirectories)->toBeTrue();
     });
 
