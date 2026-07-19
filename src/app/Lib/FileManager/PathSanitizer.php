@@ -13,7 +13,7 @@ use Kwaadpepper\LaravelStorageManager\Exception\PathSanitizationException;
 class PathSanitizer
 {
     /** Chars forbidden by most file systems */
-    private const ILLEGAL_CHARS = '/[<>:"\/\\|?*\x00-\x1F\x7F\xA0\xAD#\[\]@!$&\'()+,;={}^~`]/u';
+    private const ILLEGAL_CHARS = '/[<>:"\/\\\\|?*\x00-\x1F\x7F\xA0\xAD#\[\]@!$&\'()+,;={}^~`]/u';
 
     private const WHITESPACE_REGEX = '/\s+/';
 
