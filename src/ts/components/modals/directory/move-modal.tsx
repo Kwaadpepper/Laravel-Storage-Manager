@@ -28,12 +28,12 @@ export default function MoveModal() {
       dialogRef.current?.showModal()
     } else {
       dialogRef.current?.close()
-      setSelectedDestination(rootPath())
-      setIsSubmitting(false)
     }
   }, [isOpen])
 
   function onClose() {
+    setSelectedDestination(rootPath())
+    setIsSubmitting(false)
     setMoveModal(ModalState.Closed)
   }
 
