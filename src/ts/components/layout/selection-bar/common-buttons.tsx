@@ -42,7 +42,7 @@ export default function CommonButtons({ selectedNodes }: Readonly<CommonButtonsP
   }
 
   function onCopyPublicUrlClick() {
-    const urls = selectedNodes.map(n => (n as any).publicUrl).filter(Boolean).join('\n')
+    const urls = selectedNodes.map(n => (n as TreeNode & { publicUrl?: string }).publicUrl).filter(Boolean).join('\n')
     if (urls) {
       navigator.clipboard.writeText(urls).catch(() => {})
       toastService.pushToast({ message: 'Public URL(s) copied to clipboard.', type: 'success' })
@@ -126,7 +126,7 @@ export default function CommonButtons({ selectedNodes }: Readonly<CommonButtonsP
         <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52">
           <li><a onClick={onCopyPathClick}>Copy Path</a></li>
           <li><a onClick={onCopyLinkClick}>Copy Link</a></li>
-          {selectedNodes.some(n => (n as any).publicUrl) && (
+          {selectedNodes.some(n => (n as TreeNode & { publicUrl?: string }).publicUrl) && (
             <li><a onClick={onCopyPublicUrlClick}>Copy Public URL</a></li>
           )}
         </ul>

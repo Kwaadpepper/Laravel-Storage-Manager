@@ -3,8 +3,7 @@ import { useUiStore } from "@ts/stores";
 import { LucideMoon, LucideSun, LucideSunMoon } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-interface ThemeSelectorProps {
-}
+type ThemeSelectorProps = Record<string, never>;
 
 export default function ThemeSelector(_: Readonly<ThemeSelectorProps>) {
   const { theme } = useUiStore()

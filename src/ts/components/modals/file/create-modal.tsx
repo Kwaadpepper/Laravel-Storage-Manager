@@ -16,8 +16,7 @@ function detectLanguageFromExtension(ext: string): keyof typeof SUPPORTED_LANGUA
   return 'Text'
 }
 
-interface CreateFileModalProps {
-}
+type CreateFileModalProps = Record<string, never>;
 
 export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
   const {
@@ -32,7 +31,7 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const [step, setStep] = useState<'name' | 'editor'>('name')
-  const fileContentRef = useRef('')
+  const [fileContent, setFileContent] = useState('')
   const [language, setLanguage] = useState<keyof typeof SUPPORTED_LANGUAGES>('Text')
 
   useEffect(() => {
@@ -40,11 +39,6 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
     if (!current) return
 
     if (isOpen) {
-      setBaseName(null)
-      setExtension(null)
-      fileContentRef.current = ''
-      setLanguage('Text')
-      setStep('name')
       current.showModal()
     } else {
       current.close()
@@ -52,6 +46,11 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
   }, [isOpen])
 
   function onClose() {
+    setBaseName(null)
+    setExtension(null)
+    setFileContent('')
+    setLanguage('Text')
+    setStep('name')
     close()
   }
 
@@ -74,7 +73,7 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
 
   async function onCreate() {
     if (baseName === null || extension === null) return
-    await submit(baseName, extension, fileContentRef.current)
+    await submit(baseName, extension, fileContent)
   }
 
   let fileName: string | null = null
@@ -117,9 +116,9 @@ export default function CreateFileModal(_: Readonly<CreateFileModalProps>) {
             <div className="flex-1 min-h-0">
               <Suspense fallback={<div className="flex items-center justify-center h-full text-base-content/50">Loading editor…</div>}>
                 <TextEditor
-                  value={fileContentRef.current}
+                  value={fileContent}
                   language={language}
-                  onChange={(v) => { fileContentRef.current = v }}
+                  onChange={setFileContent}
                   onLanguageChange={setLanguage}
                 />
               </Suspense>

@@ -5,8 +5,7 @@ import CommonButtons from "./common-buttons";
 import DirectoryButtons from "./directory-buttons";
 import FileButtons from "./file-buttons";
 
-interface ContextBarProps {
-}
+type ContextBarProps = Record<string, never>;
 
 export default function ContextBar(_: Readonly<ContextBarProps>) {
   const { currentBaseName, selectedNodes, selectNodes: selectNode } = useFileManagerStore()

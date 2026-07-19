@@ -4,8 +4,7 @@ import { useConfigStore, useFileManagerStore } from '@ts/stores';
 import { Path, rootPath } from '@ts/types';
 import { useMemo } from 'react';
 
-interface BreadcrumbViewProps {
-}
+type BreadcrumbViewProps = Record<string, never>;
 
 interface BreadcrumbPathPart {
   readonly name: string

@@ -23,8 +23,7 @@ function isFullscreenActive(): boolean {
   return !!globalThis.document.fullscreenElement;
 }
 
-interface ActionBarProps {
-}
+type ActionBarProps = Record<string, never>;
 
 
 export default function ActionBar(_: Readonly<ActionBarProps>) {

@@ -6,7 +6,7 @@ import { ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import { useEffect, useRef } from "react";
 import TreeNodeItem from "./tree-node-item";
 
-interface TreeViewProps { }
+type TreeViewProps = Record<string, never>;
 
 export default function TreeView(_: Readonly<TreeViewProps>) {
   const container = useContainer()

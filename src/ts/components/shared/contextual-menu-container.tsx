@@ -2,8 +2,7 @@ import { useContextualMenuStore } from "@ts/stores";
 import { FocusTrap } from 'focus-trap-react';
 import { useEffect, useMemo, useRef } from "react";
 
-interface ContextualMenuContainerProps {
-}
+type ContextualMenuContainerProps = Record<string, never>;
 
 export function ContextualMenuContainer(_: Readonly<ContextualMenuContainerProps>) {
   const popoverRef = useRef<HTMLDivElement | null>(null)
