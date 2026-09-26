@@ -1,22 +1,20 @@
-import { Toast, useToastStore } from "@ts/stores";
+import { Toast, ToastStore } from "@ts/stores";
 
 export class ToastService {
   private readonly defaultTimeout: number = 5000;
 
   constructor(
-    private readonly toastStore: typeof useToastStore,
-  ) {
-  }
+    private readonly toastStore: ToastStore,
+  ) {}
 
-  public pushToast(toast: Toast, options?: { timeout?: number, persistent?: boolean }): void {
-    const toastState = this.toastStore.getState();
-    const insertedToast = toastState.pushToast(toast, {
-      persistent: options?.persistent
+  public pushToast(toast: Toast, options?: { timeout?: number; persistent?: boolean }): void {
+    const insertedToast = this.toastStore.pushToast(toast, {
+      persistent: options?.persistent,
     });
 
     if (!options?.persistent || options?.timeout) {
       setTimeout(() => {
-        this.toastStore.getState().pullToast(insertedToast.id);
+        this.toastStore.pullToast(insertedToast.id);
       }, options?.timeout ?? this.defaultTimeout);
     }
   }

@@ -95,37 +95,46 @@ export class ApiService {
       throw new NotFoundError(message)
     }
 
-    if (response.status === 400) {
-      const message = 'Invalid request, CODE ' + response.status
-
-      const jsonErrors = validationErrors.safeParse(dataResponse)
-      const errors: Record<string, string> = jsonErrors.data?.errors ?? {}
-
-      if (schema instanceof z.ZodObject) {
-        const propertyNames = Object.keys(schema.shape)
-        const mappedErrors: Record<string, string> = {}
-
-        for (const [key, value] of Object.entries(errors)) {
-          const matchingPropertyName = propertyNames.find(property => property === key)
-            ?? propertyNames.find(property => property === Str.toCamelCase(key))
-            ?? propertyNames.find(property => property === Str.toSnakeCase(key))
-            ?? Str.toKebabCase(key)
-          mappedErrors[matchingPropertyName] = value
+    if (response.status === 400 || response.status === 422) {
+      if (response.status === 422) {
+        const domainError = domainValidationErrorSchema.safeParse(dataResponse);
+        if (domainError.success) {
+          throw new DomainValidationError(
+            domainError.data.errors.code,
+            domainError.data.errors.message,
+          );
         }
-
-        throw new ValidationError(mappedErrors, message)
       }
 
-      throw new ValidationError(errors, message)
-    }
+      const jsonErrors = validationErrors.safeParse(dataResponse);
+      if (jsonErrors.success) {
+        const message = (response.status === 400 ? 'Invalid request' : 'Validation failed') + ', CODE ' + response.status;
+        const errors: Record<string, string> = jsonErrors.data.errors ?? {};
 
-    if (response.status === 422) {
-      const message = 'Business rule failed, CODE ' + response.status
-      const domainError = domainValidationErrorSchema.safeParse(dataResponse)
-      throw new DomainValidationError(
-        domainError.data?.errors.code ?? 0,
-        domainError.data?.errors.message ?? message,
-      )
+        if (schema instanceof z.ZodObject) {
+          const propertyNames = Object.keys(schema.shape);
+          const mappedErrors: Record<string, string> = {};
+
+          for (const [key, value] of Object.entries(errors)) {
+            const matchingPropertyName = propertyNames.find(property => property === key)
+              ?? propertyNames.find(property => property === Str.toCamelCase(key))
+              ?? propertyNames.find(property => property === Str.toSnakeCase(key))
+              ?? Str.toKebabCase(key);
+            mappedErrors[matchingPropertyName] = value;
+          }
+
+          throw new ValidationError(mappedErrors, message);
+        }
+
+        throw new ValidationError(errors, message);
+      }
+
+      if (response.status === 422) {
+        const message = 'Business rule failed, CODE ' + response.status;
+        throw new DomainValidationError(0, message);
+      }
+
+      throw new ServerError('Request failed, CODE ' + response.status);
     }
 
     throw new ServerError('Request failed, CODE ' + response.status)

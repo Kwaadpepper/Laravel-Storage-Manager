@@ -1,67 +1,86 @@
 import { TreeNodeDirectory, TreeNodeFile } from '@ts/types';
-import { create } from 'zustand';
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
-type State = {
-  isSearching: boolean
-  hasFinished: boolean
-  files: TreeNodeFile[]
-  directories: TreeNodeDirectory[]
-  scannedPathsCount: number
-  queueLength: number
-  query: string | undefined
-  extension: string | undefined
-  minSize: number | undefined
-  maxSize: number | undefined
-}
+export const useSearchStore = defineStore('search', () => {
+  const isSearching = ref(false);
+  const hasFinished = ref(false);
+  const files = ref<TreeNodeFile[]>([]);
+  const directories = ref<TreeNodeDirectory[]>([]);
+  const scannedPathsCount = ref(0);
+  const queueLength = ref(0);
+  const query = ref<string | undefined>(undefined);
+  const extension = ref<string | undefined>(undefined);
+  const minSize = ref<number | undefined>(undefined);
+  const maxSize = ref<number | undefined>(undefined);
 
-type Actions = {
-  resetSearch: () => void
-  setSearchParams: (params: { query?: string, extension?: string, minSize?: number, maxSize?: number }) => void
-  setIsSearching: (isSearching: boolean) => void
-  setHasFinished: (hasFinished: boolean) => void
-  addResults: (files: TreeNodeFile[], directories: TreeNodeDirectory[]) => void
-  updateProgress: (scannedPathsCount: number, queueLength: number) => void
-}
+  function resetSearch(): void {
+    isSearching.value = false;
+    hasFinished.value = false;
+    files.value = [];
+    directories.value = [];
+    scannedPathsCount.value = 0;
+    queueLength.value = 0;
+    query.value = undefined;
+    extension.value = undefined;
+    minSize.value = undefined;
+    maxSize.value = undefined;
+  }
 
-export const useSearchStore = create<State & Actions>((set) => ({
-  isSearching: false,
-  hasFinished: false,
-  files: [],
-  directories: [],
-  scannedPathsCount: 0,
-  queueLength: 0,
-  query: undefined,
-  extension: undefined,
-  minSize: undefined,
-  maxSize: undefined,
+  function setSearchParams(params: {
+    query?: string;
+    extension?: string;
+    minSize?: number;
+    maxSize?: number;
+  }): void {
+    if ('query' in params) query.value = params.query;
+    if ('extension' in params) extension.value = params.extension;
+    if ('minSize' in params) minSize.value = params.minSize;
+    if ('maxSize' in params) maxSize.value = params.maxSize;
+  }
 
-  resetSearch: () => set({
-    isSearching: false,
-    hasFinished: false,
-    files: [],
-    directories: [],
-    scannedPathsCount: 0,
-    queueLength: 0,
-    query: undefined,
-    extension: undefined,
-    minSize: undefined,
-    maxSize: undefined,
-  }),
+  function setIsSearching(val: boolean): void {
+    isSearching.value = val;
+  }
 
-  setSearchParams: (params) => set((state) => ({ ...state, ...params })),
-  setIsSearching: (isSearching) => set({ isSearching }),
-  setHasFinished: (hasFinished) => set({ hasFinished }),
-  addResults: (newFiles, newDirectories) => set((state) => {
-    const filePaths = new Set(state.files.map(f => f.path))
-    const uniqueFiles = newFiles.filter(f => !filePaths.has(f.path))
+  function setHasFinished(val: boolean): void {
+    hasFinished.value = val;
+  }
 
-    const dirPaths = new Set(state.directories.map(d => d.path))
-    const uniqueDirs = newDirectories.filter(d => !dirPaths.has(d.path))
+  function addResults(newFiles: TreeNodeFile[], newDirectories: TreeNodeDirectory[]): void {
+    const filePaths = new Set(files.value.map(f => f.path));
+    const uniqueFiles = newFiles.filter(f => !filePaths.has(f.path));
 
-    return {
-      files: [...state.files, ...uniqueFiles],
-      directories: [...state.directories, ...uniqueDirs],
-    }
-  }),
-  updateProgress: (scannedPathsCount, queueLength) => set({ scannedPathsCount, queueLength }),
-}));
+    const dirPaths = new Set(directories.value.map(d => d.path));
+    const uniqueDirs = newDirectories.filter(d => !dirPaths.has(d.path));
+
+    files.value = [...files.value, ...uniqueFiles];
+    directories.value = [...directories.value, ...uniqueDirs];
+  }
+
+  function updateProgress(scanned: number, queue: number): void {
+    scannedPathsCount.value = scanned;
+    queueLength.value = queue;
+  }
+
+  return {
+    isSearching,
+    hasFinished,
+    files,
+    directories,
+    scannedPathsCount,
+    queueLength,
+    query,
+    extension,
+    minSize,
+    maxSize,
+    resetSearch,
+    setSearchParams,
+    setIsSearching,
+    setHasFinished,
+    addResults,
+    updateProgress,
+  };
+});
+
+export type SearchStore = ReturnType<typeof useSearchStore>;

@@ -1,32 +1,33 @@
-import { isValidationError, ValidationError } from "@ts/errors";
+import { isDomainValidationError, isValidationError, ValidationError } from "@ts/errors";
 import { existsResponseSchema, searchResponseSchema, treeResponseSchema } from "@ts/schemas";
-import { useDiskStore } from "@ts/stores";
+import { DiskStore } from "@ts/stores";
 import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { ApiService } from "./api-service";
 
-export type CreateDirectoryValidationField = 'directoryName'
-export type RenameDirectoryValidationField = 'directoryName'
-export type RenameFileValidationField = 'fileName'
+export type CreateDirectoryValidationField = 'directoryName';
+export type CreateFileValidationField = 'fileName';
+export type RenameDirectoryValidationField = 'directoryName';
+export type RenameFileValidationField = 'fileName';
 
 export class FileManagerService {
-  private readonly prefix: string = '/sm/fm'
+  private readonly prefix: string = '/sm/fm';
 
   constructor(
     private readonly apiService: ApiService,
-    private readonly diskStore: typeof useDiskStore,
-  ) { }
+    private readonly diskStore: DiskStore,
+  ) {}
 
   private getDisk(): string {
-    return this.diskStore.getState().currentDisk ?? 'public'
+    return this.diskStore.currentDisk ?? 'public';
   }
 
   async initialize(): Promise<void> {
-    return this.apiService.get(`${this.prefix}/init`)
+    return this.apiService.get(`${this.prefix}/init`);
   }
 
   async listFiles(path: Path): Promise<{
-    directories: TreeNodeDirectory[],
-    files: TreeNodeFile[],
+    directories: TreeNodeDirectory[];
+    files: TreeNodeFile[];
   }> {
     return this.apiService
       .get(`${this.prefix}/tree?disk=${encodeURIComponent(this.getDisk())}&path=${encodeURIComponent(path)}`, treeResponseSchema)
@@ -46,14 +47,14 @@ export class FileManagerService {
             visibility: file.visibility,
             publicUrl: file.publicUrl,
           })),
-        }
-      })
+        };
+      });
   }
 
   async search(paths: Path[], query?: string, extension?: string, minSize?: number, maxSize?: number): Promise<{
-    directoriesToScan: Path[]
-    matchedDirectories: import('@ts/types').TreeNodeDirectory[]
-    matchedFiles: import('@ts/types').TreeNodeFile[]
+    directoriesToScan: Path[];
+    matchedDirectories: import('@ts/types').TreeNodeDirectory[];
+    matchedFiles: import('@ts/types').TreeNodeFile[];
   }> {
     return this.apiService
       .post(`${this.prefix}/search`, {
@@ -81,8 +82,8 @@ export class FileManagerService {
             visibility: file.visibility,
             publicUrl: file.publicUrl,
           })),
-        }
-      })
+        };
+      });
   }
 
   async createDirectory(path: Path, name: string): Promise<void> {
@@ -94,11 +95,18 @@ export class FileManagerService {
       if (isValidationError(error)) {
         throw this.remapValidationError(error, {
           name: 'directoryName',
-        })
+        });
       }
 
-      throw error
-    })
+      if (isDomainValidationError(error) && error.getDomainCode() === 1001) {
+        throw new ValidationError<CreateDirectoryValidationField>(
+          { directoryName: error.message },
+          error.message
+        );
+      }
+
+      throw error;
+    });
   }
 
   async renameDirectory(path: Path, newName: string): Promise<void> {
@@ -110,15 +118,22 @@ export class FileManagerService {
       if (isValidationError(error)) {
         throw this.remapValidationError(error, {
           to: 'directoryName',
-        })
+        });
       }
 
-      throw error
-    })
+      if (isDomainValidationError(error) && error.getDomainCode() === 1001) {
+        throw new ValidationError<RenameDirectoryValidationField>(
+          { directoryName: error.message },
+          error.message
+        );
+      }
+
+      throw error;
+    });
   }
 
   async deleteDirectory(path: Path, force: boolean = false): Promise<void> {
-    return this.deleteItem(path, force)
+    return this.deleteItem(path, force);
   }
 
   async copy(path: Path, destinationDir: Path): Promise<void> {
@@ -126,7 +141,7 @@ export class FileManagerService {
       disk: this.getDisk(),
       path,
       destination_dir: destinationDir,
-    })
+    });
   }
 
   async move(path: Path, destinationDir: Path): Promise<void> {
@@ -134,7 +149,7 @@ export class FileManagerService {
       disk: this.getDisk(),
       path,
       destination_dir: destinationDir,
-    })
+    });
   }
 
   async createFile(path: Path, name: string, content: string = ''): Promise<void> {
@@ -147,17 +162,24 @@ export class FileManagerService {
       if (isValidationError(error)) {
         throw this.remapValidationError(error, {
           name: 'fileName',
-        })
+        });
       }
 
-      throw error
-    })
+      if (isDomainValidationError(error) && error.getDomainCode() === 1003) {
+        throw new ValidationError<CreateFileValidationField>(
+          { fileName: error.message },
+          error.message
+        );
+      }
+
+      throw error;
+    });
   }
 
   async fileExists(path: Path): Promise<boolean> {
     return this.apiService
       .get(`${this.prefix}/exists?disk=${encodeURIComponent(this.getDisk())}&path=${encodeURIComponent(path)}`, existsResponseSchema)
-      .then(data => data.exists)
+      .then(data => data.exists);
   }
 
   async renameFile(path: Path, newName: string): Promise<void> {
@@ -169,41 +191,46 @@ export class FileManagerService {
       if (isValidationError(error)) {
         throw this.remapValidationError(error, {
           to: 'fileName',
-        })
+        });
       }
 
-      throw error
-    })
+      if (isDomainValidationError(error) && error.getDomainCode() === 1003) {
+        throw new ValidationError<RenameFileValidationField>(
+          { fileName: error.message },
+          error.message
+        );
+      }
+
+      throw error;
+    });
   }
 
   async deleteFile(path: Path): Promise<void> {
-    return this.deleteItem(path)
+    return this.deleteItem(path);
   }
-
-
 
   public async deleteItem(path: Path, force: boolean = false): Promise<void> {
     return this.apiService.delete(`${this.prefix}/delete`, {
       disk: this.getDisk(),
       path,
       force,
-    })
+    });
   }
 
   private remapValidationError<TFieldName extends string>(
     error: ValidationError,
     fieldMap: Record<string, TFieldName>
   ): ValidationError<TFieldName> {
-    const mappedErrors = {} as Record<TFieldName, string>
+    const mappedErrors = {} as Record<TFieldName, string>;
 
     for (const [fieldName, message] of Object.entries(error.getFieldErrors())) {
-      const mappedFieldName = fieldMap[fieldName]
+      const mappedFieldName = fieldMap[fieldName];
 
       if (mappedFieldName) {
-        mappedErrors[mappedFieldName] = message
+        mappedErrors[mappedFieldName] = message;
       }
     }
 
-    return new ValidationError(mappedErrors, error.message)
+    return new ValidationError(mappedErrors, error.message);
   }
 }

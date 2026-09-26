@@ -1,5 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
+import vue from '@vitejs/plugin-vue';
 import { rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { type Plugin, defineConfig } from 'vite';
@@ -35,19 +35,15 @@ export default defineConfig({
   },
   plugins: [
     cleanOutputDirs(),
-    react(),
+    vue(),
     tailwindcss(),
   ],
-  optimizeDeps: {
-    exclude: ['prism-react-editor'],
-    rollupOptions: {},
-  },
   build: {
     outDir: 'resources',
     emptyOutDir: false,
     rollupOptions: {
       input: {
-        main: 'src/ts/main.tsx',
+        main: 'src/ts/main.ts',
       },
       output: {
         entryFileNames: 'js/[name].js',

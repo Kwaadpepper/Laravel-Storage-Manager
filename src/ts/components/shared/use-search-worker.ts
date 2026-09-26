@@ -1,77 +1,83 @@
-import { useContainer } from '@ts/container';
+import { useService } from '@ts/service-container';
 import { useFileManagerStore, useSearchStore } from '@ts/stores';
 import { Path, rootPath } from '@ts/types';
-import { useEffect, useRef } from 'react';
+import { onUnmounted, watch } from 'vue';
 
 export function useSearchWorker(): void {
-  const { fileManagerService } = useContainer().cradle;
-  const currentPath = useFileManagerStore(state => state.currentPath)
-  const searchParams = useFileManagerStore(state => state.currentSearchParams)
+  const fileManagerService = useService('fileManagerService');
+  const fileManagerStore = useFileManagerStore();
+  const searchStore = useSearchStore();
 
-  const searchIdRef = useRef<number>(0)
+  let searchId = 0;
 
-  useEffect(() => {
-    if (currentPath !== '/:search') {
-      searchIdRef.current++
-      useSearchStore.getState().resetSearch()
-      return
-    }
-
-    const query = searchParams?.get('q') || undefined
-    const extension = searchParams?.get('ext') || undefined
-    const minSize = searchParams?.has('minSize') ? Number.parseInt(searchParams.get('minSize')!, 10) : undefined
-    const maxSize = searchParams?.has('maxSize') ? Number.parseInt(searchParams.get('maxSize')!, 10) : undefined
-
-    useSearchStore.getState().resetSearch()
-    useSearchStore.getState().setSearchParams({ query, extension, minSize, maxSize })
-    useSearchStore.getState().setIsSearching(true)
-
-    const searchId = ++searchIdRef.current
-    const queue: Path[] = [rootPath()]
-    let scannedPathsCount = 0
-
-    const processQueue = async () => {
-      if (searchIdRef.current !== searchId) return // Cancelled
-
-      if (queue.length === 0) {
-        useSearchStore.getState().setHasFinished(true)
-        useSearchStore.getState().setIsSearching(false)
-        return
+  watch(
+    [() => fileManagerStore.currentPath, () => fileManagerStore.currentSearchParams],
+    ([currentPath, searchParams]) => {
+      if (currentPath !== '/:search') {
+        searchId++;
+        searchStore.resetSearch();
+        return;
       }
 
-      const batchSize = 5
-      const currentBatch = queue.splice(0, batchSize)
+      const query = searchParams?.get('q') || undefined;
+      const extension = searchParams?.get('ext') || undefined;
+      const minSize = searchParams?.has('minSize')
+        ? Number.parseInt(searchParams.get('minSize')!, 10)
+        : undefined;
+      const maxSize = searchParams?.has('maxSize')
+        ? Number.parseInt(searchParams.get('maxSize')!, 10)
+        : undefined;
 
-      try {
-        const result = await fileManagerService.search(
-          currentBatch,
-          query,
-          extension,
-          minSize,
-          maxSize
-        )
+      searchStore.resetSearch();
+      searchStore.setSearchParams({ query, extension, minSize, maxSize });
+      searchStore.setIsSearching(true);
 
-        if (searchIdRef.current !== searchId) return // Cancelled
+      const currentSearchId = ++searchId;
+      const queue: Path[] = [rootPath()];
+      let scannedPathsCount = 0;
 
-        queue.push(...result.directoriesToScan)
+      const processQueue = async () => {
+        if (searchId !== currentSearchId) return; // Cancelled
 
-        useSearchStore.getState().addResults(result.matchedFiles, result.matchedDirectories)
+        if (queue.length === 0) {
+          searchStore.setHasFinished(true);
+          searchStore.setIsSearching(false);
+          return;
+        }
 
-        scannedPathsCount += currentBatch.length
-        useSearchStore.getState().updateProgress(scannedPathsCount, queue.length)
+        const batchSize = 5;
+        const currentBatch = queue.splice(0, batchSize);
 
-        setTimeout(processQueue, 10)
-      } catch (e) {
-        console.error('Search worker error:', e)
-        useSearchStore.getState().setIsSearching(false)
-      }
-    }
+        try {
+          const result = await fileManagerService.search(
+            currentBatch,
+            query,
+            extension,
+            minSize,
+            maxSize
+          );
 
-    processQueue()
+          if (searchId !== currentSearchId) return; // Cancelled
 
-    return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      searchIdRef.current++
-    }
-  }, [currentPath, searchParams, fileManagerService])
+          queue.push(...result.directoriesToScan);
+          searchStore.addResults(result.matchedFiles, result.matchedDirectories);
+
+          scannedPathsCount += currentBatch.length;
+          searchStore.updateProgress(scannedPathsCount, queue.length);
+
+          setTimeout(processQueue, 10);
+        } catch (e) {
+          console.error('Search worker error:', e);
+          searchStore.setIsSearching(false);
+        }
+      };
+
+      processQueue();
+    },
+    { immediate: true }
+  );
+
+  onUnmounted(() => {
+    searchId++;
+  });
 }

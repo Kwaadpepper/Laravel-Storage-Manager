@@ -1,7 +1,7 @@
 @import "tailwindcss" source(none);
 @plugin "daisyui";
 
-@source "../ts/**/*.{ts,tsx}";
+@source "../ts/**/*.{ts,vue}";
 
 .selection-area {
     background: rgba(46, 115, 252, 0.11);

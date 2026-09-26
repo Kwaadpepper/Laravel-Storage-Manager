@@ -1,25 +1,30 @@
-import { useContainer } from '@ts/container';
+import { useService } from '@ts/service-container';
 import { rootPath } from '@ts/types';
-import { useEffect } from 'react';
+import { onMounted } from 'vue';
 
 export function useAppInitialization(): void {
-  const { fileManagerService, navigationService, locationService } = useContainer().cradle;
+  const fileManagerService = useService('fileManagerService');
+  const navigationService = useService('navigationService');
+  const locationService = useService('locationService');
 
-  useEffect(() => {
-    fileManagerService.initialize().then(async () => {
-      const { path: initialPath, searchParams } = locationService.getDiskAndPath()
-      try {
-        if (initialPath === '/:search') {
-          navigationService.navigateTo(initialPath, undefined, searchParams)
-        } else {
-          const data = await fileManagerService.listFiles(initialPath)
-          navigationService.navigateTo(initialPath, data, searchParams)
+  onMounted(() => {
+    fileManagerService
+      .initialize()
+      .then(async () => {
+        const { path: initialPath, searchParams } = locationService.getDiskAndPath();
+        try {
+          if (initialPath === '/:search') {
+            navigationService.navigateTo(initialPath, undefined, searchParams);
+          } else {
+            const data = await fileManagerService.listFiles(initialPath);
+            navigationService.navigateTo(initialPath, data, searchParams);
+          }
+        } catch {
+          navigationService.navigateTo(rootPath());
         }
-      } catch {
-        navigationService.navigateTo(rootPath())
-      }
-    }).catch(() => {
-      throw new Error('Error initializing file manager');
-    });
-  }, [fileManagerService, navigationService, locationService]);
+      })
+      .catch(() => {
+        throw new Error('Error initializing file manager');
+      });
+  });
 }

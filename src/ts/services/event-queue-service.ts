@@ -1,4 +1,4 @@
-import { useActionStore } from "@ts/stores";
+import { ActionStore } from "@ts/stores";
 import { NavigationService } from "./navigation-service";
 
 export type EventType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE';
@@ -16,13 +16,15 @@ export class EventQueueService {
   private isProcessing: boolean = false;
   private queuedRefreshes = 0;
 
-  constructor(private readonly navigationService: NavigationService) {}
+  constructor(
+    private readonly navigationService: NavigationService,
+    private readonly actionStore: ActionStore,
+  ) {}
 
   public push(event: FileEvent) {
     this.queue.push(event);
-    
-    // Register in ActionStore
-    useActionStore.getState().addAction({
+
+    this.actionStore.addAction({
       id: event.id,
       type: event.type,
       sourcePath: event.sourcePath,
@@ -35,7 +37,7 @@ export class EventQueueService {
   public pushBatch(events: FileEvent[]) {
     for (const event of events) {
       this.queue.push(event);
-      useActionStore.getState().addAction({
+      this.actionStore.addAction({
         id: event.id,
         type: event.type,
         sourcePath: event.sourcePath,
@@ -46,6 +48,24 @@ export class EventQueueService {
     this.processQueue();
   }
 
+  public async pushAndWait(event: FileEvent): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.push({
+        ...event,
+        execute: async (): Promise<void> => {
+          try {
+            await event.execute();
+            resolve();
+          } catch (error) {
+            this.actionStore.removeAction(event.id);
+            reject(error);
+            throw error;
+          }
+        },
+      });
+    });
+  }
+
   private async processQueue() {
     if (this.isProcessing) return;
     this.isProcessing = true;
@@ -54,18 +74,18 @@ export class EventQueueService {
       const event = this.queue.shift();
       if (!event) break;
 
-      const store = useActionStore.getState();
       try {
         await event.execute();
-        store.markActionComplete(event.id, 'success');
+        this.actionStore.markActionComplete(event.id, 'success');
+        this.queuedRefreshes++;
       } catch (error: unknown) {
-        store.markActionComplete(event.id, 'error', error instanceof Error ? error.message : 'Operation failed');
+        this.actionStore.markActionComplete(
+          event.id,
+          'error',
+          error instanceof Error ? error.message : 'Operation failed'
+        );
       }
 
-      this.queuedRefreshes++;
-
-      // If the queue is now empty, or we just finished a batch, we refresh the UI.
-      // We can also throttle this if we want, but doing it at the end of the queue is usually best.
       if (this.queue.length === 0) {
         if (this.queuedRefreshes > 0) {
           this.navigationService.refreshCurrentPath();

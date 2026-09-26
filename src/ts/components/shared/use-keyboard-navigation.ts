@@ -1,22 +1,25 @@
-import { useContainer } from "@ts/container";
-import { useEffect } from "react";
+import { useService } from "@ts/service-container";
+import { onMounted, onUnmounted } from "vue";
 
-export function useKeyboardNavigation() {
-  const container = useContainer()
-  const navigationService = container.resolve('navigationService')
+export function useKeyboardNavigation(): void {
+  const navigationService = useService('navigationService');
 
-  useEffect(() => {
-    function onDocKeyDown(e: React.KeyboardEvent<HTMLElement>) {
-      const target = e.target as HTMLElement | null
-      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) {
-        return
-      }
-      if (e.key === 'Backspace') {
-        e.preventDefault()
-        navigationService.navigatePrevious()
-      }
+  function onDocKeyDown(e: KeyboardEvent): void {
+    const target = e.target as HTMLElement | null;
+    if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) {
+      return;
     }
-    document.addEventListener('keydown', onDocKeyDown as unknown as EventListener)
-    return () => document.removeEventListener('keydown', onDocKeyDown as unknown as EventListener)
-  }, [navigationService])
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      navigationService.navigatePrevious();
+    }
+  }
+
+  onMounted(() => {
+    document.addEventListener('keydown', onDocKeyDown);
+  });
+
+  onUnmounted(() => {
+    document.removeEventListener('keydown', onDocKeyDown);
+  });
 }

@@ -1,51 +1,50 @@
 import { uniqueId } from '@ts/tools';
-import { create } from 'zustand';
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
-type ToastId = string & { type: 'ToastId' }
+export type ToastId = string & { type: 'ToastId' };
 
 export interface Toast {
-  type: 'success' | 'error' | 'info' | 'warning'
-  title?: string
-  message: string
+  type: 'success' | 'error' | 'info' | 'warning';
+  title?: string;
+  message: string;
 }
 
-interface InnerToast extends Toast {
-  id: ToastId
-  persistent: boolean
-}
-
-type ToastState = {
-  toasts: InnerToast[]
-  pushToast: (toast: Toast, options?: { persistent?: boolean }) => InnerToast
-  pullToast: (id?: ToastId) => void
+export interface InnerToast extends Toast {
+  id: ToastId;
+  persistent: boolean;
 }
 
 function generateToastId(): ToastId {
-  return uniqueId() as ToastId
+  return uniqueId() as ToastId;
 }
 
-export const useToastStore = create<ToastState>((set) => ({
-  toasts: [],
+export const useToastStore = defineStore('toast', () => {
+  const toasts = ref<InnerToast[]>([]);
 
-  pushToast: function (toast, options) {
+  function pushToast(toast: Toast, options?: { persistent?: boolean }): InnerToast {
     const newToast: InnerToast = {
-      ...toast, id: generateToastId(),
-      persistent: options?.persistent ?? false
+      ...toast,
+      id: generateToastId(),
+      persistent: options?.persistent ?? false,
     };
-    set((state) => {
-      return {
-        toasts: [
-          ...state.toasts,
-          newToast
-        ]
-      };
-    });
-
+    toasts.value.push(newToast);
     return newToast;
-  },
-  pullToast: (id?: ToastId) => set((state) => ({
-    toasts: id
-      ? state.toasts.filter((toast) => toast.id !== id)
-      : state.toasts.slice(1)
-  })),
-}))
+  }
+
+  function pullToast(id?: ToastId): void {
+    if (id) {
+      toasts.value = toasts.value.filter((t) => t.id !== id);
+    } else {
+      toasts.value.shift();
+    }
+  }
+
+  return {
+    toasts,
+    pushToast,
+    pullToast,
+  };
+});
+
+export type ToastStore = ReturnType<typeof useToastStore>;

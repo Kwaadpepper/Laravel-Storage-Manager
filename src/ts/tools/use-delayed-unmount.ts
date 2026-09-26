@@ -1,23 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
+import type { Ref } from 'vue';
+import { ref, toValue, watch } from 'vue';
 
-export function useDelayedUnmount(value: boolean, delay: number): boolean {
-  const [mounted, setMounted] = useState(value);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export function useDelayedUnmount(
+  value: Ref<boolean> | (() => boolean) | boolean,
+  delay: number
+): Ref<boolean> {
+  const isCurrentlyMounted = ref(toValue(value));
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-  if (value && !mounted) {
-    setMounted(true);
-  }
+  watch(
+    () => toValue(value),
+    (val) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
 
-  useEffect(() => {
-    if (!value) {
-      timeoutRef.current = setTimeout(() => setMounted(false), delay);
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-      };
-    }
-  }, [value, delay]);
+      if (val) {
+        isCurrentlyMounted.value = true;
+      } else {
+        timeoutId = setTimeout(() => {
+          isCurrentlyMounted.value = false;
+        }, delay);
+      }
+    },
+    { immediate: true }
+  );
 
-  return mounted;
+  return isCurrentlyMounted;
 }

@@ -1,0 +1,178 @@
+import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
+import { isDomainValidationError, isValidationError } from '@ts/errors';
+import type { RenameFileValidationField } from '@ts/services';
+import { useService } from '@ts/service-container';
+import { ModalState, useUiStore } from '@ts/stores';
+import { z } from 'zod/v4';
+
+export const baseNameInputName = 'baseName' as const;
+export const extensionInputName = 'extension' as const;
+export const baseNameMinLength = 1;
+export const baseNameMaxLength = 255;
+export const extensionMaxLength = 255;
+
+export const formSchema = z.object({
+  baseName: z
+    .string()
+    .min(baseNameMinLength, `Base name must be at least ${baseNameMinLength} character`)
+    .max(baseNameMaxLength, `Base name must be at most ${baseNameMaxLength} characters`),
+  extension: z
+    .string()
+    .max(extensionMaxLength, `Extension must be at most ${extensionMaxLength} characters`),
+});
+
+export type FormData = z.infer<typeof formSchema>;
+
+export interface RenameFileViewModel {
+  isOpen: ComputedRef<boolean>;
+  targetFilePath: ComputedRef<string | null>;
+  targetBaseName: ComputedRef<string>;
+  targetExtension: ComputedRef<string>;
+  baseName: Ref<string>;
+  extension: Ref<string>;
+  formErrorMessage: Ref<string | null>;
+  baseNameFieldError: Ref<string | null>;
+  extensionFieldError: Ref<string | null>;
+  isSubmitting: Ref<boolean>;
+  submit: () => Promise<boolean>;
+  close: () => void;
+}
+
+export function useRenameFileViewModel(): RenameFileViewModel {
+  const uiStore = useUiStore();
+  const fileManagerService = useService('fileManagerService');
+  const eventQueueService = useService('eventQueueService');
+
+  const isOpen = computed(() => uiStore.renameFileModal === ModalState.Opened);
+  const targetFilePath = computed(() => uiStore.targetFilePath);
+  const targetName = computed(() => targetFilePath.value?.split('/').pop() ?? '');
+  const lastDot = computed(() => targetName.value.lastIndexOf('.'));
+  const targetBaseName = computed(() =>
+    lastDot.value > 0 ? targetName.value.slice(0, lastDot.value) : targetName.value
+  );
+  const targetExtension = computed(() =>
+    lastDot.value > 0 ? targetName.value.slice(lastDot.value + 1) : ''
+  );
+
+  const baseName = ref('');
+  const extension = ref('');
+  const formErrorMessage = ref<string | null>(null);
+  const baseNameFieldError = ref<string | null>(null);
+  const extensionFieldError = ref<string | null>(null);
+  const isSubmitting = ref(false);
+
+  watch(
+    () => uiStore.renameFileModal,
+    (modalState) => {
+      if (modalState === ModalState.Opened) {
+        baseName.value = targetBaseName.value;
+        extension.value = targetExtension.value;
+        formErrorMessage.value = null;
+        baseNameFieldError.value = null;
+        extensionFieldError.value = null;
+      }
+    }
+  );
+
+  watch([baseName, extension], () => {
+    if (baseNameFieldError.value) baseNameFieldError.value = null;
+    if (extensionFieldError.value) extensionFieldError.value = null;
+    if (formErrorMessage.value) formErrorMessage.value = null;
+  });
+
+  async function submit(): Promise<boolean> {
+    if (isSubmitting.value) return false;
+    const curPath = targetFilePath.value;
+    if (!curPath) return false;
+
+    formErrorMessage.value = null;
+    baseNameFieldError.value = null;
+    extensionFieldError.value = null;
+
+    const parseResult = formSchema.safeParse({
+      baseName: baseName.value,
+      extension: extension.value,
+    });
+
+    if (!parseResult.success) {
+      for (const issue of parseResult.error.issues) {
+        if (issue.path.includes('baseName')) {
+          baseNameFieldError.value = issue.message;
+        }
+        if (issue.path.includes('extension')) {
+          extensionFieldError.value = issue.message;
+        }
+      }
+      return false;
+    }
+
+    const trimmedExtension = parseResult.data.extension.trim();
+    const newName = trimmedExtension
+      ? `${parseResult.data.baseName}.${trimmedExtension}`
+      : parseResult.data.baseName;
+
+    try {
+      isSubmitting.value = true;
+      await eventQueueService.pushAndWait({
+        id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        type: 'RENAME',
+        sourcePath: curPath,
+        destinationPath: curPath.substring(0, curPath.lastIndexOf('/')) + '/' + newName,
+        execute: async (): Promise<void> => {
+          await fileManagerService.renameFile(curPath, newName);
+        },
+      });
+
+      close();
+      return true;
+    } catch (error: unknown) {
+      if (isValidationError<RenameFileValidationField>(error)) {
+        const fieldErrors = error.getFieldErrors();
+        if (fieldErrors.fileName) {
+          baseNameFieldError.value = fieldErrors.fileName;
+          return false;
+        }
+      }
+
+      if (isDomainValidationError(error)) {
+        baseNameFieldError.value = error.message;
+        return false;
+      }
+
+      if (error instanceof Error) {
+        formErrorMessage.value = error.message;
+        return false;
+      }
+
+      formErrorMessage.value = 'Failed to rename file';
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  function close(): void {
+    baseName.value = '';
+    extension.value = '';
+    formErrorMessage.value = null;
+    baseNameFieldError.value = null;
+    extensionFieldError.value = null;
+    isSubmitting.value = false;
+    uiStore.setRenameFileModal(ModalState.Closed);
+  }
+
+  return {
+    isOpen,
+    targetFilePath,
+    targetBaseName,
+    targetExtension,
+    baseName,
+    extension,
+    formErrorMessage,
+    baseNameFieldError,
+    extensionFieldError,
+    isSubmitting,
+    submit,
+    close,
+  };
+}

@@ -1,4 +1,4 @@
-import { useClipboardStore } from "@ts/stores";
+import { ClipboardStore } from "@ts/stores";
 import { Path } from "@ts/types";
 
 export type ClipboardEntry = Path[];
@@ -12,7 +12,7 @@ export class ClipboardService {
   private isConsumingMode = false;
 
   constructor(
-    private readonly clipboardStore: typeof useClipboardStore,
+    private readonly clipboardStore: ClipboardStore,
   ) {
     this.isClipboardSupported = !!globalThis.navigator.clipboard;
     if (this.isClipboardSupported) {
@@ -24,7 +24,7 @@ export class ClipboardService {
 
   public setConsumingMode(isConsumingMode: boolean): void {
     this.isConsumingMode = isConsumingMode;
-    this.clipboardStore.getState().setIsCutMode(isConsumingMode);
+    this.clipboardStore.setIsCutMode(isConsumingMode);
   }
 
   public getIsConsumingMode(): boolean {
@@ -69,8 +69,8 @@ export class ClipboardService {
   }
 
   private syncStore(): void {
-    this.clipboardStore.getState().setHasEntries(this.history.length > 0);
-    this.clipboardStore.getState().setIsCutMode(this.isConsumingMode);
+    this.clipboardStore.setHasEntries(this.history.length > 0);
+    this.clipboardStore.setIsCutMode(this.isConsumingMode);
   }
 
   private putInClipboard(entry: ClipboardEntry): void {

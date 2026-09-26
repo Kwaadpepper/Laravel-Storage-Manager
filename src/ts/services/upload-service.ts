@@ -1,11 +1,11 @@
-import { useConfigStore } from '@ts/stores/config-store';
-import { useUploadStore, UploadItem } from '@ts/stores/upload-store';
-import { useFileManagerStore } from '@ts/stores/file-manager-store';
-import { ApiService } from './api-service';
-import { NavigationService } from './navigation-service';
 import { uploadInitSchema, uploadSuccessSchema } from '@ts/schemas/file-manager';
+import { ConfigStore } from '@ts/stores/config-store';
+import { FileManagerStore } from '@ts/stores/file-manager-store';
+import { UploadItem, UploadStore } from '@ts/stores/upload-store';
 import { uniqueId } from '@ts/tools';
 import SparkMD5 from 'spark-md5';
+import { ApiService } from './api-service';
+import { NavigationService } from './navigation-service';
 
 const MAX_CONCURRENT_UPLOADS = 2;
 
@@ -15,7 +15,10 @@ export class UploadService {
 
   constructor(
     private readonly apiService: ApiService,
-    private readonly navigationService: NavigationService
+    private readonly navigationService: NavigationService,
+    private readonly uploadStore: UploadStore,
+    private readonly configStore: ConfigStore,
+    private readonly fileManagerStore: FileManagerStore,
   ) {
     window.addEventListener('beforeunload', (e) => {
       if (this.activeUploads.size > 0) {
@@ -26,10 +29,8 @@ export class UploadService {
   }
 
   public enqueueUploads(files: File[], destinationPath: string, disk: string): void {
-    const { addUpload } = useUploadStore.getState();
-
-    files.forEach(file => {
-      addUpload({
+    files.forEach((file) => {
+      this.uploadStore.addUpload({
         id: uniqueId(),
         file,
         fileName: file.name,
@@ -43,8 +44,7 @@ export class UploadService {
   }
 
   public processQueue(): void {
-    const { uploads } = useUploadStore.getState();
-    const pendingUploads = uploads.filter(u => u.status === 'pending');
+    const pendingUploads = this.uploadStore.uploads.filter((u) => u.status === 'pending');
 
     while (this.activeUploads.size < MAX_CONCURRENT_UPLOADS && pendingUploads.length > 0) {
       const upload = pendingUploads.shift();
@@ -57,20 +57,27 @@ export class UploadService {
   private async startUpload(item: UploadItem): Promise<void> {
     if (!item.file) return;
 
-    const { setStatus, updateProgress } = useUploadStore.getState();
     this.activeUploads.add(item.id);
-    setStatus(item.id, 'uploading');
+    this.uploadStore.setStatus(item.id, 'uploading');
 
     try {
       // 1. Init
-      const { chunkMinSize, chunkMaxSize } = useConfigStore.getState();
-      const adaptiveChunkSize = Math.min(chunkMaxSize, Math.max(chunkMinSize, Math.ceil(item.totalSize / 100)));
-      
-      const { upload_id } = await this.apiService.post(useConfigStore.getState().routes.fmUploadInit.toString(), {
-        fileName: item.fileName,
-        totalSize: item.totalSize,
-        totalChunks: Math.ceil(item.totalSize / adaptiveChunkSize),
-      }, uploadInitSchema);
+      const chunkMinSize = this.configStore.chunkMinSize;
+      const chunkMaxSize = this.configStore.chunkMaxSize;
+      const adaptiveChunkSize = Math.min(
+        chunkMaxSize,
+        Math.max(chunkMinSize, Math.ceil(item.totalSize / 100))
+      );
+
+      const { upload_id } = await this.apiService.post(
+        this.configStore.routes.fmUploadInit.toString(),
+        {
+          fileName: item.fileName,
+          totalSize: item.totalSize,
+          totalChunks: Math.ceil(item.totalSize / adaptiveChunkSize),
+        },
+        uploadInitSchema
+      );
 
       // 2. Upload chunks
       const chunkSize = adaptiveChunkSize;
@@ -87,7 +94,7 @@ export class UploadService {
       }
 
       const file = item.file; // type narrowed
-      
+
       const worker = async () => {
         while (currentIndex < totalChunks && !hasError) {
           const chunkIndex = currentIndex++;
@@ -108,11 +115,15 @@ export class UploadService {
             formData.append('chunk_index', String(chunkIndex));
             formData.append('file', chunkFile);
             formData.append('chunk_checksum', chunk_checksum);
-            
-            await this.apiService.postMultiPart(useConfigStore.getState().routes.fmUploadChunk.toString(), formData, uploadSuccessSchema);
-            
+
+            await this.apiService.postMultiPart(
+              this.configStore.routes.fmUploadChunk.toString(),
+              formData,
+              uploadSuccessSchema
+            );
+
             uploadedBytes += blob.size;
-            updateProgress(item.id, uploadedBytes, item.totalSize);
+            this.uploadStore.updateProgress(item.id, uploadedBytes, item.totalSize);
           } catch (e) {
             hasError = true;
             errorMessage = e instanceof Error ? e.message : 'Chunk upload failed';
@@ -128,14 +139,14 @@ export class UploadService {
       }
 
       // 3. Complete (with SSE streaming)
-      setStatus(item.id, 'assembling');
-      
+      this.uploadStore.setStatus(item.id, 'assembling');
+
       const finalFileName = await this.streamComplete(upload_id, item, totalChunks);
-      
-      setStatus(item.id, 'success', undefined, finalFileName);
+
+      this.uploadStore.setStatus(item.id, 'success', undefined, finalFileName);
 
       // Trigger directory refresh with a debounce
-      if (useFileManagerStore.getState().currentPath === item.destinationPath) {
+      if (this.fileManagerStore.currentPath === item.destinationPath) {
         if (this.refreshTimeout) {
           clearTimeout(this.refreshTimeout);
         }
@@ -143,10 +154,9 @@ export class UploadService {
           this.navigationService.refreshCurrentPath();
         }, 500);
       }
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-      setStatus(item.id, 'error', errorMessage);
+      this.uploadStore.setStatus(item.id, 'error', errorMessage);
     } finally {
       this.activeUploads.delete(item.id);
       this.processQueue();
@@ -158,14 +168,14 @@ export class UploadService {
     item: UploadItem,
     totalChunks: number
   ): Promise<string | undefined> {
-    const url  = useConfigStore.getState().routes.fmUploadComplete.toString();
+    const url = this.configStore.routes.fmUploadComplete.toString();
     const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
+        Accept: 'text/event-stream',
         'X-Requested-With': 'XMLHttpRequest',
         'X-CSRF-TOKEN': csrf,
       },
@@ -182,9 +192,9 @@ export class UploadService {
       throw new Error(`Upload complete failed: ${response.status}`);
     }
 
-    const reader  = response.body.getReader();
+    const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer    = '';
+    let buffer = '';
 
     while (true) {
       const { value, done } = await reader.read();
@@ -192,32 +202,35 @@ export class UploadService {
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';   // keep incomplete fragment
+      buffer = lines.pop() ?? ''; // keep incomplete fragment
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         const dataStr = line.slice(6);
         if (!dataStr.trim()) continue;
-        
+
         try {
-          const data = JSON.parse(dataStr) as { status: string; progress?: number; message?: string; fileName?: string };
+          const data = JSON.parse(dataStr) as {
+            status: string;
+            progress?: number;
+            message?: string;
+            fileName?: string;
+          };
 
           if (data.status === 'error') {
             throw new Error(data.message ?? 'Assembly failed');
           }
 
           if (data.status === 'completed') {
-            return data.fileName;  // finished
+            return data.fileName; // finished
           }
 
-          if ((data.status === 'assembling' || data.status === 'transferring') && data.progress !== undefined) {
+          if (
+            (data.status === 'assembling' || data.status === 'transferring') &&
+            data.progress !== undefined
+          ) {
             const newProgress = 50 + data.progress * 0.5;
-            useUploadStore.setState(state => ({
-              uploads: state.uploads.map(u => {
-                if (u.id !== item.id) return u;
-                return { ...u, progress: Math.max(u.progress, newProgress) };
-              })
-            }));
+            this.uploadStore.updateAssemblyProgress(item.id, newProgress);
           }
         } catch {
           // ignore JSON parse errors for incomplete chunks

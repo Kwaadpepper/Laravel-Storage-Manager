@@ -1,92 +1,140 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { defineStore } from 'pinia';
+import { ref, watch } from 'vue';
 
-export type UploadStatus = 'pending' | 'uploading' | 'assembling' | 'success' | 'error'
+export type UploadStatus = 'pending' | 'uploading' | 'assembling' | 'success' | 'error';
 
 export interface UploadItem {
-  id: string
-  file?: File
-  fileName: string
-  finalFileName?: string
-  destinationPath: string
-  disk: string
-  totalSize: number
-  uploadedBytes: number
-  progress: number // 0 to 100
-  status: UploadStatus
-  error?: string
+  id: string;
+  file?: File;
+  fileName: string;
+  finalFileName?: string;
+  destinationPath: string;
+  disk: string;
+  totalSize: number;
+  uploadedBytes: number;
+  progress: number; // 0 to 100
+  status: UploadStatus;
+  error?: string;
 }
 
-interface UploadState {
-  uploads: UploadItem[]
-  addUpload: (upload: Omit<UploadItem, 'uploadedBytes' | 'progress' | 'status'>) => void
-  updateProgress: (id: string, uploadedBytes: number, totalSize: number, status?: UploadStatus) => void
-  setStatus: (id: string, status: UploadStatus, error?: string, finalFileName?: string) => void
-  removeUpload: (id: string) => void
-  clearCompleted: () => void
+const STORAGE_KEY = 'sm-upload-store';
+
+function loadFromLocalStorage(): UploadItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.uploads) ? parsed.uploads : [];
+  } catch {
+    return [];
+  }
 }
 
-export const useUploadStore = create<UploadState>()(
-  persist(
-    (set) => ({
-      uploads: [],
+function saveToLocalStorage(items: UploadItem[]): void {
+  try {
+    const serialized = items.map((u) => {
+      const { file: _file, ...rest } = u;
+      if (['pending', 'uploading', 'assembling'].includes(rest.status)) {
+        return { ...rest, status: 'error' as const, error: 'Upload interrupted by page reload' };
+      }
+      return rest;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ uploads: serialized }));
+  } catch {
+    // ignore storage write errors
+  }
+}
 
-      addUpload: (upload) => set((state) => ({
-        uploads: [
-          ...state.uploads,
-          { ...upload, uploadedBytes: 0, progress: 0, status: 'pending' }
-        ]
-      })),
+export const useUploadStore = defineStore('upload', () => {
+  const uploads = ref<UploadItem[]>(loadFromLocalStorage());
 
-      updateProgress: (id, uploadedBytes, totalSize, status) => set((state) => ({
-        uploads: state.uploads.map(u => {
-          if (u.id === id) {
-            // Upload phase maps to 0-50% overall progress. Assembly will map to 50-100%.
-            const chunkProgress = Math.round((uploadedBytes / totalSize) * 50);
-            return {
-              ...u,
-              uploadedBytes,
-              progress: status === 'assembling' ? u.progress : chunkProgress,
-              ...(status && { status })
-            }
-          }
-          return u
-        })
-      })),
+  watch(
+    uploads,
+    (val) => {
+      saveToLocalStorage(val);
+    },
+    { deep: true }
+  );
 
-      setStatus: (id, status, error, finalFileName) => set((state) => ({
-        uploads: state.uploads.map(u => {
-          if (u.id === id) {
-            // When success, ensure progress is 100%
-            const progress = status === 'success' ? 100 : u.progress;
-            return { ...u, status, error, progress, ...(finalFileName && { finalFileName }) }
-          }
-          return u
-        })
-      })),
+  function addUpload(upload: Omit<UploadItem, 'uploadedBytes' | 'progress' | 'status'>): void {
+    uploads.value.push({
+      ...upload,
+      uploadedBytes: 0,
+      progress: 0,
+      status: 'pending',
+    });
+  }
 
-      removeUpload: (id) => set((state) => ({
-        uploads: state.uploads.filter(u => u.id !== id)
-      })),
+  function updateProgress(
+    id: string,
+    uploadedBytes: number,
+    totalSize: number,
+    status?: UploadStatus
+  ): void {
+    uploads.value = uploads.value.map((u) => {
+      if (u.id === id) {
+        const chunkProgress = Math.round((uploadedBytes / totalSize) * 50);
+        return {
+          ...u,
+          uploadedBytes,
+          progress: status === 'assembling' ? u.progress : chunkProgress,
+          ...(status && { status }),
+        };
+      }
+      return u;
+    });
+  }
 
-      clearCompleted: () => set((state) => ({
-        uploads: state.uploads.filter(u => u.status === 'pending' || u.status === 'uploading' || u.status === 'assembling')
-      })),
-    }),
-    {
-      name: 'sm-upload-store',
-      partialize: (state) => ({
-        // We cannot serialize `File` objects to JSON.
-        // We omit the file, and mark any unfinished uploads as 'error'
-        // since they were interrupted by the page reload.
-        uploads: state.uploads.map(u => {
-          const { file: _file, ...rest } = u;
-          if (['pending', 'uploading', 'assembling'].includes(rest.status)) {
-            return { ...rest, status: 'error' as const, error: 'Upload interrupted by page reload' };
-          }
-          return rest;
-        })
-      })
+  function setStatus(
+    id: string,
+    status: UploadStatus,
+    error?: string,
+    finalFileName?: string
+  ): void {
+    uploads.value = uploads.value.map((u) => {
+      if (u.id === id) {
+        const progress = status === 'success' ? 100 : u.progress;
+        return {
+          ...u,
+          status,
+          error,
+          progress,
+          ...(finalFileName && { finalFileName }),
+        };
+      }
+      return u;
+    });
+  }
+
+  function updateAssemblyProgress(id: string, progress: number): void {
+    const target = uploads.value.find((u) => u.id === id);
+    if (target) {
+      target.progress = Math.max(target.progress, progress);
     }
-  )
-)
+  }
+
+  function removeUpload(id: string): void {
+    uploads.value = uploads.value.filter((u) => u.id !== id);
+  }
+
+  function clearCompleted(): void {
+    uploads.value = uploads.value.filter(
+      (u) =>
+        u.status === 'pending' ||
+        u.status === 'uploading' ||
+        u.status === 'assembling'
+    );
+  }
+
+  return {
+    uploads,
+    addUpload,
+    updateProgress,
+    updateAssemblyProgress,
+    setStatus,
+    removeUpload,
+    clearCompleted,
+  };
+});
+
+export type UploadStore = ReturnType<typeof useUploadStore>;

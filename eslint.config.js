@@ -1,36 +1,37 @@
 import js from '@eslint/js';
-import reactHooks from 'eslint-plugin-react-hooks';
-import reactRefresh from 'eslint-plugin-react-refresh';
+import pluginVue from 'eslint-plugin-vue';
 import globals from 'globals';
 import { configs } from 'typescript-eslint';
+import vueParser from 'vue-eslint-parser';
+import tsParser from '@typescript-eslint/parser';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
-    { ignores: ['src/resources', 'vendor', 'node_modules'] },
+    { ignores: ['src/resources', 'resources', 'vendor', 'node_modules'] },
     {
-        files: ['src/ts/**/*.{ts,tsx}'],
+        files: ['src/ts/**/*.{ts,vue}'],
         ...js.configs.recommended,
     },
-    ...configs.recommended.map((c) => ({ ...c, files: ['src/ts/**/*.{ts,tsx}'] })),
+    ...configs.recommended.map((c) => ({ ...c, files: ['src/ts/**/*.{ts,vue}'] })),
+    ...pluginVue.configs['flat/recommended'],
     {
-        files: ['src/ts/**/*.{ts,tsx}'],
-        plugins: { 'react-hooks': reactHooks },
-        rules: reactHooks.configs['recommended-latest'].rules,
+        files: ['src/ts/**/*.vue'],
+        languageOptions: {
+            parser: vueParser,
+            parserOptions: {
+                parser: tsParser,
+                extraFileExtensions: ['.vue'],
+                sourceType: 'module',
+            },
+        },
     },
     {
-        files: ['src/ts/**/*.{ts,tsx}'],
+        files: ['src/ts/**/*.{ts,vue}'],
         languageOptions: {
             ecmaVersion: 2020,
             globals: globals.browser,
         },
-        plugins: {
-            'react-refresh': reactRefresh,
-        },
         rules: {
-            'react-refresh/only-export-components': [
-                'warn',
-                { allowConstantExport: true },
-            ],
             '@typescript-eslint/no-unused-vars': [
                 'error',
                 {
@@ -39,6 +40,7 @@ export default [
                     destructuredArrayIgnorePattern: '^_',
                 },
             ],
+            'vue/multi-word-component-names': 'off',
         },
     },
 ]

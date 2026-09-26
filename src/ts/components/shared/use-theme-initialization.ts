@@ -1,29 +1,37 @@
-import { useContainer } from "@ts/container";
-import { useUiStore } from "@ts/stores";
-import { useEffect } from "react";
+import { useService } from '@ts/service-container';
+import { useUiStore } from '@ts/stores';
+import { onMounted, onUnmounted, watch } from 'vue';
 
 export function useThemeInitialization(): void {
-  const { theme } = useUiStore()
-  const container = useContainer();
-  const themeService = container.resolve('themeService');
+  const uiStore = useUiStore();
+  const themeService = useService('themeService');
 
-  useEffect(() => {
+  function applyTheme(theme: string): void {
     if (theme === 'auto') {
       document.documentElement.dataset.theme = themeService.getSystemTheme();
     } else {
       document.documentElement.dataset.theme = theme;
     }
-  }, [theme, themeService]);
+  }
 
-  useEffect(() => {
-    const cleanup = themeService.listenToSystemThemeChanges(() => {
-      if (themeService.getTheme() === 'auto') {
+  watch(
+    () => uiStore.theme,
+    (theme) => {
+      applyTheme(theme);
+    },
+    { immediate: true }
+  );
+
+  let cleanup: (() => void) | undefined;
+  onMounted(() => {
+    cleanup = themeService.listenToSystemThemeChanges(() => {
+      if (uiStore.theme === 'auto') {
         document.documentElement.dataset.theme = themeService.getSystemTheme();
       }
     });
-    return () => {
-      cleanup?.();
-    };
-  }, [themeService]);
+  });
 
+  onUnmounted(() => {
+    cleanup?.();
+  });
 }

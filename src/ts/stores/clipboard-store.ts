@@ -1,22 +1,24 @@
-import { create } from 'zustand';
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
-interface ClipboardState {
-  hasEntries: boolean
-  isCutMode: boolean
+export const useClipboardStore = defineStore('clipboard', () => {
+  const hasEntries = ref(false);
+  const isCutMode = ref(false);
 
-  setHasEntries: (hasEntries: boolean) => void
-  setIsCutMode: (isCutMode: boolean) => void
-}
+  function setHasEntries(value: boolean): void {
+    hasEntries.value = value;
+  }
 
-export const useClipboardStore = create<ClipboardState>((set) => ({
-  hasEntries: false,
-  isCutMode: false,
+  function setIsCutMode(value: boolean): void {
+    isCutMode.value = value;
+  }
 
-  setHasEntries: (hasEntries: boolean): void => {
-    set({ hasEntries });
-  },
+  return {
+    hasEntries,
+    isCutMode,
+    setHasEntries,
+    setIsCutMode,
+  };
+});
 
-  setIsCutMode: (isCutMode: boolean): void => {
-    set({ isCutMode });
-  },
-}));
+export type ClipboardStore = ReturnType<typeof useClipboardStore>;

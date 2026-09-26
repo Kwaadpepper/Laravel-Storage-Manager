@@ -1,33 +1,32 @@
-import { AnchorName, ContextualMenuEntry, useContextualMenuStore } from "@ts/stores";
+import { AnchorName, ContextualMenuEntry, ContextualMenuStore } from "@ts/stores";
 
 export class ContextualMenuService {
-  private readonly contextualMenuList: Map<AnchorName, ContextualMenuEntry[]> = new Map()
+  private readonly contextualMenuList: Map<AnchorName, ContextualMenuEntry[]> = new Map();
 
   constructor(
-    private readonly contextualMenuStore: typeof useContextualMenuStore,
-  ) {
-  }
+    private readonly contextualMenuStore: ContextualMenuStore,
+  ) {}
 
   public register(anchor: AnchorName, entries: ContextualMenuEntry[]): void {
-    this.contextualMenuList.set(anchor, [...entries])
+    this.contextualMenuList.set(anchor, [...entries]);
   }
 
   public unregister(anchor: AnchorName): void {
-    this.contextualMenuList.delete(anchor)
+    this.contextualMenuList.delete(anchor);
   }
 
   public open(anchor: AnchorName): boolean {
-    const entries = this.contextualMenuList.get(anchor) || []
+    const entries = this.contextualMenuList.get(anchor) || [];
     if (entries.length === 0) {
-      this.contextualMenuStore.getState().closeMenu()
-      return false
+      this.contextualMenuStore.closeMenu();
+      return false;
     }
 
-    this.contextualMenuStore.getState().setMenu(anchor, entries)
-    return true
+    this.contextualMenuStore.setMenu(anchor, entries);
+    return true;
   }
 
   public close(): void {
-    this.contextualMenuStore.getState().closeMenu()
+    this.contextualMenuStore.closeMenu();
   }
 }

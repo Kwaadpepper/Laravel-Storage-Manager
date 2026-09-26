@@ -1,12 +1,18 @@
 import { Disk } from '@ts/types';
-import { create } from 'zustand';
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
-interface DiskState {
-  currentDisk: Disk | null
-  setCurrentDisk: (disk: Disk) => void
-}
+export const useDiskStore = defineStore('disk', () => {
+  const currentDisk = ref<Disk | null>(null);
 
-export const useDiskStore = create<DiskState>((set) => ({
-  currentDisk: null,
-  setCurrentDisk: (disk) => set({ currentDisk: disk }),
-}))
+  function setCurrentDisk(disk: Disk): void {
+    currentDisk.value = disk;
+  }
+
+  return {
+    currentDisk,
+    setCurrentDisk,
+  };
+});
+
+export type DiskStore = ReturnType<typeof useDiskStore>;

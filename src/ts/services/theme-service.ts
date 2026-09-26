@@ -1,19 +1,17 @@
-import { Theme, useUiStore } from "@ts/stores";
+import { Theme, UiStore } from "@ts/stores";
 
 const AVAILABLE_THEMES: Theme[] = ['auto', 'light', 'dark'];
 
 export function isValidTheme(theme: string): theme is Theme {
-  return AVAILABLE_THEMES.includes(theme as Theme)
+  return AVAILABLE_THEMES.includes(theme as Theme);
 }
 
 export class ThemeService {
-
   private readonly matchMedia = globalThis.matchMedia?.('(prefers-color-scheme: dark)');
 
   constructor(
-    private readonly uiStore: typeof useUiStore,
-  ) {
-  }
+    private readonly uiStore: UiStore,
+  ) {}
 
   public availableThemes(): readonly Theme[] {
     return AVAILABLE_THEMES;
@@ -24,11 +22,11 @@ export class ThemeService {
   }
 
   public getTheme(): Theme {
-    return this.uiStore.getState().theme;
+    return this.uiStore.theme;
   }
 
   public setTheme(theme: Theme): void {
-    this.uiStore.getState().setTheme(theme);
+    this.uiStore.setTheme(theme);
   }
 
   public listenToSystemThemeChanges(handler: (prefersDark: boolean) => void): (() => void) | undefined {

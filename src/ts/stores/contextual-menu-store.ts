@@ -1,61 +1,57 @@
 import { uniqueId } from '@ts/tools';
+import { defineStore } from 'pinia';
 import slugify from 'slugify';
-import { create } from 'zustand';
+import { ref } from 'vue';
 
-export type AnchorName = string & { type: 'AnchorName' }
+export type AnchorName = string & { type: 'AnchorName' };
 
 export function toAnchorName(name: string): AnchorName {
-  const slug = slugify(name, { lower: true, strict: true }) || 'root'
-  return `--cm-${slug}` as AnchorName
+  const slug = slugify(name, { lower: true, strict: true }) || 'root';
+  return `--cm-${slug}` as AnchorName;
 }
 
 export interface ContextualMenuItem {
-  label: string
-  onClick: () => void
+  label: string;
+  onClick: () => void;
 }
 
 export interface ContextualMenuSeparator {
-  separator: true
+  separator: true;
 }
 
-export type ContextualMenuEntry = ContextualMenuItem | ContextualMenuSeparator
+export type ContextualMenuEntry = ContextualMenuItem | ContextualMenuSeparator;
 
-interface ContextMenuState {
-  id: string,
-  anchorName: AnchorName,
-  visible: boolean,
-  entries: (ContextualMenuEntry & { id: string })[]
+export const useContextualMenuStore = defineStore('contextualMenu', () => {
+  const id = ref(uniqueId());
+  const anchorName = ref<AnchorName>(toAnchorName(''));
+  const visible = ref(false);
+  const entries = ref<(ContextualMenuEntry & { id: string })[]>([]);
 
-  setMenu: (
-    anchorName: AnchorName,
-    entries: ContextualMenuEntry[]
-  ) => void
-
-  closeMenu: () => void
-}
-
-export const useContextualMenuStore = create<ContextMenuState>((set) => ({
-  id: uniqueId(),
-  anchorName: toAnchorName(''),
-  visible: false,
-  entries: [],
-
-  setMenu: (
-    anchorName: AnchorName,
+  function setMenu(
+    newAnchorName: AnchorName,
     forEntries: ContextualMenuEntry[]
-  ): void => {
-    const entries: (ContextualMenuEntry & { id: string })[] = forEntries.map((entry) => ({
-      ...entry, id: uniqueId()
+  ): void {
+    entries.value = forEntries.map((entry) => ({
+      ...entry,
+      id: uniqueId(),
     }));
+    anchorName.value = newAnchorName;
+    visible.value = true;
+  }
 
-    set(() => ({
-      anchorName,
-      visible: true,
-      entries
-    }));
-  },
+  function closeMenu(): void {
+    visible.value = false;
+    entries.value = [];
+  }
 
-  closeMenu: (): void => {
-    set({ visible: false, entries: [] });
-  },
-}))
+  return {
+    id,
+    anchorName,
+    visible,
+    entries,
+    setMenu,
+    closeMenu,
+  };
+});
+
+export type ContextualMenuStore = ReturnType<typeof useContextualMenuStore>;
