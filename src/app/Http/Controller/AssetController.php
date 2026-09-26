@@ -10,11 +10,11 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AssetController extends Controller
 {
-    private const IMAGES_PATH = __DIR__ . '/../../../../resources/images';
+    private const string IMAGES_PATH = __DIR__ . '/../../../../resources/images';
 
-    private const CSS_PATH = __DIR__ . '/../../../../resources/css';
+    private const string CSS_PATH = __DIR__ . '/../../../../resources/css';
 
-    private const JS_PATH = __DIR__ . '/../../../../resources/js';
+    private const string JS_PATH = __DIR__ . '/../../../../resources/js';
 
     public function __construct(
         private readonly PathNormalizer $pathNormalizer,

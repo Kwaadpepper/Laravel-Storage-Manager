@@ -40,7 +40,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 
 class BasicOperationsController extends Controller
 {
-    private const ERROR_PATH_NOT_FOUND = 'The specified path does not exist.';
+    private const string ERROR_PATH_NOT_FOUND = 'The specified path does not exist.';
 
     public function __construct(
         private readonly EventDispatcher $eventDispatcher,

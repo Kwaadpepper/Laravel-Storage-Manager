@@ -13,7 +13,7 @@ class MovePathRequest extends RequestWithPath
 {
     private PathNormalizer $pathNormalizer;
 
-    public function prepareForValidation()
+    public function prepareForValidation(): void
     {
         parent::prepareForValidation();
         $this->pathNormalizer = resolve(PathNormalizer::class);

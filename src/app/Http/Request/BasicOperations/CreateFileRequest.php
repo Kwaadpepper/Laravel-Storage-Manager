@@ -11,7 +11,7 @@ class CreateFileRequest extends RequestWithPath
 {
     private PathSanitizer $pathSanitizer;
 
-    public function prepareForValidation()
+    public function prepareForValidation(): void
     {
         parent::prepareForValidation();
         $this->pathSanitizer = resolve(PathSanitizer::class);
@@ -34,8 +34,8 @@ class CreateFileRequest extends RequestWithPath
             'name' => [
                 'required',
                 'string',
-                function (string $_, $value, callable $fail) {
-                    if (preg_match('/[\/\\\\]/', $value)) {
+                function (string $_, mixed $value, \Closure $fail): void {
+                    if (is_string($value) && preg_match('/[\/\\\\]/', $value)) {
                         $fail(trans('storage-manager::storage-manager.validation.invalid_file_name'));
                     }
                 },

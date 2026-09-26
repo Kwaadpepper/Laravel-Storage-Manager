@@ -11,7 +11,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 
 class ConfigRepository
 {
-    private const DEFAULT_PREFIX = 'sm';
+    private const string DEFAULT_PREFIX = 'sm';
 
     /**
      * @param  array<string,mixed>  $config

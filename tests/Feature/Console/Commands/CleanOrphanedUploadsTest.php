@@ -12,7 +12,6 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
 use Tests\TestCase;
 
 describe('CleanOrphanedUploadsCommand', function (): void {
-    assert($this instanceof TestCase);
     beforeEach(function (): void {
         assert($this instanceof TestCase);
         Storage::fake('temp_disk');

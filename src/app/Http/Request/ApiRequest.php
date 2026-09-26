@@ -13,7 +13,7 @@ abstract class ApiRequest extends FormRequest
 {
     protected AuthService $authService;
 
-    public function prepareForValidation()
+    public function prepareForValidation(): void
     {
         $this->authService  = resolve(AuthService::class);
     }
@@ -26,11 +26,10 @@ abstract class ApiRequest extends FormRequest
     /**
      * Handle a failed validation attempt.
      *
-     * @return void
      *
      * @throws ValidationException
      */
-    protected function failedValidation(Validator $validator)
+    protected function failedValidation(Validator $validator): void
     {
         $exception = ($validator instanceof \Illuminate\Validation\Validator)
             ? $validator->getException()

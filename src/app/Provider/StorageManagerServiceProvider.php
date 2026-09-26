@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Provider;
 
 use Composer\InstalledVersions;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
@@ -162,7 +163,7 @@ class StorageManagerServiceProvider extends ServiceProvider
 
         view()->composer(
             'storage-manager::*',
-            function ($view) {
+            function (View $view): void {
                 $configRepository = $this->app->make(ConfigRepository::class);
                 $composerJsonPath = __DIR__ . '/../../../composer.json';
                 $composer         = Arr::wrap(Cache::remember(

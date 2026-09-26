@@ -15,7 +15,7 @@ abstract class RequestWithDisk extends ApiRequest
 
     protected FileManager $fileManager;
 
-    public function prepareForValidation()
+    public function prepareForValidation(): void
     {
         parent::prepareForValidation();
         $this->diskService  = resolve(DiskService::class);
@@ -37,7 +37,7 @@ abstract class RequestWithDisk extends ApiRequest
     }
 
     #[\Override]
-    public function passedValidation()
+    public function passedValidation(): void
     {
         $disk = $this->getDisk();
         $this->fileManager->setActiveDisk($disk);

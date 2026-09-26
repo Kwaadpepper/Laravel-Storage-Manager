@@ -22,7 +22,7 @@ final class FileStream
     /**
      * @return resource
      */
-    public function stream()
+    public function stream(): mixed
     {
         if (! is_resource($this->stream) || get_resource_type($this->stream) !== 'stream') {
             throw new IllegalDomainStateException('The stream resource is no longer valid.');

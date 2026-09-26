@@ -14,7 +14,6 @@ use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Tests\TestCase;
 
 describe('UploadController', function (): void {
-    assert($this instanceof TestCase);
     beforeEach(function (): void {
         assert($this instanceof TestCase);
         Storage::fake('temp_disk');

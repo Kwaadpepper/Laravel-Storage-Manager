@@ -11,11 +11,11 @@ use php_user_filter;
 
 class UploadProgressFilter extends php_user_filter
 {
-    public const STATUS_FILE_PARAM = 'status_file_path';
+    public const string STATUS_FILE_PARAM = 'status_file_path';
 
-    public const TOTAL_SIZE_PARAM = 'total_size';
+    public const string TOTAL_SIZE_PARAM = 'total_size';
 
-    public const ON_PROGRESS_PARAM = 'on_progress';
+    public const string ON_PROGRESS_PARAM = 'on_progress';
 
     private int $bytesRead = 0;
 
@@ -44,7 +44,7 @@ class UploadProgressFilter extends php_user_filter
         return true;
     }
 
-    public function filter($in, $out, &$consumed, $closing): int
+    public function filter(mixed $in, mixed $out, mixed &$consumed, bool $closing): int
     {
         while ($bucket = stream_bucket_make_writeable($in)) {
             $this->bytesRead += $bucket->datalen;

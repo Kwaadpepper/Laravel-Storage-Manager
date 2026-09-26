@@ -19,7 +19,6 @@ beforeEach(function () use (&$disk): void {
 });
 
 describe('initialization', function (): void {
-    assert($this instanceof TestCase);
     it('initializes the file manager', function (): void {
         assert($this instanceof TestCase);
         // Given
@@ -36,7 +35,6 @@ describe('initialization', function (): void {
 });
 
 describe('disk listing', function (): void {
-    assert($this instanceof TestCase);
     it('returns available disks', function (): void {
         assert($this instanceof TestCase);
         // Given
@@ -354,7 +352,6 @@ describe('move', function () use (&$disk): void {
 });
 
 describe('validation', function (): void {
-    assert($this instanceof TestCase);
     it('returns 422 when required fields are missing', function (): void {
         assert($this instanceof TestCase);
         // Given

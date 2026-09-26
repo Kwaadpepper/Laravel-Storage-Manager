@@ -15,7 +15,7 @@ class UploadChunkRequest extends ApiRequest
 
     protected ConfigRepository $configRepository;
 
-    public function prepareForValidation()
+    public function prepareForValidation(): void
     {
         parent::prepareForValidation();
         $this->configRepository = resolve(ConfigRepository::class);

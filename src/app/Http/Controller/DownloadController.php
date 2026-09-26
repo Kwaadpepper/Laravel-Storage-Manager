@@ -16,7 +16,7 @@ use Symfony\Component\Mime\MimeTypes;
 
 class DownloadController extends Controller
 {
-    private const OCTET_STREAM_MIME_TYPE = 'application/octet-stream';
+    private const string OCTET_STREAM_MIME_TYPE = 'application/octet-stream';
 
     public function __construct(
         private readonly FileManager $fileManager,

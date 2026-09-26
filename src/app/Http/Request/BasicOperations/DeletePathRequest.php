@@ -20,8 +20,8 @@ class DeletePathRequest extends RequestWithPath
             'path' => array_merge(
                 $parentRules['path'],
                 [
-                    function (string $_, $value, callable $fail) {
-                        if (preg_match('/^\/?$/', $value)) {
+                    function (string $_, mixed $value, \Closure $fail): void {
+                        if (is_string($value) && preg_match('/^\/?$/', $value)) {
                             $fail(trans('storage-manager::storage-manager.validation.cannot_delete_root_path'));
                         }
                     },

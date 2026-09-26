@@ -4,4 +4,4 @@ declare(strict_types=1);
 
 use Tests\TestCase;
 
-pest()->extend(TestCase::class)->in('Feature', 'Integration');
+pest()->extend(TestCase::class)->in('Feature', 'Integration', 'Unit');

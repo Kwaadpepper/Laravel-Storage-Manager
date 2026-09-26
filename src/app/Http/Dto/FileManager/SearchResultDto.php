@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Dto\FileManager;
 
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\SearchResult;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeFile;
 
@@ -19,7 +20,7 @@ final readonly class SearchResultDto implements Dto
     public function jsonSerialize(): mixed
     {
         return [
-            'directoriesToScan'  => array_map(fn ($path) => (string) $path, $this->searchResult->directoriesToScan),
+            'directoriesToScan'  => array_map(fn (Path $path): string => (string) $path, $this->searchResult->directoriesToScan),
             'matchedDirectories' => array_map(fn (PathTreeDirectory $dir) => [
                 'path'              => $dir->path->value,
                 'hasSubDirectories' => $dir->hasSubDirectories,

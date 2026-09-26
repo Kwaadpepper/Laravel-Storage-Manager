@@ -64,16 +64,16 @@ class FileManager
         $filesystem  = $this->getStorage();
         $directory   = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
         $files       = array_map(
-            fn ($file) => $this->pathNormalizer->normalizePath($file),
+            fn (string $file): string => $this->pathNormalizer->normalizePath($file),
             $filesystem->files($directory)
         );
         $directories = array_map(
-            fn ($dir) => $this->pathNormalizer->normalizePath($dir),
+            fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
             $filesystem->directories($directory)
         );
 
-        $files       = array_map(fn ($file) => new Path($file), $files);
-        $directories = array_map(fn ($dir) => new Path($dir), $directories);
+        $files       = array_map(fn (string $file): Path => new Path($file), $files);
+        $directories = array_map(fn (string $dir): Path => new Path($dir), $directories);
 
         return new PathContent(
             array_values($files),
@@ -86,16 +86,16 @@ class FileManager
         $filesystem  = $this->getStorage();
         $directory   = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
         $directories = array_map(
-            fn ($dir) => $this->pathNormalizer->normalizePath($dir),
+            fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
             $filesystem->directories($directory)
         );
 
         $files = array_map(
-            fn ($file) => $this->pathNormalizer->normalizePath($file),
+            fn (string $file): string => $this->pathNormalizer->normalizePath($file),
             $filesystem->files($directory)
         );
 
-        $directories = array_map(function ($dir) use ($filesystem) {
+        $directories = array_map(function (string $dir) use ($filesystem): PathTreeDirectory {
             $path       = new Path($dir);
             $properties = $this->getProperties($path);
 
@@ -110,7 +110,7 @@ class FileManager
             );
         }, $directories);
 
-        $files = array_map(function ($file) use ($filesystem) {
+        $files = array_map(function (string $file) use ($filesystem): PathTreeFile {
             $path       = new Path($file);
             $properties = $this->getProperties($path);
 
@@ -156,12 +156,12 @@ class FileManager
             $directory = $this->pathNormalizer->normalizePath($pathObj->value);
 
             $directories = array_map(
-                fn ($dir) => $this->pathNormalizer->normalizePath($dir),
+                fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
                 $filesystem->directories($directory)
             );
 
             $files = array_map(
-                fn ($file) => $this->pathNormalizer->normalizePath($file),
+                fn (string $file): string => $this->pathNormalizer->normalizePath($file),
                 $filesystem->files($directory)
             );
 
@@ -511,7 +511,7 @@ class FileManager
         $filesystem  = $this->getStorage();
         $parentDir   = dirname($normalizedPath);
         $directories = array_map(
-            fn ($dir) => $this->pathNormalizer->normalizePath($dir),
+            fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
             $filesystem->directories($parentDir)
         );
 

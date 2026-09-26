@@ -11,7 +11,7 @@ class RenamePathRequest extends RequestWithPath
 {
     private PathSanitizer $pathSanitizer;
 
-    public function prepareForValidation()
+    public function prepareForValidation(): void
     {
         parent::prepareForValidation();
         $this->pathSanitizer = resolve(PathSanitizer::class);

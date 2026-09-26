@@ -20,7 +20,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadSessionStatu
 
 class UploadSessionService
 {
-    private const METADATA_FILE = 'metadata.json';
+    private const string METADATA_FILE = 'metadata.json';
 
     public function __construct(private readonly UploadPathResolver $pathResolver)
     {

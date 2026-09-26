@@ -11,7 +11,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathPropertyFactory;
 
 class FilePropertyExtractor
 {
-    private const DRIVERS_WITHOUT_DIR_METADATA = ['s3', 'ftp'];
+    private const array DRIVERS_WITHOUT_DIR_METADATA = ['s3', 'ftp'];
 
     public function fileProperties(Disk $disk, Path $path): PathProperties
     {
