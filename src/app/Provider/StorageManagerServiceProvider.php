@@ -200,6 +200,7 @@ class StorageManagerServiceProvider extends ServiceProvider
                     'chunkMaxSize'        => $configRepository->getUploadChunkMaxSize(),
                     'duplicatePolicy'     => $configRepository->getUploadDuplicatePolicy()->value,
                     'sanitizeFilenames'   => $configRepository->shouldSanitizeUploadFileNames(),
+                    'supportsZip'         => extension_loaded('zip') && class_exists(\ZipArchive::class),
                     'routes'              => [
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),

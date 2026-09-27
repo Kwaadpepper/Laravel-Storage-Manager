@@ -59,8 +59,11 @@ Route::group([
             Route::post('create-file', [BasicOperationsController::class, 'createFile'])->name('create-file');
             Route::delete('delete', [BasicOperationsController::class, 'delete'])->name('delete');
             Route::put('rename', [BasicOperationsController::class, 'rename'])->name('rename');
+            Route::put('bulk-rename', [BasicOperationsController::class, 'bulkRename'])->name('bulk-rename');
             Route::post('copy', [BasicOperationsController::class, 'copy'])->name('copy');
             Route::post('move', [BasicOperationsController::class, 'move'])->name('move');
+            Route::post('zip', [BasicOperationsController::class, 'zip'])->name('zip');
+            Route::post('unzip', [BasicOperationsController::class, 'unzip'])->name('unzip');
 
             // Upload routes
             Route::group([

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
+use Kwaadpepper\LaravelStorageManager\Event\ArchiveExtracted;
+use Kwaadpepper\LaravelStorageManager\Event\BulkRenamed;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryCopied;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreated;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleted;
@@ -15,6 +17,8 @@ use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
 use Kwaadpepper\LaravelStorageManager\Event\FileDeleted;
 use Kwaadpepper\LaravelStorageManager\Event\FileMoved;
 use Kwaadpepper\LaravelStorageManager\Event\FileRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\ZipCreated;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\BulkRenamedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CopiedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedFileDto;
@@ -23,7 +27,10 @@ use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\ExistsDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\MovedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\PropertiesDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\RenamedDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\UnzippedDto;
+use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\ZippedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\BulkRenameRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CopyPathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateDirectoryRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\CreateFileRequest;
@@ -31,6 +38,8 @@ use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\DeletePathReq
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\MovePathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\PropertiesPathRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\RenamePathRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\UnzipRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\ZipRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
@@ -260,6 +269,63 @@ class BasicOperationsController extends Controller
         );
 
         return ApiResponse::json($this->presentMoved(), ApiResponse::HTTP_OK);
+    }
+
+    public function bulkRename(BulkRenameRequest $request): ApiResponse
+    {
+        $renames = $request->getRenames();
+        $results = $this->fileManager->bulkRename($renames);
+
+        foreach ($results as $item) {
+            $isDir = $this->fileManager->isDirectory(new Path($item['to']));
+            $this->eventDispatcher->dispatch(
+                $isDir ? DirectoryRenamed::class : FileRenamed::class,
+                [
+                    'old_path' => $item['from'],
+                    'new_path' => $item['to'],
+                ]
+            );
+        }
+
+        $this->eventDispatcher->dispatch(
+            BulkRenamed::class,
+            ['renamed' => $results]
+        );
+
+        return ApiResponse::json(new BulkRenamedDto($results), ApiResponse::HTTP_OK);
+    }
+
+    public function zip(ZipRequest $request): ApiResponse
+    {
+        $paths       = $request->getPaths();
+        $destination = $request->getDestination();
+
+        $archivePath = $this->fileManager->zip($paths, $destination);
+
+        $this->eventDispatcher->dispatch(
+            ZipCreated::class,
+            ['path' => $archivePath->value]
+        );
+
+        return ApiResponse::json(new ZippedDto($archivePath->value), ApiResponse::HTTP_CREATED);
+    }
+
+    public function unzip(UnzipRequest $request): ApiResponse
+    {
+        $archivePath    = $request->getPath();
+        $destinationDir = $request->getDestinationDir();
+
+        $this->fileManager->unzip($archivePath, $destinationDir);
+
+        $this->eventDispatcher->dispatch(
+            ArchiveExtracted::class,
+            [
+                'path'        => $archivePath->value,
+                'destination' => $destinationDir->value,
+            ]
+        );
+
+        return ApiResponse::json(new UnzippedDto($destinationDir->value), ApiResponse::HTTP_OK);
     }
 
     private function presentCopied(): CopiedDto

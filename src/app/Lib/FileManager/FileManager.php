@@ -591,6 +591,358 @@ class FileManager
         $filesystem->deleteDirectory($source);
     }
 
+    /**
+     * /**
+     * @param  array<int, array{from: Path, to: string}>  $renames
+     * @return array<int, array{from: string, to: string}>
+     *
+     * @throws FileOperationException
+     */
+    public function bulkRename(array $renames): array
+    {
+        $this->assertNotReadOnly();
+
+        $plan = $this->buildBulkRenamePlan($renames);
+
+        $sourcePaths = array_map(fn (array $p): string => $this->pathNormalizer->normalizePath($p['from']->value), $plan);
+        $hasOverlap  = false;
+        foreach ($plan as $p) {
+            $normTarget = $this->pathNormalizer->normalizePath($p['target']->value);
+            if (in_array($normTarget, $sourcePaths, true)) {
+                $hasOverlap = true;
+                break;
+            }
+        }
+
+        return $this->executeBulkRename($plan, $hasOverlap);
+    }
+
+    /**
+     * @param  array<int, array{from: Path, to: string}>  $renames
+     * @return array<int, array{from: Path, toName: string, target: Path}>
+     *
+     * @throws FileOperationException
+     */
+    private function buildBulkRenamePlan(array $renames): array
+    {
+        $plan = [];
+
+        foreach ($renames as $rename) {
+            $from           = $rename['from'];
+            $toName         = $rename['to'];
+            $normalizedFrom = $this->pathNormalizer->normalizePath($from->value);
+
+            if (! $this->isDirectory($from) && ! $this->isFile($from)) {
+                FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
+            }
+
+            $target = Path::appendTo(
+                new Path(dirname($normalizedFrom)),
+                $this->pathNormalizer->normalizePath($toName)
+            );
+
+            $plan[] = [
+                'from'   => $from,
+                'toName' => $toName,
+                'target' => $target,
+            ];
+        }
+
+        $targetPaths = array_map(fn (array $p): string => (string) $p['target'], $plan);
+        if (count($targetPaths) !== count(array_unique($targetPaths))) {
+            FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
+        }
+
+        $sourcePaths = array_map(fn (array $p): string => $this->pathNormalizer->normalizePath($p['from']->value), $plan);
+        foreach ($plan as $p) {
+            $normTarget = $this->pathNormalizer->normalizePath($p['target']->value);
+            if (! in_array($normTarget, $sourcePaths, true) && ($this->isDirectory($p['target']) || $this->isFile($p['target']))) {
+                FileOperationException::throwWith(
+                    $this->isDirectory($p['from'])
+                        ? FileOperationError::DIRECTORY_ALREADY_EXISTS
+                        : FileOperationError::FILE_ALREADY_EXISTS
+                );
+            }
+        }
+
+        return $plan;
+    }
+
+    /**
+     * @param  array<int, array{from: Path, toName: string, target: Path}>  $plan
+     * @return array<int, array{from: string, to: string}>
+     */
+    private function executeBulkRename(array $plan, bool $hasOverlap): array
+    {
+        $filesystem = $this->getStorage();
+        $result     = [];
+
+        if ($hasOverlap) {
+            $tempPlan = [];
+            foreach ($plan as $idx => $p) {
+                $tempName   = sprintf('.tmp_bulk_%s_%d', uniqid(), $idx);
+                $tempTarget = Path::appendTo(new Path(dirname($this->pathNormalizer->normalizePath($p['from']->value))), $tempName);
+                $filesystem->move(
+                    $this->pathNormalizer->normalizePath($p['from']->value),
+                    $this->pathNormalizer->normalizePath($tempTarget->value)
+                );
+                $tempPlan[] = [
+                    'temp'   => $tempTarget,
+                    'target' => $p['target'],
+                    'from'   => $p['from'],
+                ];
+            }
+
+            foreach ($tempPlan as $tp) {
+                $filesystem->move(
+                    $this->pathNormalizer->normalizePath($tp['temp']->value),
+                    $this->pathNormalizer->normalizePath($tp['target']->value)
+                );
+                $result[] = [
+                    'from' => (string) $tp['from'],
+                    'to'   => (string) $tp['target'],
+                ];
+            }
+        } else {
+            foreach ($plan as $p) {
+                $this->rename($p['from'], $p['toName']);
+                $result[] = [
+                    'from' => (string) $p['from'],
+                    'to'   => (string) $p['target'],
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    public function supportsZip(): bool
+    {
+        return extension_loaded('zip') && class_exists(\ZipArchive::class);
+    }
+
+    /**
+     * @param  Path[]  $paths
+     *
+     * @throws FileOperationException
+     */
+    public function zip(array $paths, Path $destinationZip): Path
+    {
+        $this->assertCanZip($paths, $destinationZip);
+
+        $tempZip = tempnam(sys_get_temp_dir(), 'sm_zip_');
+        if ($tempZip === false) {
+            FileOperationException::throwWith(FileOperationError::ARCHIVE_OPERATION_FAILED);
+        }
+
+        $zip = new \ZipArchive();
+        $res = $zip->open($tempZip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        if ($res !== true) {
+            if (file_exists($tempZip)) {
+                unlink($tempZip);
+            }
+            FileOperationException::throwWith(FileOperationError::ARCHIVE_OPERATION_FAILED);
+        }
+
+        $filesystem = $this->getStorage();
+        foreach ($paths as $path) {
+            $this->addPathToZip($zip, $filesystem, $path);
+        }
+
+        $zip->close();
+
+        $normDest = $this->pathNormalizer->normalizePath($destinationZip->value);
+        $fp       = fopen($tempZip, 'rb');
+        if (is_resource($fp)) {
+            $filesystem->writeStream($normDest, $fp);
+            fclose($fp);
+        }
+
+        if (file_exists($tempZip)) {
+            unlink($tempZip);
+        }
+
+        return $destinationZip;
+    }
+
+    /**
+     * @param  Path[]  $paths
+     *
+     * @throws FileOperationException
+     */
+    private function assertCanZip(array $paths, Path $destinationZip): void
+    {
+        $this->assertNotReadOnly();
+
+        if (! $this->supportsZip()) {
+            FileOperationException::throwWith(FileOperationError::ZIP_EXTENSION_NOT_AVAILABLE);
+        }
+
+        if ($this->exists($destinationZip)) {
+            FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
+        }
+
+        foreach ($paths as $path) {
+            if (! $this->exists($path)) {
+                FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
+            }
+        }
+    }
+
+    private function addPathToZip(\ZipArchive $zip, Filesystem $filesystem, Path $path): void
+    {
+        $normPath = $this->pathNormalizer->normalizePath($path->value);
+
+        if ($this->isFile($path)) {
+            $stream = $filesystem->readStream($normPath);
+            if (is_resource($stream)) {
+                $content = stream_get_contents($stream);
+                fclose($stream);
+                if ($content !== false) {
+                    $zip->addFromString(basename($normPath), $content);
+                }
+            }
+
+            return;
+        }
+
+        $baseDirName = basename($normPath);
+        $zip->addEmptyDir($baseDirName);
+
+        $allFiles = $filesystem->allFiles($normPath);
+        foreach ($allFiles as $file) {
+            $normFile = $this->pathNormalizer->normalizePath($file);
+            $relFile  = substr($normFile, strlen($normPath) + 1);
+            $stream   = $filesystem->readStream($normFile);
+            if (is_resource($stream)) {
+                $content = stream_get_contents($stream);
+                fclose($stream);
+                if ($content !== false) {
+                    $zip->addFromString($baseDirName . '/' . $relFile, $content);
+                }
+            }
+        }
+
+        $allDirs = $filesystem->allDirectories($normPath);
+        foreach ($allDirs as $dir) {
+            $normDir = $this->pathNormalizer->normalizePath($dir);
+            $relDir  = substr($normDir, strlen($normPath) + 1);
+            $zip->addEmptyDir($baseDirName . '/' . $relDir);
+        }
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function unzip(Path $archivePath, Path $destinationDir): void
+    {
+        $this->assertCanUnzip($archivePath);
+
+        $filesystem  = $this->getStorage();
+        $normArchive = $this->pathNormalizer->normalizePath($archivePath->value);
+
+        $tempZip = tempnam(sys_get_temp_dir(), 'sm_unzip_');
+        if ($tempZip === false) {
+            FileOperationException::throwWith(FileOperationError::ARCHIVE_OPERATION_FAILED);
+        }
+
+        $sourceStream = $filesystem->readStream($normArchive);
+        $destStream   = fopen($tempZip, 'wb');
+        if (is_resource($sourceStream) && is_resource($destStream)) {
+            stream_copy_to_stream($sourceStream, $destStream);
+            fclose($destStream);
+            fclose($sourceStream);
+        }
+
+        $zip = new \ZipArchive();
+        $res = $zip->open($tempZip);
+        if ($res !== true) {
+            if (file_exists($tempZip)) {
+                unlink($tempZip);
+            }
+            FileOperationException::throwWith(FileOperationError::INVALID_ARCHIVE);
+        }
+
+        $normDestDir = $this->pathNormalizer->normalizePath($destinationDir->value);
+        if ($normDestDir !== '/' && ! $filesystem->exists($normDestDir)) {
+            $filesystem->makeDirectory($normDestDir);
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entryName = $zip->getNameIndex($i);
+            if ($entryName !== false) {
+                $this->extractZipEntry($zip, $filesystem, $entryName, $normDestDir, $tempZip);
+            }
+        }
+
+        $zip->close();
+        if (file_exists($tempZip)) {
+            unlink($tempZip);
+        }
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    private function assertCanUnzip(Path $archivePath): void
+    {
+        $this->assertNotReadOnly();
+
+        if (! $this->supportsZip()) {
+            FileOperationException::throwWith(FileOperationError::ZIP_EXTENSION_NOT_AVAILABLE);
+        }
+
+        if (! $this->exists($archivePath)) {
+            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
+        }
+
+        if (! str_ends_with(strtolower($archivePath->value), '.zip')) {
+            FileOperationException::throwWith(FileOperationError::INVALID_ARCHIVE);
+        }
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    private function extractZipEntry(
+        \ZipArchive $zip,
+        Filesystem $filesystem,
+        string $entryName,
+        string $normDestDir,
+        string $tempZip
+    ): void {
+        $cleanEntry = ltrim(str_replace('\\', '/', $entryName), '/');
+        $parts      = explode('/', $cleanEntry);
+        if (in_array('..', $parts, true)) {
+            $zip->close();
+            if (file_exists($tempZip)) {
+                unlink($tempZip);
+            }
+            FileOperationException::throwWith(FileOperationError::INVALID_PATH);
+        }
+
+        $targetPath = $normDestDir === '/' ? '/' . $cleanEntry : $normDestDir . '/' . $cleanEntry;
+        $targetPath = $this->pathNormalizer->normalizePath($targetPath);
+
+        if (str_ends_with($entryName, '/')) {
+            if (! $filesystem->exists($targetPath)) {
+                $filesystem->makeDirectory($targetPath);
+            }
+
+            return;
+        }
+
+        $parentDir = dirname($targetPath);
+        if ($parentDir !== '/' && ! $filesystem->exists($parentDir)) {
+            $filesystem->makeDirectory($parentDir);
+        }
+        $entryStream = $zip->getStream($entryName);
+        if ($entryStream !== false) {
+            $filesystem->writeStream($targetPath, $entryStream);
+            fclose($entryStream);
+        }
+    }
+
     private function getStorage(): Filesystem
     {
         $disk = $this->getDisk();

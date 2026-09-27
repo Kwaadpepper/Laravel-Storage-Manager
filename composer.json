@@ -21,7 +21,6 @@
   ],
   "require": {
     "php": "^8.4",
-    "ext-zip": "*",
     "ext-json": "*",
     "laravel/framework": "^12.0|^13.0"
   },
@@ -42,6 +41,7 @@
     "squizlabs/php_codesniffer": "^4.0"
   },
   "suggest": {
+    "ext-zip": "Required to compress and extract zip archives",
     "league/flysystem-aws-s3-v3": "Required to use S3 storage",
     "league/flysystem-ftp": "Required to use FTP storage",
     "league/flysystem-sftp-v3": "Required to use SFTP storage"

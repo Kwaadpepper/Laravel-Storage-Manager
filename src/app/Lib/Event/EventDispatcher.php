@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\Event;
 
-use Illuminate\Events\Dispatcher;
+use Illuminate\Contracts\Events\Dispatcher;
 use Kwaadpepper\LaravelStorageManager\Service\AuthService;
 
 class EventDispatcher
