@@ -7,7 +7,8 @@ import { useContextualMenuRegistration } from '@ts/components/shared/use-context
 import { useService } from '@ts/service-container';
 import { ContextualMenuEntry, ModalState, toAnchorName, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
 import { TreeNodeFile } from '@ts/types';
-import { File as FileIcon } from 'lucide-vue-next';
+import FileIcon from '@ts/components/shared/FileIcon.vue';
+import { getFileTypeInfo } from '@ts/utils/file-type';
 import { computed } from 'vue';
 
 const props = withDefaults(
@@ -29,6 +30,7 @@ const clipboardService = useService('clipboardService');
 const toastService = useService('toastService');
 
 const anchorName = computed(() => toAnchorName(props.item.path));
+const fileType = computed(() => getFileTypeInfo(props.item.name, props.item.extension));
 
 async function download(): Promise<void> {
   try {
@@ -171,8 +173,9 @@ useContextualMenuRegistration(anchorName, entries);
     class="flex flex-col items-center gap-1 p-3 rounded-lg w-24 select-none"
   >
     <FileIcon
+      :name="item.name"
+      :extension="item.extension"
       :size="36"
-      class="text-info"
     />
     <span class="text-xs text-center truncate w-full">{{ item.name }}</span>
     <span class="text-xs text-base-content/50"><FileSize :bytes="item.size" /></span>
@@ -194,14 +197,15 @@ useContextualMenuRegistration(anchorName, entries);
     >
       <span class="flex items-center gap-2">
         <FileIcon
+          :name="item.name"
+          :extension="item.extension"
           :size="16"
-          class="text-info"
         />
         <span>{{ item.name }}</span>
       </span>
     </div>
     <div class="table-cell select-none p-2">
-      <span class="badge badge-ghost badge-sm">File</span>
+      <span class="badge badge-ghost badge-sm">{{ fileType.label }}</span>
     </div>
     <div class="table-cell select-none p-2">
       <FileSize :bytes="item.size" />

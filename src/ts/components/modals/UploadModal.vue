@@ -6,6 +6,7 @@ import { computed, ref } from 'vue';
 import { ModalState, useDiskStore, useFileManagerStore, useUiStore, useUploadStore, type UploadItem } from '@ts/stores';
 import { useService } from '@ts/service-container';
 import { useEscapeClose } from '@ts/tools';
+import FileIcon from '@ts/components/shared/FileIcon.vue';
 import { CheckCircle2, Clock, FileUp, FolderOpen, Loader2, X, XCircle } from 'lucide-vue-next';
 
 const uiStore = useUiStore();
@@ -154,6 +155,11 @@ const mainList = computed(() => [...activeUploads.value, ...finishedUploads.valu
               >
                 <div class="flex justify-between items-center">
                   <div class="min-w-0 flex flex-wrap items-center gap-2 pr-2">
+                    <FileIcon
+                      :name="upload.fileName"
+                      :size="16"
+                      class="shrink-0"
+                    />
                     <span
                       class="font-medium truncate text-sm"
                       :title="upload.fileName"
@@ -200,6 +206,11 @@ const mainList = computed(() => [...activeUploads.value, ...finishedUploads.valu
             >
               <div class="flex justify-between items-center">
                 <div class="min-w-0 flex flex-wrap items-center gap-2 pr-2">
+                  <FileIcon
+                    :name="upload.fileName"
+                    :size="16"
+                    class="shrink-0"
+                  />
                   <span
                     class="font-medium truncate text-sm"
                     :title="upload.fileName"

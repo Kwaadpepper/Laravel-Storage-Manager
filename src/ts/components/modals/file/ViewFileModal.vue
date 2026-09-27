@@ -3,6 +3,7 @@ defineOptions({
   name: 'ViewFileModal',
 });
 import { computed } from 'vue';
+import FileIcon from '@ts/components/shared/FileIcon.vue';
 import { Loader, X } from 'lucide-vue-next';
 import { useEscapeClose } from '@ts/tools';
 import {
@@ -52,8 +53,15 @@ useEscapeClose(close);
       style="height: 90vh; width: 90vw; max-width: 90vw"
     >
       <div class="flex items-center justify-between mb-2">
-        <h3 class="font-bold text-lg truncate">
-          {{ fileName || 'View File' }}
+        <h3 class="font-bold text-lg truncate flex items-center gap-2">
+          <FileIcon
+            v-if="fileName"
+            :name="fileName"
+            :extension="extension"
+            :size="20"
+            class="shrink-0"
+          />
+          <span>{{ fileName || 'View File' }}</span>
         </h3>
         <button
           class="btn btn-sm btn-circle btn-ghost shrink-0"
