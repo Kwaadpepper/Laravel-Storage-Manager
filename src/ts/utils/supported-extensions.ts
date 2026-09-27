@@ -15,4 +15,8 @@ export const SUPPORTED_TEXT_EXTENSIONS: readonly string[] = [
   'lock', 'ini', 'cfg', 'conf', 'csv', 'tsv'
 ];
 
+export const SUPPORTED_VIDEO_EXTENSIONS: readonly string[] = [
+  'mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v', 'mkv',
+];
+
 export const SUPPORTED_PDF_EXTENSIONS: readonly string[] = ['pdf'];
