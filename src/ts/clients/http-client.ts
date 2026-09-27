@@ -8,7 +8,7 @@ export enum HttpMethod {
   DELETE = 'DELETE',
 };
 
-export type RequestParameters = Record<string, string | string[] | boolean | number | null | undefined>
+export type RequestParameters = Record<string, unknown>;
 export type MultiPartRequestParameters = FormData
 export type CallResponse = Promise<Response>
 

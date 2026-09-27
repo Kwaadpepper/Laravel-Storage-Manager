@@ -35,6 +35,7 @@ export const useConfigStore = defineStore('config', () => {
   const chunkMaxSize = ref(1048576 * 20);
   const duplicatePolicy = ref<'overwrite' | 'auto_rename' | 'error'>('auto_rename');
   const sanitizeFilenames = ref(true);
+  const supportsZip = ref(false);
 
   function initialize(config: AppConfig): void {
     packageName.value = config.packageName;
@@ -50,6 +51,7 @@ export const useConfigStore = defineStore('config', () => {
     chunkMaxSize.value = config.chunkMaxSize;
     duplicatePolicy.value = config.duplicatePolicy;
     sanitizeFilenames.value = config.sanitizeFilenames;
+    supportsZip.value = config.supportsZip ?? false;
   }
 
   return {
@@ -66,6 +68,7 @@ export const useConfigStore = defineStore('config', () => {
     chunkMaxSize,
     duplicatePolicy,
     sanitizeFilenames,
+    supportsZip,
     initialize,
   };
 });

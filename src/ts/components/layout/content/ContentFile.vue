@@ -5,7 +5,7 @@ defineOptions({
 import FileSize from '@ts/components/shared/FileSize.vue';
 import { useContextualMenuRegistration } from '@ts/components/shared/use-contextual-menu-registration';
 import { useService } from '@ts/service-container';
-import { ContextualMenuEntry, ModalState, toAnchorName, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
+import { ContextualMenuEntry, ModalState, toAnchorName, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
 import { TreeNodeFile } from '@ts/types';
 import { File as FileIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -20,6 +20,7 @@ const props = withDefaults(
   }
 );
 
+const configStore = useConfigStore();
 const uiStore = useUiStore();
 const fileManagerStore = useFileManagerStore();
 const diskStore = useDiskStore();
@@ -52,6 +53,17 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     },
   },
   { label: 'Download', onClick: () => void download() },
+  ...(configStore.supportsZip && props.item.name.toLowerCase().endsWith('.zip')
+    ? [
+        {
+          label: 'Extract Archive...',
+          onClick: () => {
+            uiStore.targetArchiveFilePath = props.item.path;
+            uiStore.unzipModal = ModalState.Opened;
+          },
+        },
+      ]
+    : []),
   { separator: true },
   {
     label: 'Cut',
@@ -113,6 +125,19 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       ]
     : []),
   { separator: true },
+  ...(configStore.supportsZip
+    ? [
+        {
+          label: 'Compress to Zip...',
+          onClick: () => {
+            if (!fileManagerStore.selectedNodes[props.item.path]) {
+              fileManagerStore.selectNodes(props.item);
+            }
+            uiStore.zipModal = ModalState.Opened;
+          },
+        },
+      ]
+    : []),
   {
     label: 'Rename',
     onClick: () => {

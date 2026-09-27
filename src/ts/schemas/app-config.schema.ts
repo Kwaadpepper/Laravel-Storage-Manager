@@ -19,6 +19,7 @@ export const appConfigSchema = z.object({
   chunkMaxSize: z.number(),
   duplicatePolicy: z.enum(['overwrite', 'auto_rename', 'error']),
   sanitizeFilenames: z.boolean(),
+  supportsZip: z.boolean().default(false),
   routes: z.object({
     disksSelect: z.url(),
     fmUploadInit: z.url(),

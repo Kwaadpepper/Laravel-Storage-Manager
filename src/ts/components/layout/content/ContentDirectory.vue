@@ -4,7 +4,7 @@ defineOptions({
 });
 import { useContextualMenuRegistration } from '@ts/components/shared/use-contextual-menu-registration';
 import { useService } from '@ts/service-container';
-import { ContextualMenuEntry, ModalState, toAnchorName, useClipboardStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
+import { ContextualMenuEntry, ModalState, toAnchorName, useClipboardStore, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
 import { rootPath, TreeNodeDirectory } from '@ts/types';
 import { Folder, FolderOpen } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -19,6 +19,7 @@ const props = withDefaults(
   }
 );
 
+const configStore = useConfigStore();
 const uiStore = useUiStore();
 const fileManagerStore = useFileManagerStore();
 const clipboardStore = useClipboardStore();
@@ -114,6 +115,19 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     },
   },
   { separator: true },
+  ...(configStore.supportsZip
+    ? [
+        {
+          label: 'Compress to Zip...',
+          onClick: () => {
+            if (!fileManagerStore.selectedNodes[props.item.path]) {
+              fileManagerStore.selectNodes(props.item);
+            }
+            uiStore.zipModal = ModalState.Opened;
+          },
+        },
+      ]
+    : []),
   {
     label: 'Rename',
     onClick: () => {

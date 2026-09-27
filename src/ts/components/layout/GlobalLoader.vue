@@ -62,6 +62,10 @@ function getActionLabel(type: string): string {
       return 'Renaming';
     case 'CREATE':
       return 'Creating';
+    case 'ZIP':
+      return 'Archiving';
+    case 'UNZIP':
+      return 'Extracting';
     default:
       return 'Copying';
   }

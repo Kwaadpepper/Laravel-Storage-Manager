@@ -13,6 +13,9 @@ import CreateFileModal from './file/CreateFileModal.vue';
 import RenameFileModal from './file/RenameFileModal.vue';
 import ViewFileModal from './file/ViewFileModal.vue';
 import UploadModal from './UploadModal.vue';
+import BulkRenameModal from './shared/BulkRenameModal.vue';
+import ZipModal from './shared/ZipModal.vue';
+import UnzipModal from './shared/UnzipModal.vue';
 
 const MODAL_CLOSE_DELAY = 250;
 
@@ -28,6 +31,9 @@ const fileViewMounted = useDelayedUnmount(() => uiStore.viewFileModal === ModalS
 const moveMounted = useDelayedUnmount(() => uiStore.moveModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const copyMounted = useDelayedUnmount(() => uiStore.copyModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const uploadMounted = useDelayedUnmount(() => uiStore.uploadFileModal === ModalState.Opened, MODAL_CLOSE_DELAY);
+const bulkRenameMounted = useDelayedUnmount(() => uiStore.bulkRenameModal === ModalState.Opened, MODAL_CLOSE_DELAY);
+const zipMounted = useDelayedUnmount(() => uiStore.zipModal === ModalState.Opened, MODAL_CLOSE_DELAY);
+const unzipMounted = useDelayedUnmount(() => uiStore.unzipModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 </script>
 
 <template>
@@ -47,4 +53,7 @@ const uploadMounted = useDelayedUnmount(() => uiStore.uploadFileModal === ModalS
     mode="copy"
   />
   <UploadModal v-if="uploadMounted" />
+  <BulkRenameModal v-if="bulkRenameMounted" />
+  <ZipModal v-if="zipMounted" />
+  <UnzipModal v-if="unzipMounted" />
 </template>

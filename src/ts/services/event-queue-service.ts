@@ -1,7 +1,7 @@
 import { ActionStore } from "@ts/stores";
 import { NavigationService } from "./navigation-service";
 
-export type EventType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE';
+export type EventType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE' | 'ZIP' | 'UNZIP';
 
 export interface FileEvent {
   id: string;

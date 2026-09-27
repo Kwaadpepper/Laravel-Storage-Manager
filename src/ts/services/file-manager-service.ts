@@ -217,6 +217,29 @@ export class FileManagerService {
     });
   }
 
+  async bulkRename(renames: Array<{ from: Path; to: string }>): Promise<void> {
+    return this.apiService.put(`${this.prefix}/bulk-rename`, {
+      disk: this.getDisk(),
+      renames,
+    });
+  }
+
+  async zip(paths: Path[], destination: string): Promise<void> {
+    return this.apiService.post(`${this.prefix}/zip`, {
+      disk: this.getDisk(),
+      paths,
+      destination,
+    });
+  }
+
+  async unzip(path: Path, destinationDir?: Path): Promise<void> {
+    return this.apiService.post(`${this.prefix}/unzip`, {
+      disk: this.getDisk(),
+      path,
+      ...(destinationDir ? { destinationDir } : {}),
+    });
+  }
+
   private remapValidationError<TFieldName extends string>(
     error: ValidationError,
     fieldMap: Record<string, TFieldName>

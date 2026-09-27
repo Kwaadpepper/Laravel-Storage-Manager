@@ -55,8 +55,12 @@ export const useUiStore = defineStore('ui', () => {
   const viewFileModal = ref<ModalState>(ModalState.Closed);
   const moveModal = ref<ModalState>(ModalState.Closed);
   const copyModal = ref<ModalState>(ModalState.Closed);
+  const bulkRenameModal = ref<ModalState>(ModalState.Closed);
+  const zipModal = ref<ModalState>(ModalState.Closed);
+  const unzipModal = ref<ModalState>(ModalState.Closed);
   const targetDirectoryPath = ref<Path | null>(null);
   const targetFilePath = ref<Path | null>(null);
+  const targetArchiveFilePath = ref<Path | null>(null);
   const viewMode = ref<ViewMode>(getLocalStorageViewMode());
   const treeVisible = ref<boolean>(getLocalStorageTreeVisible());
 
@@ -87,8 +91,12 @@ export const useUiStore = defineStore('ui', () => {
     viewFileModal,
     moveModal,
     copyModal,
+    bulkRenameModal,
+    zipModal,
+    unzipModal,
     targetDirectoryPath,
     targetFilePath,
+    targetArchiveFilePath,
     viewMode,
     treeVisible,
     setTheme,

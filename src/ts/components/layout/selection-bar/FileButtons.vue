@@ -3,15 +3,16 @@ defineOptions({
   name: 'FileButtons',
 });
 import { useService } from '@ts/service-container';
-import { ModalState, useUiStore } from '@ts/stores';
+import { ModalState, useConfigStore, useUiStore } from '@ts/stores';
 import { isFile, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
-import { Download, Eye } from 'lucide-vue-next';
+import { ArchiveRestore, Download, Eye } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
   selectedNodes: (TreeNodeDirectory | TreeNodeFile)[];
 }>();
 
+const configStore = useConfigStore();
 const uiStore = useUiStore();
 const downloadService = useService('downloadService');
 const toastService = useService('toastService');
@@ -23,6 +24,16 @@ const firstSelectedNode = computed<TreeNodeDirectory | TreeNodeFile | null>(
 const firstNodeIsFile = computed(
   () => firstSelectedNode.value !== null && isFile(firstSelectedNode.value)
 );
+const isZipFile = computed(
+  () => firstNodeIsFile.value && (firstSelectedNode.value?.name.toLowerCase().endsWith('.zip') ?? false)
+);
+
+function onClickExtract(): void {
+  if (firstSelectedNode.value) {
+    uiStore.targetArchiveFilePath = firstSelectedNode.value.path;
+    uiStore.unzipModal = ModalState.Opened;
+  }
+}
 
 function onClickView(): void {
   const node = firstSelectedNode.value;
@@ -62,6 +73,16 @@ async function onClickDownload(): Promise<void> {
     >
       <Eye :size="14" />
       <span class="hidden sm:inline">View</span>
+    </button>
+    <button
+      v-if="configStore.supportsZip && isZipFile"
+      type="button"
+      class="btn btn-ghost btn-xs"
+      title="Extract Archive"
+      @click="onClickExtract"
+    >
+      <ArchiveRestore :size="14" />
+      <span class="hidden sm:inline">Extract</span>
     </button>
     <button
       type="button"

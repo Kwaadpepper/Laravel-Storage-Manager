@@ -5,7 +5,7 @@ defineOptions({
 import { useService } from '@ts/service-container';
 import { ModalState, useConfigStore, useDiskStore, useUiStore } from '@ts/stores';
 import { isDirectory, TreeNode } from '@ts/types';
-import { CopyPlus, FolderOutput, Link, Pencil, Trash2 } from 'lucide-vue-next';
+import { Archive, CopyPlus, FolderOutput, Link, Pencil, SpellCheck, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -108,14 +108,39 @@ function onClickDelete(): void {
     </button>
 
     <button
+      v-if="!hasMultipleSelection"
       type="button"
       class="btn btn-ghost btn-xs"
       title="Rename"
-      :disabled="hasMultipleSelection || isReadOnly"
+      :disabled="isReadOnly"
       @click="onClickRename"
     >
       <Pencil :size="14" />
       <span class="hidden sm:inline">Rename</span>
+    </button>
+
+    <button
+      v-else
+      type="button"
+      class="btn btn-ghost btn-xs"
+      title="Bulk Rename"
+      :disabled="isReadOnly"
+      @click="uiStore.bulkRenameModal = ModalState.Opened"
+    >
+      <SpellCheck :size="14" />
+      <span class="hidden sm:inline">Bulk Rename</span>
+    </button>
+
+    <button
+      v-if="configStore.supportsZip"
+      type="button"
+      class="btn btn-ghost btn-xs"
+      title="Compress to Zip"
+      :disabled="isReadOnly"
+      @click="uiStore.zipModal = ModalState.Opened"
+    >
+      <Archive :size="14" />
+      <span class="hidden sm:inline">Zip</span>
     </button>
 
     <button
