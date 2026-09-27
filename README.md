@@ -5,6 +5,25 @@
 
 Laravel File Manager with multiple storages handling
 
+## Features
+
+- **Multi-Storage Management**: Seamlessly browse and manage files across Local, S3, FTP, SFTP, and any custom Flysystem disk.
+- **Chunked Resumable Uploads**: Reliable chunked file upload pipeline with background assembly progress tracking and duplicate handling policies (`auto_rename`, `overwrite`, `error`).
+- **Media Streaming & Viewers**:
+  - **Audio & Video Streaming**: HTTP 206 Partial Content range request support for smooth playback and seeking of large audio and video files.
+  - **Image Viewer**: Built-in full-size image viewer with quick action to crop images.
+  - **Code & Text Editor**: Code and text file viewer/editor with syntax highlighting.
+  - **PDF Viewer**: Embedded PDF document preview.
+- **Image Thumbnails**: Lazy-loaded, cached image thumbnails generated on-the-fly with WebP format and HTTP 304 (ETag) caching.
+- **Image Cropper**: Integrated image cropper powered by Cropper.js 2:
+  - Aspect ratio presets: Free, 1:1, 4:3, 16:9, 3:2, 2:3.
+  - Image transformations: 90° rotation, horizontal & vertical flip, zoom in/out, and reset.
+  - Save options: Save as a new copy with customizable filename or overwrite original.
+- **Archive Support**: Create ZIP archives and extract existing archives in place.
+- **Batch Operations**: Bulk rename, move, copy, and delete files or folders.
+- **Search & Filtering**: Search files and directories with extension and name filters.
+
+
 ## Requirements
 
 - PHP 8.4+

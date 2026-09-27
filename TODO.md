@@ -37,8 +37,8 @@
 
 ## Previews & viewers
 
-- [ ] Image thumbnails (lazy loaded and cached)
-- [ ] Image cropper
+- [x] Image thumbnails (lazy loaded and cached)
+- [x] Image cropper
 - [x] Audio viewer
 - [x] Video viewer
 - [ ] Video streaming (HLS / MPEG-Dash, optional ffmpeg transcoding)
