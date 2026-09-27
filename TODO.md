@@ -42,7 +42,7 @@
 - [ ] Audio viewer
 - [ ] Video viewer
 - [ ] Video streaming (HLS / MPEG-Dash, optional ffmpeg transcoding)
-- [ ] PDF viewer
+- [x] PDF viewer
 - [ ] File metadata view (EXIF, size, dates...)
 
 ## Image processing (server-side)

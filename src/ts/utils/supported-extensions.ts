@@ -14,3 +14,5 @@ export const SUPPORTED_TEXT_EXTENSIONS: readonly string[] = [
   'gitignore', 'dockerignore', 'editorconfig',
   'lock', 'ini', 'cfg', 'conf', 'csv', 'tsv'
 ];
+
+export const SUPPORTED_PDF_EXTENSIONS: readonly string[] = ['pdf'];

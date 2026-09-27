@@ -8,15 +8,17 @@ import { useEscapeClose } from '@ts/tools';
 import {
   SUPPORTED_AUDIO_EXTENSIONS as AUDIO_EXTENSIONS,
   SUPPORTED_IMAGE_EXTENSIONS as IMAGE_EXTENSIONS,
+  SUPPORTED_PDF_EXTENSIONS as PDF_EXTENSIONS,
   SUPPORTED_TEXT_EXTENSIONS as TEXT_EXTENSIONS,
 } from '../../../utils/supported-extensions';
 import ViewAudio from './ViewAudio.vue';
 import ViewImage from './ViewImage.vue';
+import ViewPdf from './ViewPdf.vue';
 import ViewText from './ViewText.vue';
 import ViewUnsupported from './ViewUnsupported.vue';
 import { useViewFileViewModel } from './useViewFileViewModel';
 
-type ViewerType = 'text' | 'image' | 'audio' | 'unsupported';
+type ViewerType = 'text' | 'image' | 'audio' | 'pdf' | 'unsupported';
 
 function detectViewer(extension: string | null): ViewerType {
   if (!extension) return 'unsupported';
@@ -24,6 +26,7 @@ function detectViewer(extension: string | null): ViewerType {
   if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
   if (AUDIO_EXTENSIONS.includes(ext)) return 'audio';
   if (TEXT_EXTENSIONS.includes(ext)) return 'text';
+  if (PDF_EXTENSIONS.includes(ext)) return 'pdf';
   return 'unsupported';
 }
 
@@ -94,6 +97,11 @@ useEscapeClose(close);
           />
           <ViewAudio
             v-else-if="viewerType === 'audio'"
+            :blob="blob"
+            :file-name="fileName"
+          />
+          <ViewPdf
+            v-else-if="viewerType === 'pdf'"
             :blob="blob"
             :file-name="fileName"
           />
