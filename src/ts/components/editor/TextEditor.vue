@@ -140,7 +140,7 @@ function handleLanguageChange(e: Event) {
 
 <template>
   <div class="flex flex-col h-full gap-1">
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 shrink-0">
       <label
         for="text-editor-language"
         class="text-xs text-base-content/60 shrink-0"
@@ -163,9 +163,10 @@ function handleLanguageChange(e: Event) {
       </select>
     </div>
 
-    <div class="flex-1 min-h-0 relative">
+    <div class="flex-1 min-h-0 relative rounded-lg border border-base-content/10 overflow-hidden">
       <component :is="'style'">
         {{ layoutCss }}
+        .prism-code-editor { height: 100%; width: 100%; }
       </component>
       <component :is="'style'">
         {{ searchCss }}

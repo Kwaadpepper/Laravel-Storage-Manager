@@ -50,9 +50,9 @@ useEscapeClose(close);
   >
     <div
       class="modal-box flex flex-col"
-      style="height: 90vh; width: 90vw; max-width: 90vw"
+      style="height: 90vh; max-height: 90vh; width: 90vw; max-width: 90vw; overflow: hidden"
     >
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-2 shrink-0">
         <h3 class="font-bold text-lg truncate flex items-center gap-2">
           <FileIcon
             v-if="fileName"
@@ -73,7 +73,7 @@ useEscapeClose(close);
         </button>
       </div>
 
-      <div class="flex-1 min-h-0">
+      <div class="flex-1 min-h-0 overflow-hidden">
         <div
           v-if="loading"
           class="flex items-center justify-center h-full text-base-content/50 gap-2"
@@ -120,7 +120,7 @@ useEscapeClose(close);
         </template>
       </div>
 
-      <div class="flex justify-end mt-2">
+      <div class="flex justify-end mt-2 shrink-0">
         <button
           class="btn"
           type="button"

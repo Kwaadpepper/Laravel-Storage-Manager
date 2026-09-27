@@ -83,9 +83,9 @@ const fileName = computed(() => {
   >
     <div
       class="modal-box flex flex-col"
-      :style="step === 'editor' ? { height: '90vh', width: '90vw', maxWidth: '90vw' } : {}"
+      :style="step === 'editor' ? { height: '90vh', maxHeight: '90vh', width: '90vw', maxWidth: '90vw', overflow: 'hidden' } : {}"
     >
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-2 shrink-0">
         <h3 class="font-bold text-lg">
           {{ fileName ? `Create - ${fileName}` : 'Create File' }}
         </h3>
@@ -111,7 +111,7 @@ const fileName = computed(() => {
       />
 
       <template v-else-if="step === 'editor'">
-        <div class="flex-1 min-h-0">
+        <div class="flex-1 min-h-0 overflow-hidden">
           <Suspense>
             <template #default>
               <TextEditor
@@ -127,7 +127,7 @@ const fileName = computed(() => {
           </Suspense>
         </div>
 
-        <div class="flex justify-end gap-2 mt-2">
+        <div class="flex justify-end gap-2 mt-2 shrink-0">
           <button
             class="btn btn-primary"
             type="button"
