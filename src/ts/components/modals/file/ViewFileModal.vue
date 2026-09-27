@@ -4,8 +4,9 @@ defineOptions({
 });
 import { computed } from 'vue';
 import FileIcon from '@ts/components/shared/FileIcon.vue';
-import { Loader, X } from 'lucide-vue-next';
+import { Crop, Loader, X } from 'lucide-vue-next';
 import { useEscapeClose } from '@ts/tools';
+import { ModalState, useConfigStore, useDiskStore, useUiStore } from '@ts/stores';
 import {
   SUPPORTED_AUDIO_EXTENSIONS as AUDIO_EXTENSIONS,
   SUPPORTED_IMAGE_EXTENSIONS as IMAGE_EXTENSIONS,
@@ -35,12 +36,28 @@ function detectViewer(extension: string | null): ViewerType {
 }
 
 const { isOpen, close, targetFilePath, blob, streamUrl, downloadUrl, loading, error } = useViewFileViewModel();
+const uiStore = useUiStore();
+const diskStore = useDiskStore();
+const configStore = useConfigStore();
+
+const isReadOnly = computed(() =>
+  diskStore.currentDisk ? configStore.readOnlyDisks.includes(diskStore.currentDisk) : false
+);
 
 const fileName = computed(() => (targetFilePath.value ? targetFilePath.value.split('/').pop() ?? '' : ''));
 const extension = computed(() =>
   fileName.value.includes('.') ? fileName.value.split('.').pop()?.toLowerCase() ?? null : null
 );
 const viewerType = computed(() => detectViewer(extension.value));
+
+function openCrop(): void {
+  const path = targetFilePath.value;
+  close();
+  if (path) {
+    uiStore.targetFilePath = path as import('@ts/types').Path;
+    uiStore.cropImageModal = ModalState.Opened;
+  }
+}
 
 useEscapeClose(close);
 </script>
@@ -66,14 +83,25 @@ useEscapeClose(close);
           />
           <span>{{ fileName || 'View File' }}</span>
         </h3>
-        <button
-          class="btn btn-sm btn-circle btn-ghost shrink-0"
-          type="button"
-          aria-label="Close"
-          @click="close"
-        >
-          <X :size="16" />
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            v-if="viewerType === 'image' && !isReadOnly"
+            class="btn btn-sm btn-outline gap-1"
+            type="button"
+            @click="openCrop"
+          >
+            <Crop :size="14" />
+            <span>Crop</span>
+          </button>
+          <button
+            class="btn btn-sm btn-circle btn-ghost shrink-0"
+            type="button"
+            aria-label="Close"
+            @click="close"
+          >
+            <X :size="16" />
+          </button>
+        </div>
       </div>
 
       <div class="flex-1 min-h-0 overflow-hidden">

@@ -14,6 +14,7 @@ export interface UploadItem {
   uploadedBytes: number;
   progress: number; // 0 to 100
   status: UploadStatus;
+  duplicatePolicy?: 'overwrite' | 'auto_rename' | 'error';
   error?: string;
 }
 

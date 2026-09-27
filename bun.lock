@@ -6,6 +6,7 @@
       "name": "laravel-storage-manager",
       "dependencies": {
         "@viselect/vanilla": "^3.10.1",
+        "cropperjs": "^2.2.0",
         "daisyui": "^5.5.20",
         "focus-trap": "^8.2.2",
         "lucide-vue-next": "^1.0.0",
@@ -28,7 +29,7 @@
         "eslint-plugin-vue": "^10.11.1",
         "globals": "^17.6.0",
         "tailwindcss": "^4.3.0",
-        "typescript": "npm:@typescript/typescript6@^6.0.2",
+        "typescript": "npm:typescript@6.0.3",
         "typescript-eslint": "^8.64.0",
         "vite": "^8.0.14",
         "vue-tsc": "^3.3.11",
@@ -43,6 +44,28 @@
     "@babel/parser": ["@babel/parser@7.29.9", "", { "dependencies": { "@babel/types": "^7.29.8" }, "bin": "./bin/babel-parser.js" }, "sha512-CjXrNHTnvqBVqHgdBysY3vk2T8tpJHb5/RMeHJBTyVa9xgugCB0CJTx/3oO8RV2QRQP391RWpB7D6hLjm8V9uA=="],
 
     "@babel/types": ["@babel/types@7.29.8", "", { "dependencies": { "@babel/helper-string-parser": "^7.29.7", "@babel/helper-validator-identifier": "^7.29.7" } }, "sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg=="],
+
+    "@cropper/element": ["@cropper/element@2.2.0", "", { "dependencies": { "@cropper/utils": "^2.2.0" } }, "sha512-Kckk7TiWt3Cf9MvSfmMx7ZOIuN1rzIUIwIPQSqSj0Sl6gj6opo+CPax+fREvyvVKEzAug7L0sQFZ0TL4H5LsNw=="],
+
+    "@cropper/element-canvas": ["@cropper/element-canvas@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-H0Ay2ZSZrxWLP/8fSudH9hghsgIJh9fCgEmpfzD7MnQbE8HdQKljnoRxbrjuFT7Y0rmf405Sp9PmNA6T4twegw=="],
+
+    "@cropper/element-crosshair": ["@cropper/element-crosshair@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-RXNhlsCd7lPTTjR2rfUEYghaL5bkqiU70qojJCUz1EIKfLriToDztjlsw3TZKJUBHYA+JOnmTBDFTnizoMUN1w=="],
+
+    "@cropper/element-grid": ["@cropper/element-grid@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-1hxHLi7Jrek/xxeG12a9+TO18Ot4pCG4V9Zh+A0GMLsfFjrd2k/kl0wOq0x1isNNrP3kkIw47FdID2iWR8A48A=="],
+
+    "@cropper/element-handle": ["@cropper/element-handle@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-+WPzHWF96RtLTAtotIcQQ6Sx3zVLQdK+qbaM2yKa841Iz60gQ3qKk7Jl5ndy2OgkEfxZaJI/3lWyf1RMGs/TEw=="],
+
+    "@cropper/element-image": ["@cropper/element-image@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/element-canvas": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-J0zBFMEfW6yuAmXoP6S+ZdNJy5J2duVsUS0N2o3D/HxHiVo4Vm3jrSexasu/Vfvwe4Lv0nmZ/10KW3RxhrvDCQ=="],
+
+    "@cropper/element-selection": ["@cropper/element-selection@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/element-canvas": "^2.2.0", "@cropper/element-image": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-ATtWeEb1J/scQ98ins2jy4YbVOqz13F54jDk4Mm7OCpG0fzDseOujSLoIP8y26gtY7XGQXvn8WiFBbIZbeSgxQ=="],
+
+    "@cropper/element-shade": ["@cropper/element-shade@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/element-canvas": "^2.2.0", "@cropper/element-selection": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-fiurnjecablA8+17GoOjiNrzKWe85Q6h9JLbPJkxKCQxcxqpjEsOdGu3YlRxaBYcYvr6wH9tghufOlUfYJS9nw=="],
+
+    "@cropper/element-viewer": ["@cropper/element-viewer@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/element-canvas": "^2.2.0", "@cropper/element-image": "^2.2.0", "@cropper/element-selection": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-w6uO7m7PwBWKynMwj8DYkJHFXrHC6Xxvcp5Y+tSxhfcNtOvw92FDncqRLYv+xHQoCDXEvfCqJyrTx9nIiZgiLQ=="],
+
+    "@cropper/elements": ["@cropper/elements@2.2.0", "", { "dependencies": { "@cropper/element": "^2.2.0", "@cropper/element-canvas": "^2.2.0", "@cropper/element-crosshair": "^2.2.0", "@cropper/element-grid": "^2.2.0", "@cropper/element-handle": "^2.2.0", "@cropper/element-image": "^2.2.0", "@cropper/element-selection": "^2.2.0", "@cropper/element-shade": "^2.2.0", "@cropper/element-viewer": "^2.2.0" } }, "sha512-OQiVvEjIQUbMAUGpFrI/L95elHNIXjdlSxxzeywbU6C93PdPypXeGQfOSLQ43zUYmFutWNb7jTrHvgb3JaE+VQ=="],
+
+    "@cropper/utils": ["@cropper/utils@2.2.0", "", {}, "sha512-wTrpZl+F4Kr2hzovqjztSexWUU+EVK1CxPymbYgFYoAS/NZXwCDsrvikJQn+HYZVxjqyo/ClnFxA0fG+tFy6Hw=="],
 
     "@emnapi/core": ["@emnapi/core@1.10.0", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw=="],
 
@@ -282,6 +305,8 @@
 
     "copy-anything": ["copy-anything@4.1.4", "", {}, "sha512-/LLeW0CtsoSybVkEpYjifB2Pis8DUSuwY7QD9FiR98fWkdbdrACw3ilckfnAHMecQ+RFEdZlRt6eCXhYHJbl/g=="],
 
+    "cropperjs": ["cropperjs@2.2.0", "", { "dependencies": { "@cropper/elements": "^2.2.0", "@cropper/utils": "^2.2.0" } }, "sha512-7egO+tXxt3jGHQcO6x4k1CVoMIlEu+4Klixc6ejspKOAns7onlC/lEi5tRi3qbuHVcATK7rqaZyp8LzynPz6Cg=="],
+
     "cross-spawn": ["cross-spawn@7.0.6", "", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="],
 
     "cssesc": ["cssesc@3.0.0", "", { "bin": { "cssesc": "bin/cssesc" } }, "sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg=="],
@@ -480,7 +505,7 @@
 
     "type-check": ["type-check@0.4.0", "", { "dependencies": { "prelude-ls": "^1.2.1" } }, "sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew=="],
 
-    "typescript": ["@typescript/typescript6@6.0.2", "", { "dependencies": { "@typescript/old": "npm:typescript@^6" }, "bin": { "tsc6": "bin/tsc6" } }, "sha512-mbCddXd+jm7hfx7w2YU64/Av4/NqqeG3GoRZgxPcgoTxYjhrcfJRw9ULch71SS4G+Q3bOXFhRvPqjguN0Hyp5w=="],
+    "typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "typescript-eslint": ["typescript-eslint@8.70.1", "", { "dependencies": { "@typescript-eslint/eslint-plugin": "8.70.1", "@typescript-eslint/parser": "8.70.1", "@typescript-eslint/typescript-estree": "8.70.1", "@typescript-eslint/utils": "8.70.1" }, "peerDependencies": { "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0", "typescript": ">=4.8.4 <6.1.0" } }, "sha512-AcWG7KDjZ2THNXsgwttMaGmzVi0VFRlFYfqFHYQRbDpF3owuYbuiL8c7UUrd2k8s3PoSfIQrWfrGXfcElrWLYA=="],
 
@@ -527,8 +552,6 @@
     "@typescript-eslint/eslint-plugin/ignore": ["ignore@7.0.5", "", {}, "sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg=="],
 
     "@vue/compiler-sfc/postcss": ["postcss@8.5.28", "", { "dependencies": { "nanoid": "^3.3.18", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A=="],
-
-    "typescript/@typescript/old": ["@typescript/typescript6@6.0.2", "", { "dependencies": { "@typescript/old": "npm:typescript@^6" }, "bin": { "tsc6": "bin/tsc6" } }, "sha512-mbCddXd+jm7hfx7w2YU64/Av4/NqqeG3GoRZgxPcgoTxYjhrcfJRw9ULch71SS4G+Q3bOXFhRvPqjguN0Hyp5w=="],
 
     "@vue/compiler-sfc/postcss/nanoid": ["nanoid@3.3.19", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-Y2tUNy4ouw6tq5oDSKeQYGOyhkUBhNOcGV/02KC+6kd9eDGqdZd++mjMiIDilrBYvjEnCYvVtsuHCuP+okSfug=="],
   }

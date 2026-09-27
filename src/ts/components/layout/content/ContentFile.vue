@@ -32,6 +32,9 @@ const toastService = useService('toastService');
 
 const anchorName = computed(() => toAnchorName(props.item.path));
 const fileType = computed(() => getFileTypeInfo(props.item.name, props.item.extension));
+const isReadOnly = computed(() =>
+  diskStore.currentDisk ? configStore.readOnlyDisks.includes(diskStore.currentDisk) : false
+);
 
 async function download(): Promise<void> {
   try {
@@ -55,6 +58,17 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       uiStore.viewFileModal = ModalState.Opened;
     },
   },
+  ...(fileType.value.category === 'image' && !isReadOnly.value
+    ? [
+        {
+          label: 'Crop Image...',
+          onClick: () => {
+            uiStore.targetFilePath = props.item.path;
+            uiStore.cropImageModal = ModalState.Opened;
+          },
+        },
+      ]
+    : []),
   { label: 'Download', onClick: () => void download() },
   ...(configStore.supportsZip && props.item.name.toLowerCase().endsWith('.zip')
     ? [

@@ -28,7 +28,12 @@ export class UploadService {
     });
   }
 
-  public enqueueUploads(files: File[], destinationPath: string, disk: string): void {
+  public enqueueUploads(
+    files: File[],
+    destinationPath: string,
+    disk: string,
+    duplicatePolicy?: 'overwrite' | 'auto_rename' | 'error'
+  ): void {
     files.forEach((file) => {
       this.uploadStore.addUpload({
         id: uniqueId(),
@@ -37,6 +42,7 @@ export class UploadService {
         destinationPath,
         disk,
         totalSize: file.size,
+        duplicatePolicy,
       });
     });
 
@@ -185,6 +191,7 @@ export class UploadService {
         totalChunks,
         path: item.destinationPath,
         disk: item.disk,
+        ...(item.duplicatePolicy ? { duplicatePolicy: item.duplicatePolicy } : {}),
       }),
     });
 

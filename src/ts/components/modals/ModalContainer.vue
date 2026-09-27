@@ -16,6 +16,7 @@ import UploadModal from './UploadModal.vue';
 import BulkRenameModal from './shared/BulkRenameModal.vue';
 import ZipModal from './shared/ZipModal.vue';
 import UnzipModal from './shared/UnzipModal.vue';
+import CropImageModal from './file/CropImageModal.vue';
 
 const MODAL_CLOSE_DELAY = 250;
 
@@ -34,6 +35,7 @@ const uploadMounted = useDelayedUnmount(() => uiStore.uploadFileModal === ModalS
 const bulkRenameMounted = useDelayedUnmount(() => uiStore.bulkRenameModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const zipMounted = useDelayedUnmount(() => uiStore.zipModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const unzipMounted = useDelayedUnmount(() => uiStore.unzipModal === ModalState.Opened, MODAL_CLOSE_DELAY);
+const cropImageMounted = useDelayedUnmount(() => uiStore.cropImageModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 </script>
 
 <template>
@@ -56,4 +58,5 @@ const unzipMounted = useDelayedUnmount(() => uiStore.unzipModal === ModalState.O
   <BulkRenameModal v-if="bulkRenameMounted" />
   <ZipModal v-if="zipMounted" />
   <UnzipModal v-if="unzipMounted" />
+  <CropImageModal v-if="cropImageMounted" />
 </template>

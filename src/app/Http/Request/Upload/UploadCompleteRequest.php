@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\Upload;
 
+use Illuminate\Validation\Rule;
+use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Upload\Traits\ValidatesUploadId;
 
@@ -17,8 +19,9 @@ class UploadCompleteRequest extends RequestWithPath
     public function rules(): array
     {
         return array_merge(parent::rules(), $this->getUploadIdRules(), [
-            'fileName'    => ['required', 'string'],
-            'totalChunks' => ['required', 'integer', 'min:1'],
+            'fileName'        => ['required', 'string'],
+            'totalChunks'     => ['required', 'integer', 'min:1'],
+            'duplicatePolicy' => ['nullable', 'string', Rule::enum(DuplicatePolicy::class)],
         ]);
     }
 }

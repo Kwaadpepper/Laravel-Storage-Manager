@@ -104,6 +104,12 @@ class UploadController extends Controller
 
         // Apply duplicate file policy
         $duplicatePolicy = $this->configRepository->getUploadDuplicatePolicy();
+        if ($request->filled('duplicatePolicy')) {
+            $requestedPolicy = DuplicatePolicy::tryFrom($request->string('duplicatePolicy')->value());
+            if ($requestedPolicy !== null) {
+                $duplicatePolicy = $requestedPolicy;
+            }
+        }
 
         return response()->stream(function () use ($uploadId, $destinationPath, $selectedDiskName, $fileName, $duplicatePolicy) {
             try {
