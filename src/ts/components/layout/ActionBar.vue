@@ -79,19 +79,19 @@ function onUpClick(): void {
 }
 
 function onNewFileClick(): void {
-  uiStore.setCreateFileModal(ModalState.Opened);
+  uiStore.createFileModal = ModalState.Opened;
 }
 
 function onNewDirectoryClick(): void {
-  uiStore.setNewDirectoryModal(ModalState.Opened);
+  uiStore.newDirectoryModal = ModalState.Opened;
 }
 
 function onUploadFileClick(): void {
-  uiStore.setUploadFileModal(ModalState.Opened);
+  uiStore.uploadFileModal = ModalState.Opened;
 }
 
 function onAboutClick(): void {
-  uiStore.setAboutModal(ModalState.Opened);
+  uiStore.aboutModal = ModalState.Opened;
 }
 
 function onCopyPathClick(): void {

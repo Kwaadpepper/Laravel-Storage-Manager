@@ -2,9 +2,10 @@
 defineOptions({
   name: 'RenameDirectoryModal',
 });
-import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { nextTick, onMounted, ref } from 'vue';
 import { Pencil, X } from 'lucide-vue-next';
 import FieldError from '@ts/components/shared/FieldError.vue';
+import { useEscapeClose } from '@ts/tools';
 import {
   directoryNameMaxLength,
   directoryNameMinLength,
@@ -19,20 +20,12 @@ function onClose(): void {
   vm.close();
 }
 
+useEscapeClose(onClose);
+
 onMounted(async () => {
   await nextTick();
   directoryNameInputRef.value?.focus();
   directoryNameInputRef.value?.select();
-
-  const handleKeydown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-  window.addEventListener('keydown', handleKeydown);
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown);
-  });
 });
 
 const onFormSubmit = async (): Promise<void> => {

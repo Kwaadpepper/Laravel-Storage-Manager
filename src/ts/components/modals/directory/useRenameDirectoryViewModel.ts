@@ -1,8 +1,8 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import { isDomainValidationError, isValidationError } from '@ts/errors';
 import type { RenameDirectoryValidationField } from '@ts/services';
 import { useService } from '@ts/service-container';
 import { ModalState, useUiStore } from '@ts/stores';
+import { handleFormSubmission } from '@ts/tools';
 import { z } from 'zod/v4';
 
 export const directoryNameInputName = 'directoryName' as const;
@@ -77,44 +77,25 @@ export function useRenameDirectoryViewModel(): RenameDirectoryViewModel {
 
     const newName = parseResult.data.directoryName;
 
-    try {
-      isSubmitting.value = true;
-      await eventQueueService.pushAndWait({
-        id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        type: 'RENAME',
-        sourcePath: currentTargetPath,
-        destinationPath: currentTargetPath.substring(0, currentTargetPath.lastIndexOf('/')) + '/' + newName,
-        execute: async (): Promise<void> => {
-          await fileManagerService.renameDirectory(currentTargetPath, newName);
-        },
-      });
-
-      close();
-      return true;
-    } catch (error: unknown) {
-      if (isValidationError<RenameDirectoryValidationField>(error)) {
-        const fieldErrors = error.getFieldErrors();
-        if (fieldErrors.directoryName) {
-          directoryNameFieldError.value = fieldErrors.directoryName;
-          return false;
-        }
-      }
-
-      if (isDomainValidationError(error)) {
-        directoryNameFieldError.value = error.message;
-        return false;
-      }
-
-      if (error instanceof Error) {
-        formErrorMessage.value = error.message;
-        return false;
-      }
-
-      formErrorMessage.value = 'Failed to rename directory';
-      return false;
-    } finally {
-      isSubmitting.value = false;
-    }
+    return handleFormSubmission<RenameDirectoryValidationField>({
+      execute: async () => {
+        await eventQueueService.pushAndWait({
+          id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          type: 'RENAME',
+          sourcePath: currentTargetPath,
+          destinationPath: currentTargetPath.substring(0, currentTargetPath.lastIndexOf('/')) + '/' + newName,
+          execute: async (): Promise<void> => {
+            await fileManagerService.renameDirectory(currentTargetPath, newName);
+          },
+        });
+      },
+      isSubmitting,
+      formErrorMessage,
+      fieldErrors: { directoryName: directoryNameFieldError },
+      domainErrorField: directoryNameFieldError,
+      fallbackMessage: 'Failed to rename directory',
+      onSuccess: close,
+    });
   }
 
   function close(): void {
@@ -122,7 +103,7 @@ export function useRenameDirectoryViewModel(): RenameDirectoryViewModel {
     formErrorMessage.value = null;
     directoryNameFieldError.value = null;
     isSubmitting.value = false;
-    uiStore.setRenameDirectoryModal(ModalState.Closed);
+    uiStore.renameDirectoryModal = ModalState.Closed;
   }
 
   return {

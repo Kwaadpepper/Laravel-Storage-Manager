@@ -20,21 +20,11 @@ export const appConfigSchema = z.object({
   duplicatePolicy: z.enum(['overwrite', 'auto_rename', 'error']),
   sanitizeFilenames: z.boolean(),
   routes: z.object({
-    fmInit: z.url(),
-    fmTree: z.url(),
-    fmContent: z.url(),
-    fmProperties: z.url(),
-    fmCreateDirectory: z.url(),
-    fmCreateFile: z.url(),
-    fmDelete: z.url(),
-    fmRename: z.url(),
+    disksSelect: z.url(),
     fmUploadInit: z.url(),
     fmUploadChunk: z.url(),
     fmUploadComplete: z.url(),
-    fmUploadStatus: z.url(),
-    disksList: z.url(),
-    disksSelect: z.url()
-  })
+  }).catchall(z.string())
 })
 
 export type AppConfig = z.infer<typeof appConfigSchema>

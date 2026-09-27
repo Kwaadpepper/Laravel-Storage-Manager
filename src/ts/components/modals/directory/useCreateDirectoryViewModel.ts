@@ -1,8 +1,8 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import { isDomainValidationError, isValidationError } from '@ts/errors';
 import type { CreateDirectoryValidationField } from '@ts/services';
 import { useService } from '@ts/service-container';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
+import { handleFormSubmission } from '@ts/tools';
 import { z } from 'zod/v4';
 
 export const directoryNameInputName = 'directoryName' as const;
@@ -63,44 +63,25 @@ export function useCreateDirectoryViewModel(): CreateDirectoryViewModel {
     const validName = parseResult.data.directoryName;
     const basePath = activePath.value;
 
-    try {
-      isSubmitting.value = true;
-      await eventQueueService.pushAndWait({
-        id: `create-dir-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        type: 'CREATE',
-        sourcePath: basePath,
-        destinationPath: `${basePath === '/' ? '' : basePath}/${validName}`,
-        execute: async (): Promise<void> => {
-          await fileManagerService.createDirectory(basePath, validName);
-        },
-      });
-
-      close();
-      return true;
-    } catch (error: unknown) {
-      if (isValidationError<CreateDirectoryValidationField>(error)) {
-        const fieldErrors = error.getFieldErrors();
-        if (fieldErrors.directoryName) {
-          directoryNameFieldError.value = fieldErrors.directoryName;
-          return false;
-        }
-      }
-
-      if (isDomainValidationError(error)) {
-        directoryNameFieldError.value = error.message;
-        return false;
-      }
-
-      if (error instanceof Error) {
-        formErrorMessage.value = error.message;
-        return false;
-      }
-
-      formErrorMessage.value = 'Failed to create directory';
-      return false;
-    } finally {
-      isSubmitting.value = false;
-    }
+    return handleFormSubmission<CreateDirectoryValidationField>({
+      execute: async () => {
+        await eventQueueService.pushAndWait({
+          id: `create-dir-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          type: 'CREATE',
+          sourcePath: basePath,
+          destinationPath: `${basePath === '/' ? '' : basePath}/${validName}`,
+          execute: async (): Promise<void> => {
+            await fileManagerService.createDirectory(basePath, validName);
+          },
+        });
+      },
+      isSubmitting,
+      formErrorMessage,
+      fieldErrors: { directoryName: directoryNameFieldError },
+      domainErrorField: directoryNameFieldError,
+      fallbackMessage: 'Failed to create directory',
+      onSuccess: close,
+    });
   }
 
   function close(): void {
@@ -108,8 +89,8 @@ export function useCreateDirectoryViewModel(): CreateDirectoryViewModel {
     formErrorMessage.value = null;
     directoryNameFieldError.value = null;
     isSubmitting.value = false;
-    uiStore.setNewDirectoryModal(ModalState.Closed);
-    uiStore.setTargetDirectoryPath(null);
+    uiStore.newDirectoryModal = ModalState.Closed;
+    uiStore.targetDirectoryPath = null;
   }
 
   return {

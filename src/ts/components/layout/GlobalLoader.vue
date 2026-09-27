@@ -52,10 +52,27 @@ watch(
   { immediate: true }
 );
 
+function getActionLabel(type: string): string {
+  switch (type) {
+    case 'DELETE':
+      return 'Deleting';
+    case 'MOVE':
+      return 'Moving';
+    case 'RENAME':
+      return 'Renaming';
+    case 'CREATE':
+      return 'Creating';
+    default:
+      return 'Copying';
+  }
+}
+
 const groupedActions = computed(() => {
   const groups: GroupedAction[] = [];
   for (const action of actionStore.actions) {
     const lastGroup = groups[groups.length - 1];
+    const typeStr = getActionLabel(action.type);
+
     if (
       lastGroup &&
       lastGroup.type === action.type &&
@@ -73,28 +90,8 @@ const groupedActions = computed(() => {
       else if (lastGroup.completed < lastGroup.total) lastGroup.status = 'pending';
       else lastGroup.status = 'success';
 
-      const typeStr =
-        action.type === 'DELETE'
-          ? 'Deleting'
-          : action.type === 'MOVE'
-            ? 'Moving'
-            : action.type === 'RENAME'
-              ? 'Renaming'
-              : action.type === 'CREATE'
-                ? 'Creating'
-                : 'Copying';
       lastGroup.title = `${typeStr} ${lastGroup.total} items`;
     } else {
-      const typeStr =
-        action.type === 'DELETE'
-          ? 'Deleting'
-          : action.type === 'MOVE'
-            ? 'Moving'
-            : action.type === 'RENAME'
-              ? 'Renaming'
-              : action.type === 'CREATE'
-                ? 'Creating'
-                : 'Copying';
       groups.push({
         id: action.id,
         type: action.type,

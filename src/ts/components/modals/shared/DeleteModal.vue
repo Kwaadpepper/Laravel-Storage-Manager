@@ -3,7 +3,7 @@ defineOptions({
   name: 'DeleteModal',
 });
 import { Trash2, X } from 'lucide-vue-next';
-import { onMounted, onUnmounted } from 'vue';
+import { useEscapeClose } from '@ts/tools';
 import { useDeleteViewModel } from './useDeleteViewModel';
 
 const vm = useDeleteViewModel();
@@ -12,17 +12,7 @@ function onClose(): void {
   vm.close();
 }
 
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-  window.addEventListener('keydown', handleKeydown);
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown);
-  });
-});
+useEscapeClose(onClose);
 </script>
 
 <template>

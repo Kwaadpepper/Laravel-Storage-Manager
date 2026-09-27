@@ -26,7 +26,7 @@ export function useDeleteViewModel(): DeleteViewModel {
   const isOpen = computed(() => uiStore.deleteModal === ModalState.Opened);
 
   function close(): void {
-    uiStore.setDeleteModal(ModalState.Closed);
+    uiStore.deleteModal = ModalState.Closed;
   }
 
   function submit(): void {

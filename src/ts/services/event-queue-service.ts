@@ -59,7 +59,6 @@ export class EventQueueService {
           } catch (error) {
             this.actionStore.removeAction(event.id);
             reject(error);
-            throw error;
           }
         },
       });

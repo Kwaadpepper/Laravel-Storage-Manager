@@ -1,6 +1,7 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import { useService } from '@ts/service-container';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
+import { handleFormSubmission } from '@ts/tools';
 import type { Path } from '@ts/types';
 import { z } from 'zod/v4';
 
@@ -88,34 +89,31 @@ export function useCreateFileViewModel(): CreateFileViewModel {
     const newName = trimmedExtension ? `${inputBaseName}.${trimmedExtension}` : inputBaseName;
     const curPath = currentPath.value;
 
-    try {
-      await eventQueueService.pushAndWait({
-        id: `create-file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        type: 'CREATE',
-        sourcePath: curPath,
-        destinationPath: `${curPath === '/' ? '' : curPath}/${newName}`,
-        execute: async (): Promise<void> => {
-          await fileManagerService.createFile(curPath, newName, content);
-        },
-      });
-
-      uiStore.setCreateFileModal(ModalState.Closed);
-      return true;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        formErrorMessage.value = error.message;
-      } else {
-        formErrorMessage.value = 'Failed to create file';
-      }
-      return false;
-    }
+    return handleFormSubmission({
+      execute: async () => {
+        await eventQueueService.pushAndWait({
+          id: `create-file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          type: 'CREATE',
+          sourcePath: curPath,
+          destinationPath: `${curPath === '/' ? '' : curPath}/${newName}`,
+          execute: async (): Promise<void> => {
+            await fileManagerService.createFile(curPath, newName, content);
+          },
+        });
+      },
+      formErrorMessage,
+      fallbackMessage: 'Failed to create file',
+      onSuccess: () => {
+        uiStore.createFileModal = ModalState.Closed;
+      },
+    });
   }
 
   function close(): void {
     baseName.value = null;
     extension.value = null;
     formErrorMessage.value = null;
-    uiStore.setCreateFileModal(ModalState.Closed);
+    uiStore.createFileModal = ModalState.Closed;
   }
 
   return {

@@ -87,7 +87,6 @@ const items = computed(() => {
 });
 
 const isEmpty = computed(() => items.value.length === 0);
-const listRef = computed(() => listElementRef.value);
 const listElementRef = ref<HTMLDivElement | null>(null);
 const listWrapperRef = ref<HTMLDivElement | null>(null);
 const tilesWrapperRef = ref<HTMLDivElement | null>(null);
@@ -169,7 +168,7 @@ watch(
     }
 
     await nextTick();
-    const el = listRef.value?.querySelector<HTMLElement>(`[data-path="${firstItem.path}"]`);
+    const el = listElementRef.value?.querySelector<HTMLElement>(`[data-path="${firstItem.path}"]`);
     if (el) {
       el.scrollIntoView({ block: 'nearest' });
       el.focus({ preventScroll: true });
@@ -209,8 +208,10 @@ function onListKeyDown(e: KeyboardEvent): void {
       if (isDirectory(selectedFile.value)) {
         navigationService.navigateTo(selectedFile.value.path);
       } else {
-        uiStore.setTargetFilePath(selectedFile.value.path);
-        requestAnimationFrame(() => uiStore.setViewFileModal(ModalState.Opened));
+        uiStore.targetFilePath = selectedFile.value.path;
+        requestAnimationFrame(() => {
+          uiStore.viewFileModal = ModalState.Opened;
+        });
       }
       break;
 
@@ -280,8 +281,8 @@ function handleItemDoubleClick(item: TreeNodeDirectory | TreeNodeFile): void {
   if (isDirectory(item)) {
     navigationService.navigateTo(item.path);
   } else {
-    uiStore.setTargetFilePath(item.path);
-    uiStore.setViewFileModal(ModalState.Opened);
+    uiStore.targetFilePath = item.path;
+    uiStore.viewFileModal = ModalState.Opened;
   }
 }
 
@@ -500,13 +501,13 @@ onUnmounted(() => {
             class="mb-2"
           />
           <template v-if="isSearchMode">
-            <p>{{ searchStore.isSearching ? 'Recherche en cours...' : 'Aucun résultat' }}</p>
+            <p>{{ searchStore.isSearching ? 'Searching...' : 'No results' }}</p>
             <p class="text-sm mt-1">
-              {{ searchStore.scannedPathsCount }} dossiers analysés
+              {{ searchStore.scannedPathsCount }} folders scanned
             </p>
           </template>
           <p v-else>
-            Ce dossier est vide
+            This folder is empty
           </p>
         </div>
       </div>
@@ -537,13 +538,13 @@ onUnmounted(() => {
             class="mb-2"
           />
           <template v-if="isSearchMode">
-            <p>{{ searchStore.isSearching ? 'Recherche en cours...' : 'Aucun résultat' }}</p>
+            <p>{{ searchStore.isSearching ? 'Searching...' : 'No results' }}</p>
             <p class="text-sm mt-1">
-              {{ searchStore.scannedPathsCount }} dossiers analysés
+              {{ searchStore.scannedPathsCount }} folders scanned
             </p>
           </template>
           <p v-else>
-            Ce dossier est vide
+            This folder is empty
           </p>
         </div>
         <div

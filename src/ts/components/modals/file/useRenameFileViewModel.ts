@@ -1,8 +1,8 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import { isDomainValidationError, isValidationError } from '@ts/errors';
 import type { RenameFileValidationField } from '@ts/services';
 import { useService } from '@ts/service-container';
 import { ModalState, useUiStore } from '@ts/stores';
+import { handleFormSubmission } from '@ts/tools';
 import { z } from 'zod/v4';
 
 export const baseNameInputName = 'baseName' as const;
@@ -111,44 +111,25 @@ export function useRenameFileViewModel(): RenameFileViewModel {
       ? `${parseResult.data.baseName}.${trimmedExtension}`
       : parseResult.data.baseName;
 
-    try {
-      isSubmitting.value = true;
-      await eventQueueService.pushAndWait({
-        id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        type: 'RENAME',
-        sourcePath: curPath,
-        destinationPath: curPath.substring(0, curPath.lastIndexOf('/')) + '/' + newName,
-        execute: async (): Promise<void> => {
-          await fileManagerService.renameFile(curPath, newName);
-        },
-      });
-
-      close();
-      return true;
-    } catch (error: unknown) {
-      if (isValidationError<RenameFileValidationField>(error)) {
-        const fieldErrors = error.getFieldErrors();
-        if (fieldErrors.fileName) {
-          baseNameFieldError.value = fieldErrors.fileName;
-          return false;
-        }
-      }
-
-      if (isDomainValidationError(error)) {
-        baseNameFieldError.value = error.message;
-        return false;
-      }
-
-      if (error instanceof Error) {
-        formErrorMessage.value = error.message;
-        return false;
-      }
-
-      formErrorMessage.value = 'Failed to rename file';
-      return false;
-    } finally {
-      isSubmitting.value = false;
-    }
+    return handleFormSubmission<RenameFileValidationField>({
+      execute: async () => {
+        await eventQueueService.pushAndWait({
+          id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          type: 'RENAME',
+          sourcePath: curPath,
+          destinationPath: curPath.substring(0, curPath.lastIndexOf('/')) + '/' + newName,
+          execute: async (): Promise<void> => {
+            await fileManagerService.renameFile(curPath, newName);
+          },
+        });
+      },
+      isSubmitting,
+      formErrorMessage,
+      fieldErrors: { fileName: baseNameFieldError },
+      domainErrorField: baseNameFieldError,
+      fallbackMessage: 'Failed to rename file',
+      onSuccess: close,
+    });
   }
 
   function close(): void {
@@ -158,7 +139,7 @@ export function useRenameFileViewModel(): RenameFileViewModel {
     baseNameFieldError.value = null;
     extensionFieldError.value = null;
     isSubmitting.value = false;
-    uiStore.setRenameFileModal(ModalState.Closed);
+    uiStore.renameFileModal = ModalState.Closed;
   }
 
   return {

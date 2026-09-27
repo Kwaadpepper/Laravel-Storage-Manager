@@ -2,8 +2,9 @@
 defineOptions({
   name: 'ViewFileModal',
 });
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed } from 'vue';
 import { Loader, X } from 'lucide-vue-next';
+import { useEscapeClose } from '@ts/tools';
 import {
   SUPPORTED_AUDIO_EXTENSIONS as AUDIO_EXTENSIONS,
   SUPPORTED_IMAGE_EXTENSIONS as IMAGE_EXTENSIONS,
@@ -34,17 +35,7 @@ const extension = computed(() =>
 );
 const viewerType = computed(() => detectViewer(extension.value));
 
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      close();
-    }
-  };
-  window.addEventListener('keydown', handleKeydown);
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown);
-  });
-});
+useEscapeClose(close);
 </script>
 
 <template>

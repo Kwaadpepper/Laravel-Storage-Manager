@@ -29,8 +29,8 @@ function onClickView(): void {
   if (node === null || !isFile(node)) {
     return;
   }
-  uiStore.setTargetFilePath(node.path);
-  uiStore.setViewFileModal(ModalState.Opened);
+  uiStore.targetFilePath = node.path;
+  uiStore.viewFileModal = ModalState.Opened;
 }
 
 async function onClickDownload(): Promise<void> {

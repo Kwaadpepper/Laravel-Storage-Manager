@@ -1,5 +1,5 @@
 import type { Ref } from 'vue';
-import { ref, toValue, watch } from 'vue';
+import { getCurrentInstance, onUnmounted, ref, toValue, watch } from 'vue';
 
 export function useDelayedUnmount(
   value: Ref<boolean> | (() => boolean) | boolean,
@@ -26,6 +26,15 @@ export function useDelayedUnmount(
     },
     { immediate: true }
   );
+
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    });
+  }
 
   return isCurrentlyMounted;
 }

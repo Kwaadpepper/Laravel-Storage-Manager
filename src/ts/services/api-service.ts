@@ -8,9 +8,7 @@ import * as z from 'zod/v4';
 
 export class ApiService {
 
-  constructor(private readonly httpClient: HttpClient) {
-    this.httpClient = httpClient
-  }
+  constructor(private readonly httpClient: HttpClient) {}
 
 
   async get<T extends z.ZodTypeAny>(path: string, schema: T): Promise<z.output<T>>;
@@ -18,7 +16,7 @@ export class ApiService {
   async get<T extends z.ZodTypeAny>(path: string, schema?: T | null): Promise<z.output<T> | void> {
     const response = await this.httpClient.get(path)
     if (schema) {
-      return this.reponseToData(response, schema)
+      return this.responseToData(response, schema)
     }
 
     await this.throwForErrorStatus(response)
@@ -30,7 +28,7 @@ export class ApiService {
   async post<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema?: T): Promise<z.output<T> | void> {
     const response = await this.httpClient.post(path, data)
     if (schema) {
-      return this.reponseToData(response, schema)
+      return this.responseToData(response, schema)
     }
 
     await this.throwForErrorStatus(response)
@@ -42,7 +40,7 @@ export class ApiService {
   async postMultiPart<T extends z.ZodTypeAny>(path: string, data: FormData, schema?: T): Promise<z.output<T> | void> {
     const response = await this.httpClient.sendMultiPartFile(path, data)
     if (schema) {
-      return this.reponseToData(response, schema)
+      return this.responseToData(response, schema)
     }
 
     await this.throwForErrorStatus(response)
@@ -54,7 +52,7 @@ export class ApiService {
   async put<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema?: T): Promise<z.output<T> | void> {
     const response = await this.httpClient.put(path, data)
     if (schema) {
-      return this.reponseToData(response, schema)
+      return this.responseToData(response, schema)
     }
 
     await this.throwForErrorStatus(response)
@@ -66,7 +64,7 @@ export class ApiService {
   async patch<T extends z.ZodTypeAny>(path: string, data: RequestParameters, schema?: T): Promise<z.output<T> | void> {
     const response = await this.httpClient.patch(path, data)
     if (schema) {
-      return this.reponseToData(response, schema)
+      return this.responseToData(response, schema)
     }
 
     await this.throwForErrorStatus(response)
@@ -82,7 +80,7 @@ export class ApiService {
       return
     }
 
-    const dataResponse = await this.reponseToJson(response)
+    const dataResponse = await this.responseToJson(response)
 
     if (response.status === 403) {
       const message = 'Not authorized, CODE ' + response.status
@@ -140,17 +138,15 @@ export class ApiService {
     throw new ServerError('Request failed, CODE ' + response.status)
   }
 
-  private async reponseToData<T extends z.ZodTypeAny>(response: Response, schema: T): Promise<z.output<T>> {
+  private async responseToData<T extends z.ZodTypeAny>(response: Response, schema: T): Promise<z.output<T>> {
     await this.throwForErrorStatus(response, schema)
 
-    const dataResponse = await this.reponseToJson(response)
+    const dataResponse = await this.responseToJson(response)
     const apiResponse = apiResponseSchema.parse(dataResponse)
     const result = schema.safeParse(apiResponse.data)
 
     if (!result.success) {
       const message = 'Failed to validate server response, CODE ' + response.status
-
-      console.debug('Validation errors', result.error)
 
       throw new ServerError(message)
     }
@@ -158,13 +154,13 @@ export class ApiService {
     return result.data
   }
 
-  private async reponseToJson(response: Response): Promise<JsonValue> {
+  private async responseToJson(response: Response): Promise<JsonValue> {
     try {
       const body = await response.text()
       return JSON.parse(body)
     }
     catch (cause) {
-      const message = 'Failed to decode reponse as json' + (cause instanceof Error ? `: ${cause.message}` : '')
+      const message = 'Failed to decode response as json' + (cause instanceof Error ? `: ${cause.message}` : '')
 
       throw new UnexpectedError(message)
     }

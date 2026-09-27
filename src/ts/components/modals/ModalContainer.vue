@@ -7,8 +7,7 @@ import { useDelayedUnmount } from '@ts/tools/use-delayed-unmount';
 import AboutModal from './AboutModal.vue';
 import CreateDirectoryModal from './directory/CreateDirectoryModal.vue';
 import RenameDirectoryModal from './directory/RenameDirectoryModal.vue';
-import MoveDirectoryModal from './directory/MoveDirectoryModal.vue';
-import CopyDirectoryModal from './directory/CopyDirectoryModal.vue';
+import TransferModal from './directory/TransferModal.vue';
 import DeleteModal from './shared/DeleteModal.vue';
 import CreateFileModal from './file/CreateFileModal.vue';
 import RenameFileModal from './file/RenameFileModal.vue';
@@ -39,7 +38,13 @@ const uploadMounted = useDelayedUnmount(() => uiStore.uploadFileModal === ModalS
   <DeleteModal v-if="deleteMounted" />
   <RenameFileModal v-if="fileRenameMounted" />
   <ViewFileModal v-if="fileViewMounted" />
-  <MoveDirectoryModal v-if="moveMounted" />
-  <CopyDirectoryModal v-if="copyMounted" />
+  <TransferModal
+    v-if="moveMounted"
+    mode="move"
+  />
+  <TransferModal
+    v-if="copyMounted"
+    mode="copy"
+  />
   <UploadModal v-if="uploadMounted" />
 </template>

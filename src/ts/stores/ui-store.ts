@@ -65,54 +65,6 @@ export const useUiStore = defineStore('ui', () => {
     setLocalStorageTheme(newTheme);
   }
 
-  function setAboutModal(state: ModalState): void {
-    aboutModal.value = state;
-  }
-
-  function setNewDirectoryModal(state: ModalState): void {
-    newDirectoryModal.value = state;
-  }
-
-  function setRenameDirectoryModal(state: ModalState): void {
-    renameDirectoryModal.value = state;
-  }
-
-  function setDeleteModal(state: ModalState): void {
-    deleteModal.value = state;
-  }
-
-  function setUploadFileModal(state: ModalState): void {
-    uploadFileModal.value = state;
-  }
-
-  function setCreateFileModal(state: ModalState): void {
-    createFileModal.value = state;
-  }
-
-  function setRenameFileModal(state: ModalState): void {
-    renameFileModal.value = state;
-  }
-
-  function setViewFileModal(state: ModalState): void {
-    viewFileModal.value = state;
-  }
-
-  function setMoveModal(state: ModalState): void {
-    moveModal.value = state;
-  }
-
-  function setCopyModal(state: ModalState): void {
-    copyModal.value = state;
-  }
-
-  function setTargetDirectoryPath(path: Path | null): void {
-    targetDirectoryPath.value = path;
-  }
-
-  function setTargetFilePath(path: Path | null): void {
-    targetFilePath.value = path;
-  }
-
   function setViewMode(mode: ViewMode): void {
     viewMode.value = mode;
     setLocalStorageViewMode(mode);
@@ -140,18 +92,6 @@ export const useUiStore = defineStore('ui', () => {
     viewMode,
     treeVisible,
     setTheme,
-    setAboutModal,
-    setNewDirectoryModal,
-    setRenameDirectoryModal,
-    setDeleteModal,
-    setUploadFileModal,
-    setCreateFileModal,
-    setRenameFileModal,
-    setViewFileModal,
-    setMoveModal,
-    setCopyModal,
-    setTargetDirectoryPath,
-    setTargetFilePath,
     setViewMode,
     setTreeVisible,
   };

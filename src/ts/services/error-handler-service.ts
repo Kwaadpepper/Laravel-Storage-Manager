@@ -10,9 +10,7 @@ type HandleErrorOptions = {
 export class ErrorHandlerService {
   private static globalHandlersRegistered: boolean = false
 
-  constructor(private readonly toastService: ToastService) {
-    this.toastService = toastService
-  }
+  constructor(private readonly toastService: ToastService) {}
 
   public registerGlobalHandlers(): void {
     if (ErrorHandlerService.globalHandlersRegistered) {

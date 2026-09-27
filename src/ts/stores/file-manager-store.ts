@@ -36,9 +36,11 @@ export const useFileManagerStore = defineStore('fileManager', () => {
   }
 
   function selectNodes(...nodes: (TreeNodeFile | TreeNodeDirectory)[]): void {
-    selectedNodes.value = nodes
-      .map((n) => ({ [n.path]: n }))
-      .reduce((acc, curr) => ({ ...acc, ...curr }), {});
+    const selected: Record<Path, TreeNodeDirectory | TreeNodeFile> = {};
+    for (const node of nodes) {
+      selected[node.path] = node;
+    }
+    selectedNodes.value = selected;
   }
 
   function setNavigationCapabilities(caps: {

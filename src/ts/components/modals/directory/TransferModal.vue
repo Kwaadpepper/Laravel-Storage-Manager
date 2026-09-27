@@ -1,13 +1,18 @@
 <script setup lang="ts">
 defineOptions({
-  name: 'MoveDirectoryModal',
+  name: 'TransferModal',
 });
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { FolderPlus, X } from 'lucide-vue-next';
 import DirectoryPicker from '@ts/components/shared/DirectoryPicker.vue';
 import { useService } from '@ts/service-container';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
+import { useEscapeClose } from '@ts/tools';
 import { rootPath, type Path } from '@ts/types';
+
+const props = defineProps<{
+  mode: 'move' | 'copy';
+}>();
 
 const fileManagerService = useService('fileManagerService');
 const eventQueueService = useService('eventQueueService');
@@ -18,45 +23,55 @@ const fileManagerStore = useFileManagerStore();
 const selectedDestination = ref<Path>(rootPath());
 const isSubmitting = ref(false);
 
-const isOpen = computed(() => uiStore.moveModal === ModalState.Opened);
+const isOpen = computed(() =>
+  props.mode === 'move'
+    ? uiStore.moveModal === ModalState.Opened
+    : uiStore.copyModal === ModalState.Opened
+);
+
 const selectedNodesList = computed(() => Object.values(fileManagerStore.selectedNodes));
+
+const isMove = computed(() => props.mode === 'move');
+const actionLabel = computed(() => (isMove.value ? 'Move' : 'Copy'));
+const pendingLabel = computed(() => (isMove.value ? 'Moving...' : 'Copying...'));
 
 function onClose(): void {
   selectedDestination.value = rootPath();
   isSubmitting.value = false;
-  uiStore.setMoveModal(ModalState.Closed);
+  if (isMove.value) {
+    uiStore.moveModal = ModalState.Closed;
+  } else {
+    uiStore.copyModal = ModalState.Closed;
+  }
 }
 
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-  window.addEventListener('keydown', handleKeydown);
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown);
-  });
-});
+useEscapeClose(onClose);
 
 function onNewFolder(): void {
-  uiStore.setTargetDirectoryPath(selectedDestination.value);
-  uiStore.setNewDirectoryModal(ModalState.Opened);
+  uiStore.targetDirectoryPath = selectedDestination.value;
+  uiStore.newDirectoryModal = ModalState.Opened;
 }
 
-async function onMove(): Promise<void> {
+async function onSubmit(): Promise<void> {
   if (selectedNodesList.value.length === 0) return;
 
   isSubmitting.value = true;
 
   const dest = selectedDestination.value;
+  const mode = props.mode;
+  const eventType = isMove.value ? ('MOVE' as const) : ('COPY' as const);
+
   const events = selectedNodesList.value.map((node) => ({
-    id: `move-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-    type: 'MOVE' as const,
+    id: `${mode}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    type: eventType,
     sourcePath: node.path,
     destinationPath: dest,
     execute: async (): Promise<void> => {
-      await fileManagerService.move(node.path, dest);
+      if (mode === 'move') {
+        await fileManagerService.move(node.path, dest);
+      } else {
+        await fileManagerService.copy(node.path, dest);
+      }
     },
   }));
 
@@ -84,7 +99,7 @@ async function onMove(): Promise<void> {
       </button>
       <div class="flex items-center justify-between mb-4">
         <h3 class="font-bold text-lg">
-          Move {{ selectedNodesList.length }} item(s) to...
+          {{ actionLabel }} {{ selectedNodesList.length }} item(s) to...
         </h3>
         <button
           type="button"
@@ -120,9 +135,9 @@ async function onMove(): Promise<void> {
           class="btn btn-primary"
           type="button"
           :disabled="isSubmitting || selectedNodesList.length === 0"
-          @click="onMove"
+          @click="onSubmit"
         >
-          {{ isSubmitting ? 'Moving...' : 'Move Here' }}
+          {{ isSubmitting ? pendingLabel : `${actionLabel} Here` }}
         </button>
       </div>
     </div>

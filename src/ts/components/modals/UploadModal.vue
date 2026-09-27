@@ -2,9 +2,10 @@
 defineOptions({
   name: 'UploadModal',
 });
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { ModalState, useDiskStore, useFileManagerStore, useUiStore, useUploadStore, type UploadItem } from '@ts/stores';
 import { useService } from '@ts/service-container';
+import { useEscapeClose } from '@ts/tools';
 import { CheckCircle2, Clock, FileUp, FolderOpen, Loader2, X, XCircle } from 'lucide-vue-next';
 
 const uiStore = useUiStore();
@@ -23,7 +24,7 @@ const hasActiveUploads = computed(() =>
 );
 
 const onClose = (): void => {
-  uiStore.setUploadFileModal(ModalState.Closed);
+  uiStore.uploadFileModal = ModalState.Closed;
 };
 
 const onBackdropClose = (): void => {
@@ -32,17 +33,7 @@ const onBackdropClose = (): void => {
   }
 };
 
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      onBackdropClose();
-    }
-  };
-  window.addEventListener('keydown', handleKeydown);
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown);
-  });
-});
+useEscapeClose(onBackdropClose);
 
 const onFileSelect = (e: Event): void => {
   const target = e.target as HTMLInputElement;

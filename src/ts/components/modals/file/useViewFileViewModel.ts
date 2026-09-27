@@ -55,7 +55,7 @@ export function useViewFileViewModel(): ViewFileViewModel {
 
   function close(): void {
     fetchState.value = { status: 'pending' };
-    uiStore.setViewFileModal(ModalState.Closed);
+    uiStore.viewFileModal = ModalState.Closed;
   }
 
   const blob = computed(() => (fetchState.value.status === 'success' ? fetchState.value.blob : null));

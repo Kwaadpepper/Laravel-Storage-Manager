@@ -47,8 +47,8 @@ const entries = computed<ContextualMenuEntry[]>(() => [
   {
     label: 'View',
     onClick: () => {
-      uiStore.setTargetFilePath(props.item.path);
-      uiStore.setViewFileModal(ModalState.Opened);
+      uiStore.targetFilePath = props.item.path;
+      uiStore.viewFileModal = ModalState.Opened;
     },
   },
   { label: 'Download', onClick: () => void download() },
@@ -119,8 +119,8 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       if (!fileManagerStore.selectedNodes[props.item.path]) {
         fileManagerStore.selectNodes(props.item);
       }
-      uiStore.setTargetFilePath(props.item.path);
-      uiStore.setRenameFileModal(ModalState.Opened);
+      uiStore.targetFilePath = props.item.path;
+      uiStore.renameFileModal = ModalState.Opened;
     },
   },
   {
@@ -129,7 +129,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       if (!fileManagerStore.selectedNodes[props.item.path]) {
         fileManagerStore.selectNodes(props.item);
       }
-      uiStore.setDeleteModal(ModalState.Opened);
+      uiStore.deleteModal = ModalState.Opened;
     },
   },
 ]);

@@ -9,20 +9,11 @@ export interface AppAuthor {
 }
 
 export interface RoutesConfig {
-  fmInit: string;
-  fmTree: string;
-  fmContent: string;
-  fmProperties: string;
-  fmCreateDirectory: string;
-  fmCreateFile: string;
-  fmDelete: string;
-  fmRename: string;
+  disksSelect: string;
   fmUploadInit: string;
   fmUploadChunk: string;
   fmUploadComplete: string;
-  fmUploadStatus: string;
-  disksList: string;
-  disksSelect: string;
+  [key: string]: string;
 }
 
 export const useConfigStore = defineStore('config', () => {
@@ -35,20 +26,10 @@ export const useConfigStore = defineStore('config', () => {
   const disks = ref<Disk[]>([]);
   const readOnlyDisks = ref<Disk[]>([]);
   const routes = ref<RoutesConfig>({
-    fmInit: '',
-    fmTree: '',
-    fmContent: '',
-    fmProperties: '',
-    fmCreateDirectory: '',
-    fmCreateFile: '',
-    fmDelete: '',
-    fmRename: '',
+    disksSelect: '',
     fmUploadInit: '',
     fmUploadChunk: '',
     fmUploadComplete: '',
-    fmUploadStatus: '',
-    disksList: '',
-    disksSelect: '',
   });
   const chunkMinSize = ref(1048576 * 2);
   const chunkMaxSize = ref(1048576 * 20);

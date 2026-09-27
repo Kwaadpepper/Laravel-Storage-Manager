@@ -2,9 +2,10 @@
 defineOptions({
   name: 'CreateFileModal',
 });
-import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import { X } from 'lucide-vue-next';
 import { SUPPORTED_LANGUAGES } from '@ts/utils/supported-languages';
+import { useEscapeClose } from '@ts/tools';
 import CreateFileAskName from './CreateFileAskName.vue';
 import { useCreateFileViewModel, type ValidationError } from './useCreateFileViewModel';
 
@@ -45,17 +46,7 @@ function onClose(): void {
   close();
 }
 
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-  window.addEventListener('keydown', handleKeydown);
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown);
-  });
-});
+useEscapeClose(onClose);
 
 async function onValidateFileName(name: string, ext: string): Promise<ValidationError[] | null> {
   const errors = await validateFileName(name, ext);

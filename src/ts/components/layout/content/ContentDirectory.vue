@@ -120,8 +120,8 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       if (!fileManagerStore.selectedNodes[props.item.path]) {
         fileManagerStore.selectNodes(props.item);
       }
-      uiStore.setTargetDirectoryPath(props.item.path);
-      uiStore.setRenameDirectoryModal(ModalState.Opened);
+      uiStore.targetDirectoryPath = props.item.path;
+      uiStore.renameDirectoryModal = ModalState.Opened;
     },
   },
   {
@@ -130,7 +130,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       if (!fileManagerStore.selectedNodes[props.item.path]) {
         fileManagerStore.selectNodes(props.item);
       }
-      uiStore.setDeleteModal(ModalState.Opened);
+      uiStore.deleteModal = ModalState.Opened;
     },
   },
 ]);

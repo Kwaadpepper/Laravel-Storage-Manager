@@ -70,16 +70,16 @@ function onClickRename(): void {
     return;
   }
   if (firstNodeIsDirectory.value) {
-    uiStore.setTargetDirectoryPath(firstSelectedNode.value.path);
-    uiStore.setRenameDirectoryModal(ModalState.Opened);
+    uiStore.targetDirectoryPath = firstSelectedNode.value.path;
+    uiStore.renameDirectoryModal = ModalState.Opened;
   } else {
-    uiStore.setTargetFilePath(firstSelectedNode.value.path);
-    uiStore.setRenameFileModal(ModalState.Opened);
+    uiStore.targetFilePath = firstSelectedNode.value.path;
+    uiStore.renameFileModal = ModalState.Opened;
   }
 }
 
 function onClickDelete(): void {
-  uiStore.setDeleteModal(ModalState.Opened);
+  uiStore.deleteModal = ModalState.Opened;
 }
 </script>
 
@@ -90,7 +90,7 @@ function onClickDelete(): void {
       class="btn btn-ghost btn-xs"
       title="Copy To"
       :disabled="isReadOnly"
-      @click="uiStore.setCopyModal(ModalState.Opened)"
+      @click="uiStore.copyModal = ModalState.Opened"
     >
       <CopyPlus :size="14" />
       <span class="hidden sm:inline">Copy To</span>
@@ -101,7 +101,7 @@ function onClickDelete(): void {
       class="btn btn-ghost btn-xs"
       title="Move To"
       :disabled="isReadOnly"
-      @click="uiStore.setMoveModal(ModalState.Opened)"
+      @click="uiStore.moveModal = ModalState.Opened"
     >
       <FolderOutput :size="14" />
       <span class="hidden sm:inline">Move To</span>

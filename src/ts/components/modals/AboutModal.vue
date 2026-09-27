@@ -3,8 +3,9 @@ defineOptions({
   name: 'AboutModal',
 });
 import { ModalState, useConfigStore, useUiStore } from '@ts/stores';
+import { useEscapeClose } from '@ts/tools';
 import { X } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed } from 'vue';
 
 const uiStore = useUiStore();
 const configStore = useConfigStore();
@@ -12,20 +13,10 @@ const configStore = useConfigStore();
 const isOpen = computed(() => uiStore.aboutModal === ModalState.Opened);
 
 function closeModal(): void {
-  uiStore.setAboutModal(ModalState.Closed);
+  uiStore.aboutModal = ModalState.Closed;
 }
 
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      closeModal();
-    }
-  };
-  window.addEventListener('keydown', handleKeydown);
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown);
-  });
-});
+useEscapeClose(closeModal);
 </script>
 
 <template>
