@@ -2,11 +2,13 @@
 defineOptions({
   name: 'ViewFileModal',
 });
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import FileIcon from '@ts/components/shared/FileIcon.vue';
-import { Crop, Loader, X } from 'lucide-vue-next';
+import { Crop, Info, Loader, X } from 'lucide-vue-next';
 import { useEscapeClose } from '@ts/tools';
 import { ModalState, useConfigStore, useDiskStore, useUiStore } from '@ts/stores';
+import { useService } from '@ts/service-container';
+import { FileMetadata, Path } from '@ts/types';
 import {
   SUPPORTED_AUDIO_EXTENSIONS as AUDIO_EXTENSIONS,
   SUPPORTED_IMAGE_EXTENSIONS as IMAGE_EXTENSIONS,
@@ -20,6 +22,7 @@ import ViewPdf from './ViewPdf.vue';
 import ViewText from './ViewText.vue';
 import ViewUnsupported from './ViewUnsupported.vue';
 import ViewVideo from './ViewVideo.vue';
+import FileMetadataPanel from './FileMetadataPanel.vue';
 import { useViewFileViewModel } from './useViewFileViewModel';
 
 type ViewerType = 'text' | 'image' | 'audio' | 'video' | 'pdf' | 'unsupported';
@@ -39,6 +42,12 @@ const { isOpen, close, targetFilePath, blob, streamUrl, downloadUrl, loading, er
 const uiStore = useUiStore();
 const diskStore = useDiskStore();
 const configStore = useConfigStore();
+const fileManagerService = useService('fileManagerService');
+
+const isInfoOpen = ref<boolean>(false);
+const metadata = ref<FileMetadata | null>(null);
+const metadataLoading = ref<boolean>(false);
+const metadataError = ref<string | null>(null);
 
 const isReadOnly = computed(() =>
   diskStore.currentDisk ? configStore.readOnlyDisks.includes(diskStore.currentDisk) : false
@@ -50,11 +59,45 @@ const extension = computed(() =>
 );
 const viewerType = computed(() => detectViewer(extension.value));
 
+async function loadMetadata(): Promise<void> {
+  if (!targetFilePath.value) return;
+  metadataLoading.value = true;
+  metadataError.value = null;
+  try {
+    metadata.value = await fileManagerService.getFileProperties(targetFilePath.value as Path);
+  } catch (err: unknown) {
+    metadata.value = null;
+    metadataError.value = err instanceof Error ? err.message : 'Failed to load file metadata.';
+  } finally {
+    metadataLoading.value = false;
+  }
+}
+
+function toggleInfo(): void {
+  isInfoOpen.value = !isInfoOpen.value;
+  if (isInfoOpen.value && !metadata.value && !metadataLoading.value) {
+    void loadMetadata();
+  }
+}
+
+watch(
+  [() => isOpen.value, () => targetFilePath.value],
+  ([open, path]) => {
+    if (!open) {
+      isInfoOpen.value = false;
+      metadata.value = null;
+      metadataError.value = null;
+    } else if (open && isInfoOpen.value && path) {
+      void loadMetadata();
+    }
+  }
+);
+
 function openCrop(): void {
   const path = targetFilePath.value;
   close();
   if (path) {
-    uiStore.targetFilePath = path as import('@ts/types').Path;
+    uiStore.targetFilePath = path as Path;
     uiStore.cropImageModal = ModalState.Opened;
   }
 }
@@ -85,6 +128,16 @@ useEscapeClose(close);
         </h3>
         <div class="flex items-center gap-2">
           <button
+            class="btn btn-sm gap-1"
+            :class="isInfoOpen ? 'btn-primary' : 'btn-outline'"
+            type="button"
+            title="Toggle File Properties"
+            @click="toggleInfo"
+          >
+            <Info :size="14" />
+            <span class="hidden sm:inline">Info</span>
+          </button>
+          <button
             v-if="viewerType === 'image' && !isReadOnly"
             class="btn btn-sm btn-outline gap-1"
             type="button"
@@ -104,63 +157,94 @@ useEscapeClose(close);
         </div>
       </div>
 
-      <div class="flex-1 min-h-0 overflow-hidden">
-        <div
-          v-if="loading"
-          class="flex items-center justify-center h-full text-base-content/50 gap-2"
-        >
-          <Loader
-            :size="20"
-            class="animate-spin"
-          />
-          <span>Loading...</span>
+      <div class="flex-1 min-h-0 overflow-hidden flex">
+        <!-- Main Viewer Content -->
+        <div class="flex-1 min-h-0 min-w-0 overflow-hidden">
+          <div
+            v-if="loading"
+            class="flex items-center justify-center h-full text-base-content/50 gap-2"
+          >
+            <Loader
+              :size="20"
+              class="animate-spin"
+            />
+            <span>Loading...</span>
+          </div>
+
+          <div
+            v-else-if="error"
+            class="flex items-center justify-center h-full text-error"
+          >
+            {{ error }}
+          </div>
+
+          <template v-else-if="blob || streamUrl || viewerType === 'unsupported'">
+            <ViewText
+              v-if="viewerType === 'text' && blob"
+              :blob="blob"
+              :extension="extension"
+            />
+            <ViewImage
+              v-else-if="viewerType === 'image'"
+              :blob="blob"
+              :stream-url="streamUrl"
+              :file-name="fileName"
+            />
+            <ViewAudio
+              v-else-if="viewerType === 'audio'"
+              :blob="blob"
+              :stream-url="streamUrl"
+              :download-url="downloadUrl"
+              :file-name="fileName"
+            />
+            <ViewVideo
+              v-else-if="viewerType === 'video'"
+              :blob="blob"
+              :stream-url="streamUrl"
+              :download-url="downloadUrl"
+              :file-name="fileName"
+            />
+            <ViewPdf
+              v-else-if="viewerType === 'pdf'"
+              :blob="blob"
+              :stream-url="streamUrl"
+              :download-url="downloadUrl"
+              :file-name="fileName"
+            />
+            <ViewUnsupported
+              v-else-if="viewerType === 'unsupported'"
+              :extension="extension"
+            />
+          </template>
         </div>
 
+        <!-- Collapsible Info / Metadata Sidebar -->
         <div
-          v-else-if="error"
-          class="flex items-center justify-center h-full text-error"
+          v-if="isInfoOpen"
+          class="w-80 md:w-96 border-l border-base-content/10 bg-base-100 flex flex-col shrink-0 min-h-0 overflow-hidden"
         >
-          {{ error }}
+          <div
+            v-if="metadataLoading"
+            class="flex-1 flex items-center justify-center gap-2 text-base-content/50"
+          >
+            <Loader
+              :size="20"
+              class="animate-spin text-primary"
+            />
+            <span>Loading properties...</span>
+          </div>
+          <div
+            v-else-if="metadataError"
+            class="p-4 text-error text-center text-xs"
+          >
+            {{ metadataError }}
+          </div>
+          <FileMetadataPanel
+            v-else-if="metadata"
+            :metadata="metadata"
+            class="flex-1"
+          />
         </div>
-
-        <template v-else-if="blob || streamUrl || viewerType === 'unsupported'">
-          <ViewText
-            v-if="viewerType === 'text' && blob"
-            :blob="blob"
-            :extension="extension"
-          />
-          <ViewImage
-            v-else-if="viewerType === 'image'"
-            :blob="blob"
-            :stream-url="streamUrl"
-            :file-name="fileName"
-          />
-          <ViewAudio
-            v-else-if="viewerType === 'audio'"
-            :blob="blob"
-            :stream-url="streamUrl"
-            :download-url="downloadUrl"
-            :file-name="fileName"
-          />
-          <ViewVideo
-            v-else-if="viewerType === 'video'"
-            :blob="blob"
-            :stream-url="streamUrl"
-            :download-url="downloadUrl"
-            :file-name="fileName"
-          />
-          <ViewPdf
-            v-else-if="viewerType === 'pdf'"
-            :blob="blob"
-            :stream-url="streamUrl"
-            :download-url="downloadUrl"
-            :file-name="fileName"
-          />
-          <ViewUnsupported
-            v-else-if="viewerType === 'unsupported'"
-            :extension="extension"
-          />
-        </template>
       </div>
 
       <div class="flex justify-end mt-2 shrink-0">

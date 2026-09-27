@@ -1,7 +1,7 @@
 import { isDomainValidationError, isValidationError, ValidationError } from "@ts/errors";
-import { existsResponseSchema, searchResponseSchema, treeResponseSchema } from "@ts/schemas";
+import { existsResponseSchema, propertiesResponseSchema, searchResponseSchema, treeResponseSchema } from "@ts/schemas";
 import { DiskStore } from "@ts/stores";
-import { Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
+import { FileMetadata, Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { ApiService } from "./api-service";
 
 export type CreateDirectoryValidationField = 'directoryName';
@@ -180,6 +180,55 @@ export class FileManagerService {
     return this.apiService
       .get(`${this.prefix}/exists?disk=${encodeURIComponent(this.getDisk())}&path=${encodeURIComponent(path)}`, existsResponseSchema)
       .then(data => data.exists);
+  }
+
+  async getFileProperties(path: Path): Promise<FileMetadata> {
+    return this.apiService
+      .get(`${this.prefix}/properties?disk=${encodeURIComponent(this.getDisk())}&path=${encodeURIComponent(path)}`, propertiesResponseSchema)
+      .then((data) => ({
+        path: data.path,
+        basename: data.basename,
+        dirname: data.dirname,
+        timestamp: data.timestamp,
+        visibility: data.visibility ?? null,
+        isFile: data.isFile ?? true,
+        isDirectory: data.isDirectory ?? false,
+        extension: data.extension ?? null,
+        size: data.size ?? null,
+        mimeType: data.mimeType ?? null,
+        publicUrl: data.publicUrl ?? null,
+        checksum: data.checksum ?? null,
+        dimensions: data.dimensions ?? null,
+        exif: data.exif
+          ? {
+              make: data.exif.make ?? null,
+              model: data.exif.model ?? null,
+              lens: data.exif.lens ?? null,
+              aperture: data.exif.aperture ?? null,
+              exposureTime: data.exif.exposureTime ?? null,
+              iso: data.exif.iso ?? null,
+              focalLength: data.exif.focalLength ?? null,
+              focalLengthIn35mm: data.exif.focalLengthIn35mm ?? null,
+              flash: data.exif.flash ?? null,
+              whiteBalance: data.exif.whiteBalance ?? null,
+              meteringMode: data.exif.meteringMode ?? null,
+              dateTaken: data.exif.dateTaken ?? null,
+              gps: data.exif.gps
+                ? {
+                    latitude: data.exif.gps.latitude,
+                    longitude: data.exif.gps.longitude,
+                    altitude: data.exif.gps.altitude ?? null,
+                    mapsUrl: data.exif.gps.mapsUrl,
+                    googleMapsUrl: data.exif.gps.googleMapsUrl,
+                  }
+                : null,
+              software: data.exif.software ?? null,
+              artist: data.exif.artist ?? null,
+              copyright: data.exif.copyright ?? null,
+            }
+          : null,
+        rawExif: data.rawExif ?? null,
+      }));
   }
 
   async renameFile(path: Path, newName: string): Promise<void> {

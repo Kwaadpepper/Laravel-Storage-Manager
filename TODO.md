@@ -43,7 +43,7 @@
 - [x] Video viewer
 - [ ] Video streaming (HLS / MPEG-Dash, optional ffmpeg transcoding)
 - [x] PDF viewer
-- [ ] File metadata view (EXIF, size, dates...)
+- [x] File metadata view (EXIF, size, dates...)
 
 ## Image processing (server-side)
 

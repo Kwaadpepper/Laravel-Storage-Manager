@@ -17,12 +17,14 @@ import BulkRenameModal from './shared/BulkRenameModal.vue';
 import ZipModal from './shared/ZipModal.vue';
 import UnzipModal from './shared/UnzipModal.vue';
 import CropImageModal from './file/CropImageModal.vue';
+import FileMetadataModal from './file/FileMetadataModal.vue';
 
 const MODAL_CLOSE_DELAY = 250;
 
 const uiStore = useUiStore();
 
 const aboutMounted = useDelayedUnmount(() => uiStore.aboutModal === ModalState.Opened, MODAL_CLOSE_DELAY);
+const fileMetadataMounted = useDelayedUnmount(() => uiStore.fileMetadataModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const dirCreateMounted = useDelayedUnmount(() => uiStore.newDirectoryModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const fileCreateMounted = useDelayedUnmount(() => uiStore.createFileModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const dirRenameMounted = useDelayedUnmount(() => uiStore.renameDirectoryModal === ModalState.Opened, MODAL_CLOSE_DELAY);
@@ -59,4 +61,5 @@ const cropImageMounted = useDelayedUnmount(() => uiStore.cropImageModal === Moda
   <ZipModal v-if="zipMounted" />
   <UnzipModal v-if="unzipMounted" />
   <CropImageModal v-if="cropImageMounted" />
+  <FileMetadataModal v-if="fileMetadataMounted" />
 </template>

@@ -550,7 +550,7 @@ class FileManager
         return new FileStream($stream);
     }
 
-    private function getDisk(): Disk
+    public function getDisk(): Disk
     {
         if ($this->activeDisk === null) {
             throw new \LogicException('No active disk set for FileManager.');

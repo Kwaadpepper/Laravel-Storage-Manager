@@ -5,7 +5,7 @@ defineOptions({
 import { useService } from '@ts/service-container';
 import { ModalState, useConfigStore, useUiStore } from '@ts/stores';
 import { isFile, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
-import { ArchiveRestore, Download, Eye } from 'lucide-vue-next';
+import { ArchiveRestore, Download, Eye, Info } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -44,6 +44,15 @@ function onClickView(): void {
   uiStore.viewFileModal = ModalState.Opened;
 }
 
+function onClickProperties(): void {
+  const node = firstSelectedNode.value;
+  if (node === null || !isFile(node)) {
+    return;
+  }
+  uiStore.targetFilePath = node.path;
+  uiStore.fileMetadataModal = ModalState.Opened;
+}
+
 async function onClickDownload(): Promise<void> {
   try {
     const node = firstSelectedNode.value;
@@ -73,6 +82,15 @@ async function onClickDownload(): Promise<void> {
     >
       <Eye :size="14" />
       <span class="hidden sm:inline">View</span>
+    </button>
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs"
+      title="Properties"
+      @click="onClickProperties"
+    >
+      <Info :size="14" />
+      <span class="hidden sm:inline">Properties</span>
     </button>
     <button
       v-if="configStore.supportsZip && isZipFile"

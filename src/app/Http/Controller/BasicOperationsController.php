@@ -43,6 +43,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\ZipRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileMetadataExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
@@ -53,7 +54,8 @@ class BasicOperationsController extends Controller
 
     public function __construct(
         private readonly EventDispatcher $eventDispatcher,
-        private readonly FileManager $fileManager
+        private readonly FileManager $fileManager,
+        private readonly FileMetadataExtractor $fileMetadataExtractor,
     ) {
     }
 
@@ -66,6 +68,15 @@ class BasicOperationsController extends Controller
                 $this->presentError(self::ERROR_PATH_NOT_FOUND),
                 ApiResponse::HTTP_NOT_FOUND
             );
+        }
+
+        if ($this->fileManager->isFile($path)) {
+            $metadata = $this->fileMetadataExtractor->extract(
+                $this->fileManager->getDisk(),
+                $path
+            );
+
+            return ApiResponse::json($metadata, ApiResponse::HTTP_OK);
         }
 
         $fileProperties = $this->fileManager->getProperties($path);

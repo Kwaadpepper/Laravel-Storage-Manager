@@ -58,6 +58,13 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       uiStore.viewFileModal = ModalState.Opened;
     },
   },
+  {
+    label: 'Properties',
+    onClick: () => {
+      uiStore.targetFilePath = props.item.path;
+      uiStore.fileMetadataModal = ModalState.Opened;
+    },
+  },
   ...(fileType.value.category === 'image' && !isReadOnly.value
     ? [
         {
