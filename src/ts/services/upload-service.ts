@@ -5,6 +5,7 @@ import { UploadItem, UploadStore } from '@ts/stores/upload-store';
 import { uniqueId } from '@ts/tools';
 import SparkMD5 from 'spark-md5';
 import { ApiService } from './api-service';
+import { DiskService } from './disk-service';
 import { NavigationService } from './navigation-service';
 
 const MAX_CONCURRENT_UPLOADS = 2;
@@ -19,6 +20,7 @@ export class UploadService {
     private readonly uploadStore: UploadStore,
     private readonly configStore: ConfigStore,
     private readonly fileManagerStore: FileManagerStore,
+    private readonly diskService?: DiskService,
   ) {
     window.addEventListener('beforeunload', (e) => {
       if (this.activeUploads.size > 0) {
@@ -158,7 +160,10 @@ export class UploadService {
         }
         this.refreshTimeout = setTimeout(() => {
           this.navigationService.refreshCurrentPath();
+          void this.diskService?.fetchDiskStats(undefined, true);
         }, 500);
+      } else {
+        void this.diskService?.fetchDiskStats(undefined, true);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';

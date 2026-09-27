@@ -210,6 +210,7 @@ class StorageManagerServiceProvider extends ServiceProvider
                     'sanitizeFilenames'   => $configRepository->shouldSanitizeUploadFileNames(),
                     'supportsZip'         => extension_loaded('zip')                  && class_exists(\ZipArchive::class),
                     'supportsThumbnails'  => $configRepository->isThumbnailsEnabled() && extension_loaded('gd'),
+                    'supportsDiskStats'   => $configRepository->isStatsEnabled(),
                     'routes'              => [
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),
@@ -229,6 +230,7 @@ class StorageManagerServiceProvider extends ServiceProvider
 
                         'disksList'         => route('storage-manager.api.disks.list'),
                         'disksSelect'       => route('storage-manager.api.disks.select'),
+                        'disksStats'        => route('storage-manager.api.disks.stats'),
                     ],
                 ]);
             }

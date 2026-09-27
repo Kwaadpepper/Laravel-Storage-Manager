@@ -50,4 +50,12 @@ return [
         'height'         => (int) env('STORAGE_MANAGER_THUMBNAILS_HEIGHT', 160),
         'quality'        => (int) env('STORAGE_MANAGER_THUMBNAILS_QUALITY', 80),
     ],
+
+    'stats' => [
+        'enabled'        => filter_var(env('STORAGE_MANAGER_STATS_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'cache_duration' => (int) env('STORAGE_MANAGER_STATS_CACHE_DURATION', 60),
+        'quotas'         => [
+            // 'local' => 10 * 1024 * 1024 * 1024,
+        ],
+    ],
 ];

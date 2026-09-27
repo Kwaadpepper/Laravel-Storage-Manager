@@ -1,5 +1,6 @@
 export * from './api-response.schema';
 export * from './app-config.schema';
+export * from './disk-stats.schema';
 export * from './authorization-error.schema';
 export * from './domain-validation-error.schema';
 export * from './file-manager/exists.schema';

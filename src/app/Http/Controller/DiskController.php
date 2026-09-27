@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Kwaadpepper\LaravelStorageManager\Event\DiskSelected;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskListDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\SelectedDiskDto;
+use Kwaadpepper\LaravelStorageManager\Http\Request\Disk\DiskStatsRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Disk\SelectDiskRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
@@ -40,6 +41,20 @@ final class DiskController extends Controller
 
         return ApiResponse::json(
             $this->presentSelected($disk),
+            ApiResponse::HTTP_OK
+        );
+    }
+
+    public function stats(DiskStatsRequest $request): ApiResponse
+    {
+        $disk = $request->getDisk();
+
+        if ($request->boolean('fresh')) {
+            $this->diskService->clearDiskStatsCache($disk->name);
+        }
+
+        return ApiResponse::json(
+            $this->diskService->getDiskStats($disk),
             ApiResponse::HTTP_OK
         );
     }

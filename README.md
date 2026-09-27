@@ -19,6 +19,7 @@ Laravel File Manager with multiple storages handling
   - Aspect ratio presets: Free, 1:1, 4:3, 16:9, 3:2, 2:3.
   - Image transformations: 90° rotation, horizontal & vertical flip, zoom in/out, and reset.
   - Save options: Save as a new copy with customizable filename or overwrite original.
+- **Storage Usage Stats**: Real-time disk capacity and usage metrics (partition stats, configured quota per disk, or cloud mode) with visual progress indicators and automatic cache invalidation on file changes.
 - **Archive Support**: Create ZIP archives and extract existing archives in place.
 - **Batch Operations**: Bulk rename, move, copy, and delete files or folders.
 - **Search & Filtering**: Search files and directories with extension and name filters.

@@ -92,13 +92,14 @@ export function buildServiceContainer(): ServiceContainer {
   const downloadService = new DownloadService(diskStore);
   const themeService = new ThemeService(uiStore);
   const clipboardService = new ClipboardService(clipboardStore);
-  const eventQueueService = new EventQueueService(navigationService, actionStore);
+  const eventQueueService = new EventQueueService(navigationService, actionStore, diskService);
   const uploadService = new UploadService(
     apiService,
     navigationService,
     uploadStore,
     configStore,
-    fileManagerStore
+    fileManagerStore,
+    diskService
   );
 
   return {

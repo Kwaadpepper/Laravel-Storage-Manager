@@ -52,7 +52,7 @@
 
 ## Storage & statistics
 
-- [ ] Storage usage stats (used / available space per disk)
+- [x] Storage usage stats (used / available space per disk)
 - [ ] File visibility toggle (public / private, S3 ACL)
 
 ## Access control

@@ -87,6 +87,7 @@ Route::group([
         ], function (): void {
             Route::get('/', [DiskController::class, 'list'])->name('list');
             Route::post('select', [DiskController::class, 'select'])->name('select');
+            Route::get('stats', [DiskController::class, 'stats'])->name('stats');
         });
     });
 });

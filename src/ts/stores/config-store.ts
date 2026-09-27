@@ -27,6 +27,7 @@ export const useConfigStore = defineStore('config', () => {
   const readOnlyDisks = ref<Disk[]>([]);
   const routes = ref<RoutesConfig>({
     disksSelect: '',
+    disksStats: '',
     fmUploadInit: '',
     fmUploadChunk: '',
     fmUploadComplete: '',
@@ -37,6 +38,7 @@ export const useConfigStore = defineStore('config', () => {
   const sanitizeFilenames = ref(true);
   const supportsZip = ref(false);
   const supportsThumbnails = ref(true);
+  const supportsDiskStats = ref(true);
 
   function initialize(config: AppConfig): void {
     packageName.value = config.packageName;
@@ -54,6 +56,7 @@ export const useConfigStore = defineStore('config', () => {
     sanitizeFilenames.value = config.sanitizeFilenames;
     supportsZip.value = config.supportsZip ?? false;
     supportsThumbnails.value = config.supportsThumbnails ?? true;
+    supportsDiskStats.value = config.supportsDiskStats ?? true;
   }
 
   return {
@@ -72,6 +75,7 @@ export const useConfigStore = defineStore('config', () => {
     sanitizeFilenames,
     supportsZip,
     supportsThumbnails,
+    supportsDiskStats,
     initialize,
   };
 });

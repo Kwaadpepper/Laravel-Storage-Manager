@@ -21,8 +21,10 @@ export const appConfigSchema = z.object({
   sanitizeFilenames: z.boolean(),
   supportsZip: z.boolean().default(false),
   supportsThumbnails: z.boolean().default(true),
+  supportsDiskStats: z.boolean().default(true),
   routes: z.object({
     disksSelect: z.url(),
+    disksStats: z.url().optional(),
     fmUploadInit: z.url(),
     fmUploadChunk: z.url(),
     fmUploadComplete: z.url(),

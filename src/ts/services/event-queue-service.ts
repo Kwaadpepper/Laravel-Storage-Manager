@@ -1,4 +1,5 @@
 import { ActionStore } from "@ts/stores";
+import { DiskService } from "./disk-service";
 import { NavigationService } from "./navigation-service";
 
 export type EventType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE' | 'ZIP' | 'UNZIP';
@@ -19,6 +20,7 @@ export class EventQueueService {
   constructor(
     private readonly navigationService: NavigationService,
     private readonly actionStore: ActionStore,
+    private readonly diskService?: DiskService,
   ) {}
 
   public push(event: FileEvent) {
@@ -88,6 +90,7 @@ export class EventQueueService {
       if (this.queue.length === 0) {
         if (this.queuedRefreshes > 0) {
           this.navigationService.refreshCurrentPath();
+          void this.diskService?.fetchDiskStats(undefined, true);
           this.queuedRefreshes = 0;
         }
       }

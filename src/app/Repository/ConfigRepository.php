@@ -267,4 +267,23 @@ class ConfigRepository
 
         return is_int($quality) && $quality >= 1 && $quality <= 100 ? $quality : 80;
     }
+
+    public function isStatsEnabled(): bool
+    {
+        return Arr::boolean($this->config, 'stats.enabled', true);
+    }
+
+    public function getStatsCacheDuration(): int
+    {
+        $duration = Arr::get($this->config, 'stats.cache_duration', 60);
+
+        return is_int($duration) && $duration >= 0 ? $duration : 60;
+    }
+
+    public function getDiskQuota(string $diskName): ?int
+    {
+        $quota = Arr::get($this->config, "stats.quotas.{$diskName}");
+
+        return is_int($quota) && $quota > 0 ? $quota : null;
+    }
 }
