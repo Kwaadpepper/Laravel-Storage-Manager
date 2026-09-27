@@ -39,8 +39,8 @@
 
 - [ ] Image thumbnails (lazy loaded and cached)
 - [ ] Image cropper
-- [ ] Audio viewer
-- [ ] Video viewer
+- [x] Audio viewer
+- [x] Video viewer
 - [ ] Video streaming (HLS / MPEG-Dash, optional ffmpeg transcoding)
 - [x] PDF viewer
 - [ ] File metadata view (EXIF, size, dates...)
