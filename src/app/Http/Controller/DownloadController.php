@@ -46,9 +46,13 @@ class DownloadController extends Controller
             self::OCTET_STREAM_MIME_TYPE;
 
         return response()->streamDownload(
-            function () use ($filePathProps) {
-                $stream = $this->fileManager->readStream($filePathProps->path);
-                echo stream_get_contents($stream->stream());
+            function () use ($filePathProps): void {
+                $stream   = $this->fileManager->readStream($filePathProps->path);
+                $resource = $stream->stream();
+                if (is_resource($resource)) {
+                    fpassthru($resource);
+                    fclose($resource);
+                }
             },
             $filePathProps->properties->basename,
             ['Content-Type' => $mimeType]

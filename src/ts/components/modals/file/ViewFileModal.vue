@@ -34,7 +34,7 @@ function detectViewer(extension: string | null): ViewerType {
   return 'unsupported';
 }
 
-const { isOpen, close, targetFilePath, blob, loading, error } = useViewFileViewModel();
+const { isOpen, close, targetFilePath, blob, streamUrl, downloadUrl, loading, error } = useViewFileViewModel();
 
 const fileName = computed(() => (targetFilePath.value ? targetFilePath.value.split('/').pop() ?? '' : ''));
 const extension = computed(() =>
@@ -95,30 +95,37 @@ useEscapeClose(close);
           {{ error }}
         </div>
 
-        <template v-else-if="blob">
+        <template v-else-if="blob || streamUrl || viewerType === 'unsupported'">
           <ViewText
-            v-if="viewerType === 'text'"
+            v-if="viewerType === 'text' && blob"
             :blob="blob"
             :extension="extension"
           />
           <ViewImage
             v-else-if="viewerType === 'image'"
             :blob="blob"
+            :stream-url="streamUrl"
             :file-name="fileName"
           />
           <ViewAudio
             v-else-if="viewerType === 'audio'"
             :blob="blob"
+            :stream-url="streamUrl"
+            :download-url="downloadUrl"
             :file-name="fileName"
           />
           <ViewVideo
             v-else-if="viewerType === 'video'"
             :blob="blob"
+            :stream-url="streamUrl"
+            :download-url="downloadUrl"
             :file-name="fileName"
           />
           <ViewPdf
             v-else-if="viewerType === 'pdf'"
             :blob="blob"
+            :stream-url="streamUrl"
+            :download-url="downloadUrl"
             :file-name="fileName"
           />
           <ViewUnsupported

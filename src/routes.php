@@ -10,6 +10,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DownloadController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\SearchController;
+use Kwaadpepper\LaravelStorageManager\Http\Controller\StreamController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\UploadController;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApiMiddleware;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerMiddleware;
@@ -39,6 +40,7 @@ Route::group([
     Route::get('assets/{dir}/{file}', AssetController::class)->name('assets');
 
     Route::get('download/{disk}/{path}', DownloadController::class)->where('path', '.*')->name('download');
+    Route::get('stream/{disk}/{path}', StreamController::class)->where('path', '.*')->name('stream');
 
     Route::name('api.')->middleware([StorageManagerApiMiddleware::class])->group(function (): void {
 

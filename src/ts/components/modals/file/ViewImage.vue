@@ -2,10 +2,11 @@
 defineOptions({
   name: 'ViewImage',
 });
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 const props = defineProps<{
-  blob: Blob;
+  blob?: Blob | null;
+  streamUrl?: string | null;
   fileName: string;
 }>();
 
@@ -17,10 +18,16 @@ watch(
     if (objectUrl.value) {
       URL.revokeObjectURL(objectUrl.value);
     }
-    objectUrl.value = URL.createObjectURL(newBlob);
+    if (newBlob) {
+      objectUrl.value = URL.createObjectURL(newBlob);
+    } else {
+      objectUrl.value = null;
+    }
   },
   { immediate: true }
 );
+
+const imageSrc = computed(() => props.streamUrl ?? objectUrl.value);
 
 onBeforeUnmount(() => {
   if (objectUrl.value) {
@@ -31,11 +38,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    v-if="objectUrl"
+    v-if="imageSrc"
     class="flex items-center justify-center h-full overflow-auto"
   >
     <img
-      :src="objectUrl"
+      :src="imageSrc"
       :alt="fileName"
       class="max-w-full max-h-full object-contain"
     >

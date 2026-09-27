@@ -15,7 +15,9 @@ import {
 import { ensureMediaBlob } from '../../../utils/media-mime';
 
 const props = defineProps<{
-  blob: Blob;
+  blob?: Blob | null;
+  streamUrl?: string | null;
+  downloadUrl?: string | null;
   fileName: string;
 }>();
 
@@ -53,11 +55,18 @@ watch(
     currentTime.value = 0;
     duration.value = 0;
 
-    const typedBlob = ensureMediaBlob(newBlob, extension.value, 'audio');
-    objectUrl.value = URL.createObjectURL(typedBlob);
+    if (newBlob) {
+      const typedBlob = ensureMediaBlob(newBlob, extension.value, 'audio');
+      objectUrl.value = URL.createObjectURL(typedBlob);
+    } else {
+      objectUrl.value = null;
+    }
   },
   { immediate: true }
 );
+
+const mediaSrc = computed(() => props.streamUrl ?? objectUrl.value);
+const fileDownloadUrl = computed(() => props.downloadUrl ?? mediaSrc.value ?? '#');
 
 function toggleLoop(): void {
   isLooping.value = !isLooping.value;
@@ -109,13 +118,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    v-if="objectUrl"
+    v-if="mediaSrc"
     class="flex flex-col h-full gap-3"
   >
     <!-- Top action bar -->
     <div class="flex items-center justify-end gap-2 shrink-0">
       <a
-        :href="objectUrl"
+        :href="mediaSrc"
         target="_blank"
         rel="noopener noreferrer"
         class="btn btn-xs btn-ghost gap-1"
@@ -125,7 +134,7 @@ onBeforeUnmount(() => {
         <span>Open in new tab</span>
       </a>
       <a
-        :href="objectUrl"
+        :href="fileDownloadUrl"
         :download="fileName"
         class="btn btn-xs btn-ghost gap-1"
         title="Download"
@@ -151,7 +160,7 @@ onBeforeUnmount(() => {
         Your browser does not support playing this audio format directly. You can download the file to play it locally.
       </p>
       <a
-        :href="objectUrl"
+        :href="fileDownloadUrl"
         :download="fileName"
         class="btn btn-sm btn-primary gap-1 mt-2"
       >
@@ -203,7 +212,7 @@ onBeforeUnmount(() => {
         <audio
           ref="audioRef"
           controls
-          :src="objectUrl"
+          :src="mediaSrc"
           class="w-full"
           @play="isPlaying = true"
           @pause="isPlaying = false"

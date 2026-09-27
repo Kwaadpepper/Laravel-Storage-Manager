@@ -12,7 +12,9 @@ import {
 import { ensureMediaBlob } from '../../../utils/media-mime';
 
 const props = defineProps<{
-  blob: Blob;
+  blob?: Blob | null;
+  streamUrl?: string | null;
+  downloadUrl?: string | null;
   fileName: string;
 }>();
 
@@ -54,11 +56,18 @@ watch(
     videoWidth.value = 0;
     videoHeight.value = 0;
 
-    const typedBlob = ensureMediaBlob(newBlob, extension.value, 'video');
-    objectUrl.value = URL.createObjectURL(typedBlob);
+    if (newBlob) {
+      const typedBlob = ensureMediaBlob(newBlob, extension.value, 'video');
+      objectUrl.value = URL.createObjectURL(typedBlob);
+    } else {
+      objectUrl.value = null;
+    }
   },
   { immediate: true }
 );
+
+const mediaSrc = computed(() => props.streamUrl ?? objectUrl.value);
+const fileDownloadUrl = computed(() => props.downloadUrl ?? mediaSrc.value ?? '#');
 
 function setPlaybackRate(rate: number): void {
   playbackRate.value = rate;
@@ -100,7 +109,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    v-if="objectUrl"
+    v-if="mediaSrc"
     class="flex flex-col h-full gap-2"
   >
     <!-- Top action bar -->
@@ -168,7 +177,7 @@ onBeforeUnmount(() => {
         </button>
 
         <a
-          :href="objectUrl"
+          :href="mediaSrc"
           target="_blank"
           rel="noopener noreferrer"
           class="btn btn-xs btn-ghost gap-1"
@@ -178,7 +187,7 @@ onBeforeUnmount(() => {
           <span>Open in new tab</span>
         </a>
         <a
-          :href="objectUrl"
+          :href="fileDownloadUrl"
           :download="fileName"
           class="btn btn-xs btn-ghost gap-1"
           title="Download"
@@ -206,7 +215,7 @@ onBeforeUnmount(() => {
       </p>
       <div class="flex items-center gap-2 mt-2">
         <a
-          :href="objectUrl"
+          :href="mediaSrc"
           target="_blank"
           rel="noopener noreferrer"
           class="btn btn-sm btn-outline gap-1"
@@ -215,7 +224,7 @@ onBeforeUnmount(() => {
           <span>Open in new tab</span>
         </a>
         <a
-          :href="objectUrl"
+          :href="fileDownloadUrl"
           :download="fileName"
           class="btn btn-sm btn-primary gap-1"
         >
@@ -235,7 +244,7 @@ onBeforeUnmount(() => {
         controls
         playsinline
         preload="metadata"
-        :src="objectUrl"
+        :src="mediaSrc"
         class="max-w-full max-h-full object-contain"
         @loadedmetadata="onLoadedMetadata"
         @error="onVideoError"
