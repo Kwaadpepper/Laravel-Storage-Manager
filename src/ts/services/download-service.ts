@@ -14,6 +14,12 @@ export class DownloadService {
     return `${this.prefix}/stream/${encodeURIComponent(disk)}/${encodedPath}`;
   }
 
+  getThumbnailUrl(path: Path): string {
+    const disk = this.diskStore.currentDisk ?? 'public';
+    const encodedPath = path.split('/').slice(1).map(encodeURIComponent).join('/');
+    return `${this.prefix}/thumb/${encodeURIComponent(disk)}/${encodedPath}`;
+  }
+
   getDownloadUrl(path: Path): string {
     const disk = this.diskStore.currentDisk ?? 'public';
     const encodedPath = path.split('/').slice(1).map(encodeURIComponent).join('/');

@@ -42,4 +42,12 @@ return [
                 fn (string $diskName) => mb_trim($diskName)
             )->filter()->values()->all(),
     ],
+
+    'thumbnails' => [
+        'enabled'        => filter_var(env('STORAGE_MANAGER_THUMBNAILS_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'cache_duration' => (int) env('STORAGE_MANAGER_THUMBNAILS_CACHE_DURATION', 604800),
+        'width'          => (int) env('STORAGE_MANAGER_THUMBNAILS_WIDTH', 160),
+        'height'         => (int) env('STORAGE_MANAGER_THUMBNAILS_HEIGHT', 160),
+        'quality'        => (int) env('STORAGE_MANAGER_THUMBNAILS_QUALITY', 80),
+    ],
 ];

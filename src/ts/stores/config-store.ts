@@ -36,6 +36,7 @@ export const useConfigStore = defineStore('config', () => {
   const duplicatePolicy = ref<'overwrite' | 'auto_rename' | 'error'>('auto_rename');
   const sanitizeFilenames = ref(true);
   const supportsZip = ref(false);
+  const supportsThumbnails = ref(true);
 
   function initialize(config: AppConfig): void {
     packageName.value = config.packageName;
@@ -52,6 +53,7 @@ export const useConfigStore = defineStore('config', () => {
     duplicatePolicy.value = config.duplicatePolicy;
     sanitizeFilenames.value = config.sanitizeFilenames;
     supportsZip.value = config.supportsZip ?? false;
+    supportsThumbnails.value = config.supportsThumbnails ?? true;
   }
 
   return {
@@ -69,6 +71,7 @@ export const useConfigStore = defineStore('config', () => {
     duplicatePolicy,
     sanitizeFilenames,
     supportsZip,
+    supportsThumbnails,
     initialize,
   };
 });

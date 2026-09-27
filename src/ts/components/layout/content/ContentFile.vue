@@ -8,6 +8,7 @@ import { useService } from '@ts/service-container';
 import { ContextualMenuEntry, ModalState, toAnchorName, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
 import { TreeNodeFile } from '@ts/types';
 import FileIcon from '@ts/components/shared/FileIcon.vue';
+import FileThumbnail from '@ts/components/shared/FileThumbnail.vue';
 import { getFileTypeInfo } from '@ts/utils/file-type';
 import { computed } from 'vue';
 
@@ -172,7 +173,13 @@ useContextualMenuRegistration(anchorName, entries);
     :style="{ anchorName }"
     class="flex flex-col items-center gap-1 p-3 rounded-lg w-24 select-none"
   >
+    <FileThumbnail
+      v-if="fileType.category === 'image' && configStore.supportsThumbnails"
+      :item="item"
+      :size="48"
+    />
     <FileIcon
+      v-else
       :name="item.name"
       :extension="item.extension"
       :size="36"
@@ -196,7 +203,14 @@ useContextualMenuRegistration(anchorName, entries);
       class="table-cell select-none p-2"
     >
       <span class="flex items-center gap-2">
+        <FileThumbnail
+          v-if="fileType.category === 'image' && configStore.supportsThumbnails"
+          :item="item"
+          :size="18"
+          class="rounded-sm"
+        />
         <FileIcon
+          v-else
           :name="item.name"
           :extension="item.extension"
           :size="16"

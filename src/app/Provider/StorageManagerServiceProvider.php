@@ -21,6 +21,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
+use Kwaadpepper\LaravelStorageManager\Service\ThumbnailService;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class StorageManagerServiceProvider extends ServiceProvider
@@ -94,6 +95,13 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->app->singleton(
             EventDispatcher::class,
             fn () => new EventDispatcher()
+        );
+        $this->app->singleton(
+            ThumbnailService::class,
+            fn (Application $app): ThumbnailService => new ThumbnailService(
+                $app->make(ConfigRepository::class),
+                $app->make(FileManager::class)
+            )
         );
     }
 
@@ -200,7 +208,8 @@ class StorageManagerServiceProvider extends ServiceProvider
                     'chunkMaxSize'        => $configRepository->getUploadChunkMaxSize(),
                     'duplicatePolicy'     => $configRepository->getUploadDuplicatePolicy()->value,
                     'sanitizeFilenames'   => $configRepository->shouldSanitizeUploadFileNames(),
-                    'supportsZip'         => extension_loaded('zip') && class_exists(\ZipArchive::class),
+                    'supportsZip'         => extension_loaded('zip')                  && class_exists(\ZipArchive::class),
+                    'supportsThumbnails'  => $configRepository->isThumbnailsEnabled() && extension_loaded('gd'),
                     'routes'              => [
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),

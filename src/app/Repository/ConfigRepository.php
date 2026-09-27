@@ -234,4 +234,37 @@ class ConfigRepository
 
         return $value;
     }
+
+    public function isThumbnailsEnabled(): bool
+    {
+        return Arr::boolean($this->config, 'thumbnails.enabled', true);
+    }
+
+    public function getThumbnailsCacheDuration(): int
+    {
+        $duration = Arr::get($this->config, 'thumbnails.cache_duration', 604800);
+
+        return is_int($duration) && $duration >= 0 ? $duration : 604800;
+    }
+
+    public function getThumbnailsWidth(): int
+    {
+        $width = Arr::get($this->config, 'thumbnails.width', 160);
+
+        return is_int($width) && $width > 0 ? $width : 160;
+    }
+
+    public function getThumbnailsHeight(): int
+    {
+        $height = Arr::get($this->config, 'thumbnails.height', 160);
+
+        return is_int($height) && $height > 0 ? $height : 160;
+    }
+
+    public function getThumbnailsQuality(): int
+    {
+        $quality = Arr::get($this->config, 'thumbnails.quality', 80);
+
+        return is_int($quality) && $quality >= 1 && $quality <= 100 ? $quality : 80;
+    }
 }

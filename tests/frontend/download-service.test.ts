@@ -12,6 +12,7 @@ describe('DownloadService', () => {
 
     expect(service.getStreamUrl('/videos/sample-1.mp4')).toBe('/sm/stream/local/videos/sample-1.mp4');
     expect(service.getDownloadUrl('/videos/sample-1.mp4')).toBe('/sm/download/local/videos/sample-1.mp4');
+    expect(service.getThumbnailUrl('/images/photo.png')).toBe('/sm/thumb/local/images/photo.png');
   });
 
   it('falls back to public disk if currentDisk is not set', () => {

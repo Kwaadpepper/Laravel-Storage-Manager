@@ -19,6 +19,7 @@ use Symfony\Component\Mime\MimeTypes;
 class StreamController extends Controller
 {
     private const string OCTET_STREAM_MIME_TYPE = 'application/octet-stream';
+
     private const int CHUNK_SIZE = 65536; // 64 KB
 
     private const array MIME_OVERRIDES = [
@@ -133,7 +134,7 @@ class StreamController extends Controller
     /**
      * @return array{start: int, end: int, length: int}|null|false Null when no range header, false when invalid range.
      */
-    private function parseRangeHeader(mixed $rangeHeader, int $fileSize): array|null|false
+    private function parseRangeHeader(mixed $rangeHeader, int $fileSize): array | null | false
     {
         if (! is_string($rangeHeader) || ! preg_match('/^bytes=(\d*)-(\d*)$/i', mb_trim($rangeHeader), $matches)) {
             return null;
