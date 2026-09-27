@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Service;
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskStatsDto;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
+use League\Flysystem\FileAttributes;
 
 class DiskService
 {
@@ -57,14 +59,23 @@ class DiskService
         $cacheKey = "sm_disk_stats_{$disk->name}";
 
         if ($duration > 0) {
-            return Cache::remember(
-                $cacheKey,
-                $duration,
-                fn (): DiskStatsDto => $this->computeDiskStats($disk)
-            );
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached)) {
+                try {
+                    return DiskStatsDto::fromArray($cached);
+                } catch (\Throwable $e) {
+                    unset($e);
+                }
+            }
         }
 
-        return $this->computeDiskStats($disk);
+        $stats = $this->computeDiskStats($disk);
+
+        if ($duration > 0) {
+            Cache::put($cacheKey, $stats->toArray(), $duration);
+        }
+
+        return $stats;
     }
 
     public function clearDiskStatsCache(string $diskName): void
@@ -78,6 +89,16 @@ class DiskService
         $totalBytes = 0;
 
         try {
+            if ($storage instanceof FilesystemAdapter) {
+                foreach ($storage->getDriver()->listContents('', true) as $item) {
+                    if ($item->isFile() && $item instanceof FileAttributes) {
+                        $totalBytes += $item->fileSize() ?? 0;
+                    }
+                }
+
+                return $totalBytes;
+            }
+
             $files = $storage->allFiles();
             foreach ($files as $file) {
                 try {
@@ -144,9 +165,20 @@ class DiskService
             } catch (\Throwable $diskEx) {
                 unset($diskEx);
             }
-        }
 
-        $used = $this->calculateDiskUsedBytes($disk);
+            $used = $this->calculateDiskUsedBytes($disk);
+
+            return new DiskStatsDto(
+                disk: $disk->name,
+                driver: $disk->driver,
+                supported: true,
+                total: null,
+                free: null,
+                used: $used,
+                percentage: null,
+                mode: 'folder',
+            );
+        }
 
         return new DiskStatsDto(
             disk: $disk->name,
@@ -154,9 +186,9 @@ class DiskService
             supported: true,
             total: null,
             free: null,
-            used: $used,
+            used: null,
             percentage: null,
-            mode: $disk->driver === 'local' ? 'folder' : 'unlimited',
+            mode: 'unlimited',
         );
     }
 

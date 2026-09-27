@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
@@ -86,6 +87,68 @@ describe('DiskStats', function () {
 
         $response->assertStatus(200);
         expect($response->json('data.disk'))->toBe('local');
+    });
+
+    it('handles s3 cloud disk in unlimited mode without quota', function (): void {
+        Storage::fake('s3');
+        Config::set('filesystems.disks.s3', [
+            'driver' => 's3',
+            'key'    => 'test',
+            'secret' => 'test',
+            'region' => 'us-east-1',
+            'bucket' => 'test-bucket',
+        ]);
+        Config::set('storage-manager.disks.available', ['local', 's3']);
+        app()->forgetInstance(ConfigRepository::class);
+        app()->forgetInstance(DiskService::class);
+
+        $response = $this->getJson(route('storage-manager.api.disks.stats', ['disk' => 's3']));
+
+        $response->assertStatus(200);
+        expect($response->json('data.disk'))->toBe('s3');
+        expect($response->json('data.driver'))->toBe('s3');
+        expect($response->json('data.mode'))->toBe('unlimited');
+        expect($response->json('data.total'))->toBeNull();
+        expect($response->json('data.free'))->toBeNull();
+        expect($response->json('data.used'))->toBeNull();
+        expect($response->json('data.percentage'))->toBeNull();
+    });
+
+    it('gracefully recovers from legacy corrupted cache entries without throwing TypeError', function (): void {
+        Storage::fake('local');
+        Config::set('storage-manager.stats.cache_duration', 3600);
+        app()->forgetInstance(ConfigRepository::class);
+        app()->forgetInstance(DiskService::class);
+
+        // Simulate an incomplete class stored in cache
+        Cache::put('sm_disk_stats_local', unserialize('O:20:"NonExistentTestClass":0:{}'), 3600);
+
+        $response = $this->getJson(route('storage-manager.api.disks.stats', ['disk' => 'local']));
+
+        $response->assertStatus(200);
+        expect($response->json('data.disk'))->toBe('local');
+        expect($response->json('data.supported'))->toBeTrue();
+    });
+
+    it('serves stats from array cache on subsequent requests', function (): void {
+        Storage::fake('local');
+        Config::set('storage-manager.stats.cache_duration', 3600);
+        app()->forgetInstance(ConfigRepository::class);
+        app()->forgetInstance(DiskService::class);
+
+        // Prime the cache
+        $first = $this->getJson(route('storage-manager.api.disks.stats', ['disk' => 'local']));
+        $first->assertStatus(200);
+
+        // Verify cache contains array representation
+        $cached = Cache::get('sm_disk_stats_local');
+        expect($cached)->toBeArray();
+        expect($cached['disk'])->toBe('local');
+
+        // Second request hits the array cache
+        $second = $this->getJson(route('storage-manager.api.disks.stats', ['disk' => 'local']));
+        $second->assertStatus(200);
+        expect($second->json('data.disk'))->toBe('local');
     });
 
     it('rejects stats request with invalid or missing disk', function (): void {

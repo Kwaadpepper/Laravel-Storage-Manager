@@ -58,4 +58,10 @@ return [
             // 'local' => 10 * 1024 * 1024 * 1024,
         ],
     ],
+
+    'trash' => [
+        'enabled'        => filter_var(env('STORAGE_MANAGER_TRASH_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'folder'         => env('STORAGE_MANAGER_TRASH_FOLDER', '.trash'),
+        'retention_days' => (int) env('STORAGE_MANAGER_TRASH_RETENTION_DAYS', 30),
+    ],
 ];
