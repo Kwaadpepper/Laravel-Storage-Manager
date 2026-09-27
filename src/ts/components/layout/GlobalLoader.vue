@@ -112,6 +112,9 @@ const groupedActions = computed(() => {
   return groups;
 });
 
+const reversedUploads = computed(() => uploadStore.uploads.slice().reverse());
+const reversedGroupedActions = computed(() => groupedActions.value.slice().reverse());
+
 const hasActionError = computed(() =>
   actionStore.actions.some((a) => a.status === 'error')
 );
@@ -205,7 +208,7 @@ function clearAllCompleted(): void {
 
       <div class="flex flex-col gap-2">
         <div
-          v-for="upload in uploadStore.uploads"
+          v-for="upload in reversedUploads"
           :key="upload.id"
           class="flex flex-col gap-1 text-sm bg-base-200/50 p-2 rounded"
         >
@@ -255,7 +258,7 @@ function clearAllCompleted(): void {
         </div>
 
         <div
-          v-for="group in groupedActions"
+          v-for="group in reversedGroupedActions"
           :key="group.id"
           class="flex flex-col gap-1 text-sm bg-base-200/50 p-2 rounded"
         >
