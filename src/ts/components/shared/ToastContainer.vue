@@ -67,6 +67,14 @@ const positionClasses = computed(() =>
         class="font-bold"
       >{{ toast.title }}</span>
       <span>{{ toast.message }}</span>
+      <button
+        v-if="toast.action"
+        type="button"
+        class="btn btn-xs btn-outline ml-2"
+        @click="toast.action.onClick(); toastStore.pullToast(toast.id)"
+      >
+        {{ toast.action.label }}
+      </button>
     </div>
   </div>
 </template>

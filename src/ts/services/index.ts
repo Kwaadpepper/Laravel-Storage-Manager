@@ -11,3 +11,4 @@ export * from './navigation-service';
 export * from './theme-service';
 export * from './toast-service';
 export * from './upload-service';
+export * from './trash-service';

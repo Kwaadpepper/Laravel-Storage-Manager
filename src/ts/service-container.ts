@@ -12,6 +12,7 @@ import {
   NavigationService,
   ThemeService,
   ToastService,
+  TrashService,
   UploadService,
 } from '@ts/services';
 import {
@@ -44,6 +45,7 @@ export interface ServiceContainer {
   clipboardService: ClipboardService;
   eventQueueService: EventQueueService;
   uploadService: UploadService;
+  trashService: TrashService;
 }
 
 export const serviceContainerKey: InjectionKey<ServiceContainer> = Symbol('ServiceContainer');
@@ -101,6 +103,7 @@ export function buildServiceContainer(): ServiceContainer {
     fileManagerStore,
     diskService
   );
+  const trashService = new TrashService(apiService, configStore, diskStore);
 
   return {
     fileManagerService,
@@ -117,6 +120,7 @@ export function buildServiceContainer(): ServiceContainer {
     clipboardService,
     eventQueueService,
     uploadService,
+    trashService,
   };
 }
 

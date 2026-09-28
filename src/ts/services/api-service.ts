@@ -71,8 +71,16 @@ export class ApiService {
     return undefined
   }
 
-  async delete(path: string, data?: RequestParameters): Promise<void> {
-    await this.httpClient.delete(path, data)
+  async delete(path: string, data?: RequestParameters): Promise<void>;
+  async delete<T extends z.ZodTypeAny>(path: string, data: RequestParameters | undefined, schema: T): Promise<z.output<T>>;
+  async delete<T extends z.ZodTypeAny>(path: string, data?: RequestParameters, schema?: T): Promise<z.output<T> | void> {
+    const response = await this.httpClient.delete(path, data)
+    if (schema) {
+      return this.responseToData(response, schema)
+    }
+
+    await this.throwForErrorStatus(response)
+    return undefined
   }
 
   private async throwForErrorStatus<T extends z.ZodTypeAny>(response: Response, schema?: T): Promise<void> {

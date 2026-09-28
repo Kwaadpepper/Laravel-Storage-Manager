@@ -22,6 +22,7 @@ export const appConfigSchema = z.object({
   supportsZip: z.boolean().default(false),
   supportsThumbnails: z.boolean().default(true),
   supportsDiskStats: z.boolean().default(true),
+  supportsTrash: z.boolean().default(true),
   routes: z.object({
     disksSelect: z.url(),
     disksStats: z.url().optional(),

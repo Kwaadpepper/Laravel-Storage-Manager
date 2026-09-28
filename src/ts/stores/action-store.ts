@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export type ActionStatus = 'pending' | 'success' | 'error';
-export type ActionType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE' | 'ZIP' | 'UNZIP';
+export type ActionType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE' | 'ZIP' | 'UNZIP' | 'RESTORE' | 'PURGE';
 
 export interface ActionItem {
   id: string;

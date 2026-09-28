@@ -6,9 +6,9 @@ import DiskSelector from '@ts/components/shared/DiskSelector.vue';
 import DiskUsageWidget from './DiskUsageWidget.vue';
 import TreeNodeItem from '@ts/components/layout/tree-view/TreeNodeItem.vue';
 import { useService } from '@ts/service-container';
-import { useDiskStore, useFileManagerStore, useTreeStore } from '@ts/stores';
+import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useTreeStore, useUiStore } from '@ts/stores';
 import { rootPath } from '@ts/types';
-import { ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, Folder, FolderOpen, Trash2 } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 
 const navigationService = useService('navigationService');
@@ -16,6 +16,8 @@ const diskService = useService('diskService');
 const fileManagerStore = useFileManagerStore();
 const diskStore = useDiskStore();
 const treeStore = useTreeStore();
+const uiStore = useUiStore();
+const configStore = useConfigStore();
 
 const scrollRef = ref<HTMLDivElement | null>(null);
 const rootState = computed(() => treeStore.nodes[rootPath()]);
@@ -115,6 +117,22 @@ watch(
           </ul>
         </li>
       </ul>
+    </div>
+    <div
+      v-if="configStore.supportsTrash"
+      class="px-3 py-1.5 border-t border-base-200 shrink-0 bg-base-100"
+    >
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm w-full justify-start gap-2 text-base-content/70 hover:text-base-content text-xs font-normal"
+        @click="uiStore.trashModal = ModalState.Opened"
+      >
+        <Trash2
+          :size="15"
+          class="text-error"
+        />
+        <span>Trash</span>
+      </button>
     </div>
     <DiskUsageWidget />
   </div>

@@ -9,3 +9,4 @@ export * from './toast-store';
 export * from './tree-store';
 export * from './ui-store';
 export * from './upload-store';
+export * from './trash-store';

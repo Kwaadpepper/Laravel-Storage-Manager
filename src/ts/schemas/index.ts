@@ -6,4 +6,5 @@ export * from './domain-validation-error.schema';
 export * from './file-manager/exists.schema';
 export * from './file-manager/properties.schema';
 export * from './file-manager/tree.schema';
+export * from './file-manager/trash.schema';
 export * from './validation-errors.schema';

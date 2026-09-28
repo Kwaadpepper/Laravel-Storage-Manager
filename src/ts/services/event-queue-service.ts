@@ -2,7 +2,7 @@ import { ActionStore } from "@ts/stores";
 import { DiskService } from "./disk-service";
 import { NavigationService } from "./navigation-service";
 
-export type EventType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE' | 'ZIP' | 'UNZIP';
+export type EventType = 'DELETE' | 'MOVE' | 'COPY' | 'RENAME' | 'CREATE' | 'ZIP' | 'UNZIP' | 'RESTORE' | 'PURGE';
 
 export interface FileEvent {
   id: string;

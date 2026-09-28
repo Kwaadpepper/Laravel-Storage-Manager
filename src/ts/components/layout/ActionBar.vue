@@ -20,6 +20,7 @@ import {
   PanelLeft,
   PanelLeftClose,
   RefreshCw,
+  Trash2,
 } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
@@ -88,6 +89,10 @@ function onNewDirectoryClick(): void {
 
 function onUploadFileClick(): void {
   uiStore.uploadFileModal = ModalState.Opened;
+}
+
+function onTrashClick(): void {
+  uiStore.trashModal = ModalState.Opened;
 }
 
 function onAboutClick(): void {
@@ -192,6 +197,15 @@ function onCopyLinkClick(): void {
       >
         <FileUp :size="16" />
         <span class="hidden md:inline">Upload File</span>
+      </button>
+      <button
+        v-if="configStore.supportsTrash"
+        class="btn btn-ghost btn-sm"
+        title="Trash"
+        @click="onTrashClick"
+      >
+        <Trash2 :size="16" />
+        <span class="hidden md:inline">Trash</span>
       </button>
 
       <div class="dropdown dropdown-bottom">

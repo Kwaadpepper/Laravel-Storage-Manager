@@ -1,5 +1,5 @@
 import { isDomainValidationError, isValidationError, ValidationError } from "@ts/errors";
-import { existsResponseSchema, propertiesResponseSchema, searchResponseSchema, treeResponseSchema } from "@ts/schemas";
+import { deletedResponseSchema, existsResponseSchema, propertiesResponseSchema, searchResponseSchema, treeResponseSchema } from "@ts/schemas";
 import { DiskStore } from "@ts/stores";
 import { FileMetadata, Path, TreeNodeDirectory, TreeNodeFile } from "@ts/types";
 import { ApiService } from "./api-service";
@@ -133,7 +133,7 @@ export class FileManagerService {
   }
 
   async deleteDirectory(path: Path, force: boolean = false): Promise<void> {
-    return this.deleteItem(path, force);
+    await this.deleteItem(path, force);
   }
 
   async copy(path: Path, destinationDir: Path): Promise<void> {
@@ -255,15 +255,27 @@ export class FileManagerService {
   }
 
   async deleteFile(path: Path): Promise<void> {
-    return this.deleteItem(path);
+    await this.deleteItem(path);
   }
 
-  public async deleteItem(path: Path, force: boolean = false): Promise<void> {
-    return this.apiService.delete(`${this.prefix}/delete`, {
-      disk: this.getDisk(),
-      path,
-      force,
-    });
+  public async deleteItem(path: Path, force: boolean = false): Promise<{ trashed?: boolean; trashId?: string | null } | void> {
+    if (force) {
+      return this.apiService.delete(`${this.prefix}/delete`, {
+        disk: this.getDisk(),
+        path,
+        force: true,
+      });
+    }
+
+    return this.apiService.delete(
+      `${this.prefix}/delete`,
+      {
+        disk: this.getDisk(),
+        path,
+        force: false,
+      },
+      deletedResponseSchema
+    );
   }
 
   async bulkRename(renames: Array<{ from: Path; to: string }>): Promise<void> {

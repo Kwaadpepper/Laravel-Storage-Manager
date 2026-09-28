@@ -2,7 +2,7 @@
 defineOptions({
   name: 'DeleteModal',
 });
-import { Trash2, X } from 'lucide-vue-next';
+import { AlertTriangle, Trash2, X } from 'lucide-vue-next';
 import { useEscapeClose } from '@ts/tools';
 import { useDeleteViewModel } from './useDeleteViewModel';
 
@@ -30,22 +30,61 @@ useEscapeClose(onClose);
         <X :size="16" />
       </button>
       <h3 class="font-bold text-lg">
-        Delete {{ vm.itemCount.value === 1 ? 'Item' : 'Items' }}
+        <template v-if="vm.supportsTrash.value && !vm.permanentDelete.value">
+          Move {{ vm.itemCount.value === 1 ? 'Item' : 'Items' }} to Trash
+        </template>
+        <template v-else>
+          Permanently Delete {{ vm.itemCount.value === 1 ? 'Item' : 'Items' }}
+        </template>
       </h3>
 
       <div class="py-4">
         <p>
-          Are you sure you want to delete
+          Are you sure you want to
+          <template v-if="vm.supportsTrash.value && !vm.permanentDelete.value">
+            move
+          </template>
+          <template v-else>
+            permanently delete
+          </template>
           <template v-if="vm.itemCount.value === 1">
             <span class="font-semibold">{{ vm.singleItemName.value }}</span>
           </template>
           <template v-else>
             <span class="font-semibold">{{ vm.itemCount.value }} items</span>
-          </template>?
+          </template>
+          <template v-if="vm.supportsTrash.value && !vm.permanentDelete.value">
+            to the trash?
+          </template>
+          <template v-else>
+            ?
+          </template>
         </p>
+
+        <p
+          v-if="!vm.supportsTrash.value || vm.permanentDelete.value"
+          class="text-error text-sm mt-2 flex items-center gap-1.5"
+        >
+          <AlertTriangle :size="15" />
+          <span>This action cannot be undone.</span>
+        </p>
+
+        <div
+          v-if="vm.supportsTrash.value"
+          class="form-control mt-4 pt-2 border-t border-base-content/10"
+        >
+          <label class="label cursor-pointer justify-start gap-2.5 py-1">
+            <input
+              v-model="vm.permanentDelete.value"
+              type="checkbox"
+              class="checkbox checkbox-sm checkbox-error"
+            >
+            <span class="label-text font-medium text-sm">Delete permanently (bypass trash)</span>
+          </label>
+        </div>
       </div>
 
-      <div class="flex justify-center gap-2">
+      <div class="flex justify-end gap-2">
         <button
           class="btn"
           type="button"
@@ -54,12 +93,12 @@ useEscapeClose(onClose);
           Cancel
         </button>
         <button
-          class="btn btn-error"
+          :class="vm.permanentDelete.value || !vm.supportsTrash.value ? 'btn btn-error' : 'btn btn-warning'"
           type="button"
           @click="vm.submit()"
         >
           <Trash2 :size="16" />
-          Delete
+          {{ vm.permanentDelete.value || !vm.supportsTrash.value ? 'Delete Permanently' : 'Move to Trash' }}
         </button>
       </div>
     </div>

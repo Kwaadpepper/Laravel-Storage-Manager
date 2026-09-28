@@ -18,6 +18,7 @@ import ZipModal from './shared/ZipModal.vue';
 import UnzipModal from './shared/UnzipModal.vue';
 import CropImageModal from './file/CropImageModal.vue';
 import FileMetadataModal from './file/FileMetadataModal.vue';
+import TrashModal from './trash/TrashModal.vue';
 
 const MODAL_CLOSE_DELAY = 250;
 
@@ -38,6 +39,7 @@ const bulkRenameMounted = useDelayedUnmount(() => uiStore.bulkRenameModal === Mo
 const zipMounted = useDelayedUnmount(() => uiStore.zipModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const unzipMounted = useDelayedUnmount(() => uiStore.unzipModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 const cropImageMounted = useDelayedUnmount(() => uiStore.cropImageModal === ModalState.Opened, MODAL_CLOSE_DELAY);
+const trashMounted = useDelayedUnmount(() => uiStore.trashModal === ModalState.Opened, MODAL_CLOSE_DELAY);
 </script>
 
 <template>
@@ -62,4 +64,5 @@ const cropImageMounted = useDelayedUnmount(() => uiStore.cropImageModal === Moda
   <UnzipModal v-if="unzipMounted" />
   <CropImageModal v-if="cropImageMounted" />
   <FileMetadataModal v-if="fileMetadataMounted" />
+  <TrashModal v-if="trashMounted" />
 </template>

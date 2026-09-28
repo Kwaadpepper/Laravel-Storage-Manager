@@ -60,6 +60,7 @@ export const useUiStore = defineStore('ui', () => {
   const unzipModal = ref<ModalState>(ModalState.Closed);
   const cropImageModal = ref<ModalState>(ModalState.Closed);
   const fileMetadataModal = ref<ModalState>(ModalState.Closed);
+  const trashModal = ref<ModalState>(ModalState.Closed);
   const targetDirectoryPath = ref<Path | null>(null);
   const targetFilePath = ref<Path | null>(null);
   const targetArchiveFilePath = ref<Path | null>(null);
@@ -98,6 +99,7 @@ export const useUiStore = defineStore('ui', () => {
     unzipModal,
     cropImageModal,
     fileMetadataModal,
+    trashModal,
     targetDirectoryPath,
     targetFilePath,
     targetArchiveFilePath,

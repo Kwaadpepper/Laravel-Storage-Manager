@@ -8,6 +8,10 @@ export interface Toast {
   type: 'success' | 'error' | 'info' | 'warning';
   title?: string;
   message: string;
+  action?: {
+    label: string;
+    onClick: () => void | Promise<void>;
+  };
 }
 
 export interface InnerToast extends Toast {

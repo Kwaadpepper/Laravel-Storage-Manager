@@ -39,6 +39,7 @@ export const useConfigStore = defineStore('config', () => {
   const supportsZip = ref(false);
   const supportsThumbnails = ref(true);
   const supportsDiskStats = ref(true);
+  const supportsTrash = ref(true);
 
   function initialize(config: AppConfig): void {
     packageName.value = config.packageName;
@@ -57,6 +58,7 @@ export const useConfigStore = defineStore('config', () => {
     supportsZip.value = config.supportsZip ?? false;
     supportsThumbnails.value = config.supportsThumbnails ?? true;
     supportsDiskStats.value = config.supportsDiskStats ?? true;
+    supportsTrash.value = config.supportsTrash ?? true;
   }
 
   return {
@@ -76,6 +78,7 @@ export const useConfigStore = defineStore('config', () => {
     supportsZip,
     supportsThumbnails,
     supportsDiskStats,
+    supportsTrash,
     initialize,
   };
 });
