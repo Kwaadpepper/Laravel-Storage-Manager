@@ -96,6 +96,44 @@ Available publish tags:
 - `storage-manager:translations`
 - `storage-manager:assets`
 
+## S3 & MinIO Permissions (IAM Policy)
+
+When using an Amazon S3 disk or S3-compatible storage (like MinIO, Ceph, Cloudflare R2), the following standard policy is supported:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-bucket-name"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:DeleteObject",
+                "s3:GetObject",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-bucket-name/*"
+            ]
+        }
+    ]
+}
+```
+
+> **Note regarding MinIO:**
+> MinIO does not use ACLs (`s3:GetObjectAcl`, `s3:PutObjectAcl`) and will reject them as `unsupported action`. Laravel Storage Manager automatically falls back to streaming for file moves and trash operations, ensuring complete compatibility with pure IAM policies on MinIO.
+>
+> On AWS S3, if your bucket uses Object ACLs, adding `s3:GetObjectAcl` and `s3:PutObjectAcl` allows AWS to perform server-side `CopyObject` instead of streaming.
+
 ## Quality Commands
 
 PHP:
@@ -113,3 +151,4 @@ JS/TS:
 ```bash
 bun run lint
 ```
+

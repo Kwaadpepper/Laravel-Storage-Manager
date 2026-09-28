@@ -8,7 +8,7 @@
 - [x] Mass actions (delete, move, copy on selection)
 - [x] Bulk rename (with pattern, e.g. `image_{n}`)
 - [x] Zip / unzip archives
-- [ ] Trash / soft delete (restore accidentally deleted files)
+- [x] Trash / soft delete (restore accidentally deleted files)
 - [ ] Undo / redo last operation (move, rename, delete)
 - [x] Delete non-empty directory with confirmation dialog
 
