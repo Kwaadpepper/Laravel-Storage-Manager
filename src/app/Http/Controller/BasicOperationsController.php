@@ -47,6 +47,8 @@ use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileMetadataExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
+use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
+use Kwaadpepper\LaravelStorageManager\Service\TrashService;
 
 class BasicOperationsController extends Controller
 {
@@ -56,6 +58,8 @@ class BasicOperationsController extends Controller
         private readonly EventDispatcher $eventDispatcher,
         private readonly FileManager $fileManager,
         private readonly FileMetadataExtractor $fileMetadataExtractor,
+        private readonly ConfigRepository $configRepository,
+        private readonly TrashService $trashService,
     ) {
     }
 
@@ -133,32 +137,39 @@ class BasicOperationsController extends Controller
     {
         $path = $request->getPath();
 
-        switch (true) {
-            case ! $this->fileManager->exists($path):
-                return ApiResponse::json(
-                    $this->presentError(self::ERROR_PATH_NOT_FOUND),
-                    ApiResponse::HTTP_NOT_FOUND
-                );
-            case $this->fileManager->isDirectory($path):
-                $this->fileManager->deleteDirectory($path, $request->boolean('force'));
+        if (! $this->fileManager->exists($path)) {
+            return ApiResponse::json(
+                $this->presentError(self::ERROR_PATH_NOT_FOUND),
+                ApiResponse::HTTP_NOT_FOUND
+            );
+        }
 
-                $this->eventDispatcher->dispatch(
-                    DirectoryDeleted::class,
-                    ['path' => $path->value]
-                );
-                break;
-            case $this->fileManager->isFile($path):
-                $this->fileManager->deleteFile($path);
-                $this->eventDispatcher->dispatch(
-                    FileDeleted::class,
-                    ['path' => $path->value]
-                );
-                break;
-            default:
-                return ApiResponse::json(
-                    $this->presentError('The specified path is invalid.'),
-                    ApiResponse::HTTP_BAD_REQUEST
-                );
+        if ($this->configRepository->isTrashEnabled() && ! $request->boolean('force')) {
+            $trashedItem = $this->trashService->moveToTrash($request->getDisk(), $path);
+
+            return ApiResponse::json(
+                new DeletedDto(trashed: true, trashId: $trashedItem->trashId),
+                ApiResponse::HTTP_OK
+            );
+        }
+
+        if ($this->fileManager->isDirectory($path)) {
+            $this->fileManager->deleteDirectory($path, $request->boolean('force'));
+            $this->eventDispatcher->dispatch(
+                DirectoryDeleted::class,
+                ['path' => $path->value]
+            );
+        } elseif ($this->fileManager->isFile($path)) {
+            $this->fileManager->deleteFile($path);
+            $this->eventDispatcher->dispatch(
+                FileDeleted::class,
+                ['path' => $path->value]
+            );
+        } else {
+            return ApiResponse::json(
+                $this->presentError('The specified path is invalid.'),
+                ApiResponse::HTTP_BAD_REQUEST
+            );
         }
 
         return ApiResponse::json($this->presentDeleted(), ApiResponse::HTTP_NO_CONTENT);

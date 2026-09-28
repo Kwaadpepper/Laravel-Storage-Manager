@@ -8,8 +8,24 @@ use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 
 final readonly class DeletedDto implements Dto
 {
+    public function __construct(
+        public bool $trashed = false,
+        public ?string $trashId = null,
+    ) {
+    }
+
+    /**
+     * @return array{trashed?: bool, trashId?: ?string}
+     */
     public function jsonSerialize(): mixed
     {
-        return [];
+        if (! $this->trashed) {
+            return [];
+        }
+
+        return [
+            'trashed' => $this->trashed,
+            'trashId' => $this->trashId,
+        ];
     }
 }

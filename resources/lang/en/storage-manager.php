@@ -17,5 +17,6 @@ return [
         'path' => 'path',
         'name' => 'name',
         'to'   => 'new name',
+        'ids'  => 'identifiers',
     ],
 ];

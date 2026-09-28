@@ -12,6 +12,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Controller\FileManagerController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\SearchController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\StreamController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\ThumbnailController;
+use Kwaadpepper\LaravelStorageManager\Http\Controller\TrashController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\UploadController;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApiMiddleware;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerMiddleware;
@@ -88,6 +89,16 @@ Route::group([
             Route::get('/', [DiskController::class, 'list'])->name('list');
             Route::post('select', [DiskController::class, 'select'])->name('select');
             Route::get('stats', [DiskController::class, 'stats'])->name('stats');
+        });
+
+        Route::group([
+            'prefix' => 'trash',
+            'as'     => 'trash.',
+        ], function (): void {
+            Route::get('list', [TrashController::class, 'list'])->name('list');
+            Route::post('restore', [TrashController::class, 'restore'])->name('restore');
+            Route::delete('purge', [TrashController::class, 'purge'])->name('purge');
+            Route::delete('empty', [TrashController::class, 'empty'])->name('empty');
         });
     });
 });

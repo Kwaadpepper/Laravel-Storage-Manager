@@ -13,8 +13,8 @@ final class Disk
     public function __construct(
         public readonly string $driver,
         public readonly string $name,
-        public readonly bool $throw,
-        public readonly bool $report,
+        public readonly bool $throw = false,
+        public readonly bool $report = false,
         public readonly bool $readOnly = false,
     ) {
         if (empty($this->driver)) {

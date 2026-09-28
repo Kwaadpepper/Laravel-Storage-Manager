@@ -21,13 +21,15 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeFile;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
+use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 class FileManager
 {
     public function __construct(
         private readonly PathNormalizer $pathNormalizer,
         private readonly FilePropertyExtractor $filePropertyExtractor,
-        private ?Disk $activeDisk
+        private ?Disk $activeDisk,
+        private readonly ?ConfigRepository $configRepository = null
     ) {
         $this->setActiveDisk($activeDisk);
     }
@@ -63,6 +65,11 @@ class FileManager
     {
         $filesystem  = $this->getStorage();
         $directory   = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
+
+        if ($this->isTrashPath($directory)) {
+            return new PathContent([], []);
+        }
+
         $files       = array_map(
             fn (string $file): string => $this->pathNormalizer->normalizePath($file),
             $filesystem->files($directory)
@@ -71,6 +78,9 @@ class FileManager
             fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
             $filesystem->directories($directory)
         );
+
+        $files       = array_values(array_filter($files, fn (string $file): bool => ! $this->isTrashPath($file)));
+        $directories = array_values(array_filter($directories, fn (string $dir): bool => ! $this->isTrashPath($dir)));
 
         $files       = array_map(fn (string $file): Path => new Path($file), $files);
         $directories = array_map(fn (string $dir): Path => new Path($dir), $directories);
@@ -85,6 +95,11 @@ class FileManager
     {
         $filesystem  = $this->getStorage();
         $directory   = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
+
+        if ($this->isTrashPath($directory)) {
+            return new PathTreeLevel([], []);
+        }
+
         $directories = array_map(
             fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
             $filesystem->directories($directory)
@@ -94,6 +109,9 @@ class FileManager
             fn (string $file): string => $this->pathNormalizer->normalizePath($file),
             $filesystem->files($directory)
         );
+
+        $directories = array_values(array_filter($directories, fn (string $dir): bool => ! $this->isTrashPath($dir)));
+        $files       = array_values(array_filter($files, fn (string $file): bool => ! $this->isTrashPath($file)));
 
         $directories = array_map(function (string $dir) use ($filesystem): PathTreeDirectory {
             $path       = new Path($dir);
@@ -105,7 +123,7 @@ class FileManager
 
             return new PathTreeDirectory(
                 $path,
-                ! empty($filesystem->directories((string) $path)),
+                $this->hasSubdirectories((string) $path, $filesystem),
                 $properties->visibility
             );
         }, $directories);
@@ -155,6 +173,10 @@ class FileManager
         foreach ($paths as $pathObj) {
             $directory = $this->pathNormalizer->normalizePath($pathObj->value);
 
+            if ($this->isTrashPath($directory)) {
+                continue;
+            }
+
             $directories = array_map(
                 fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
                 $filesystem->directories($directory)
@@ -164,6 +186,9 @@ class FileManager
                 fn (string $file): string => $this->pathNormalizer->normalizePath($file),
                 $filesystem->files($directory)
             );
+
+            $directories = array_values(array_filter($directories, fn (string $dir): bool => ! $this->isTrashPath($dir)));
+            $files       = array_values(array_filter($files, fn (string $file): bool => ! $this->isTrashPath($file)));
 
             foreach ($directories as $dir) {
                 $path                = new Path($dir);
@@ -175,7 +200,7 @@ class FileManager
                     if ($this->isDirectoryMatchingFilters($path, $query, $extension, $minSize, $maxSize)) {
                         $matchedDirectories[] = new PathTreeDirectory(
                             $path,
-                            ! empty($filesystem->directories((string) $path)),
+                            $this->hasSubdirectories((string) $path, $filesystem),
                             $properties->visibility
                         );
                     }
@@ -498,6 +523,30 @@ class FileManager
         return $this->getStorage()->exists(
             $this->pathNormalizer->normalizePath((string) $path)
         );
+    }
+
+    private function isTrashPath(string $normalizedPath): bool
+    {
+        if ($this->configRepository === null) {
+            return false;
+        }
+
+        $trashFolder = '/' . trim($this->configRepository->getTrashFolder(), '/');
+
+        return $normalizedPath === $trashFolder || str_starts_with($normalizedPath, $trashFolder . '/');
+    }
+
+    private function hasSubdirectories(string $path, Filesystem $filesystem): bool
+    {
+        $directories = $filesystem->directories($path);
+        if ($this->configRepository === null) {
+            return ! empty($directories);
+        }
+
+        return ! empty(array_filter(
+            $directories,
+            fn (string $dir): bool => ! $this->isTrashPath($this->pathNormalizer->normalizePath($dir))
+        ));
     }
 
     public function isDirectory(Path $path): bool

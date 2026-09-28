@@ -8,18 +8,21 @@ use Kwaadpepper\LaravelStorageManager\Exception\DomainErrorCode;
 
 enum FileOperationError: int implements DomainErrorCode
 {
-    case DIRECTORY_ALREADY_EXISTS     = 1001;
-    case DIRECTORY_NOT_FOUND          = 1002;
-    case FILE_ALREADY_EXISTS          = 1003;
-    case FILE_NOT_FOUND               = 1004;
-    case INVALID_PATH                 = 1005;
-    case PERMISSION_DENIED            = 1006;
-    case UNKNOWN_ERROR                = 1007;
-    case DIRECTORY_NOT_EMPTY          = 1008;
-    case READ_ONLY_DISK               = 1009;
-    case ARCHIVE_OPERATION_FAILED     = 1010;
-    case INVALID_ARCHIVE              = 1011;
-    case ZIP_EXTENSION_NOT_AVAILABLE  = 1012;
+    case DIRECTORY_ALREADY_EXISTS      = 1001;
+    case DIRECTORY_NOT_FOUND           = 1002;
+    case FILE_ALREADY_EXISTS           = 1003;
+    case FILE_NOT_FOUND                = 1004;
+    case INVALID_PATH                  = 1005;
+    case PERMISSION_DENIED             = 1006;
+    case UNKNOWN_ERROR                 = 1007;
+    case DIRECTORY_NOT_EMPTY           = 1008;
+    case READ_ONLY_DISK                = 1009;
+    case ARCHIVE_OPERATION_FAILED      = 1010;
+    case INVALID_ARCHIVE               = 1011;
+    case ZIP_EXTENSION_NOT_AVAILABLE   = 1012;
+    case TRASH_ITEM_NOT_FOUND          = 1013;
+    case TRASH_DISABLED                = 1014;
+    case TRASH_ITEM_LOCKED             = 1015;
 
     /** @var array<int, string> */
     private const array MESSAGES = [
@@ -35,6 +38,9 @@ enum FileOperationError: int implements DomainErrorCode
         1010 => 'Failed to create or extract archive.',
         1011 => 'The archive file is invalid or corrupted.',
         1012 => 'The PHP zip extension is not installed.',
+        1013 => 'The trashed item was not found.',
+        1014 => 'Trash is disabled.',
+        1015 => 'The trashed item is currently being processed.',
     ];
 
     public function message(): string

@@ -286,4 +286,23 @@ class ConfigRepository
 
         return is_int($quota) && $quota > 0 ? $quota : null;
     }
+
+    public function isTrashEnabled(): bool
+    {
+        return Arr::boolean($this->config, 'trash.enabled', true);
+    }
+
+    public function getTrashFolder(): string
+    {
+        $folder = Arr::get($this->config, 'trash.folder', '.trash');
+
+        return is_string($folder) && $folder !== '' ? $folder : '.trash';
+    }
+
+    public function getTrashRetentionDays(): int
+    {
+        $days = Arr::get($this->config, 'trash.retention_days', 30);
+
+        return is_int($days) && $days >= 0 ? $days : 30;
+    }
 }

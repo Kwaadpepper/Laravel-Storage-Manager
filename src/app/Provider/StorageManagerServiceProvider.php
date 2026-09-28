@@ -14,7 +14,9 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanOrphanedUploads;
+use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanTrash;
 use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher as LSMEventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
@@ -22,6 +24,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Kwaadpepper\LaravelStorageManager\Service\ThumbnailService;
+use Kwaadpepper\LaravelStorageManager\Service\TrashService;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class StorageManagerServiceProvider extends ServiceProvider
@@ -48,11 +51,13 @@ class StorageManagerServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CleanOrphanedUploads::class,
+                CleanTrash::class,
             ]);
 
             $this->app->booted(function () {
                 $schedule = $this->app->make(Schedule::class);
                 $schedule->command('sm:clean-orphaned-uploads')->daily();
+                $schedule->command('sm:clean-trash')->daily();
             });
         }
     }
@@ -88,7 +93,8 @@ class StorageManagerServiceProvider extends ServiceProvider
                 return new FileManager(
                     $pathNormalizer,
                     $filePropertyExtractor,
-                    $configRepository->getDefaultDisk()
+                    $configRepository->getDefaultDisk(),
+                    $configRepository
                 );
             }
         );
@@ -100,6 +106,15 @@ class StorageManagerServiceProvider extends ServiceProvider
             ThumbnailService::class,
             fn (Application $app): ThumbnailService => new ThumbnailService(
                 $app->make(ConfigRepository::class),
+                $app->make(FileManager::class)
+            )
+        );
+        $this->app->singleton(
+            TrashService::class,
+            fn (Application $app): TrashService => new TrashService(
+                $app->make(ConfigRepository::class),
+                $app->make(PathNormalizer::class),
+                $app->make(LSMEventDispatcher::class),
                 $app->make(FileManager::class)
             )
         );
@@ -211,6 +226,7 @@ class StorageManagerServiceProvider extends ServiceProvider
                     'supportsZip'         => extension_loaded('zip')                  && class_exists(\ZipArchive::class),
                     'supportsThumbnails'  => $configRepository->isThumbnailsEnabled() && extension_loaded('gd'),
                     'supportsDiskStats'   => $configRepository->isStatsEnabled(),
+                    'supportsTrash'       => $configRepository->isTrashEnabled(),
                     'routes'              => [
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),
@@ -231,6 +247,11 @@ class StorageManagerServiceProvider extends ServiceProvider
                         'disksList'         => route('storage-manager.api.disks.list'),
                         'disksSelect'       => route('storage-manager.api.disks.select'),
                         'disksStats'        => route('storage-manager.api.disks.stats'),
+
+                        'trashList'         => route('storage-manager.api.trash.list'),
+                        'trashRestore'      => route('storage-manager.api.trash.restore'),
+                        'trashPurge'        => route('storage-manager.api.trash.purge'),
+                        'trashEmpty'        => route('storage-manager.api.trash.empty'),
                     ],
                 ]);
             }

@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Tests\TestCase;
 
 /** @var FilesystemAdapter $disk */
@@ -215,15 +217,16 @@ describe('rename', function () use (&$disk): void {
 });
 
 describe('delete', function () use (&$disk): void {
-    it('deletes a file', function () use (&$disk): void {
+    it('deletes a file permanently with force', function () use (&$disk): void {
         // Given
         $disk->put('to-delete.txt', 'bye');
         $route = route('storage-manager.api.fm.delete');
 
         // When
         $response = $this->deleteJson($route, [
-            'path' => '/to-delete.txt',
-            'disk' => 'local',
+            'path'  => '/to-delete.txt',
+            'disk'  => 'local',
+            'force' => true,
         ]);
 
         // Then
@@ -231,7 +234,24 @@ describe('delete', function () use (&$disk): void {
         $disk->assertMissing('to-delete.txt');
     });
 
-    it('deletes a directory with its contents', function () use (&$disk): void {
+    it('soft deletes a file to trash by default', function () use (&$disk): void {
+        // Given
+        $disk->put('to-soft-delete.txt', 'bye');
+        $route = route('storage-manager.api.fm.delete');
+
+        // When
+        $response = $this->deleteJson($route, [
+            'path' => '/to-soft-delete.txt',
+            'disk' => 'local',
+        ]);
+
+        // Then
+        $response->assertOk()
+            ->assertJsonPath('data.trashed', true);
+        $disk->assertMissing('to-soft-delete.txt');
+    });
+
+    it('deletes a directory with its contents with force', function () use (&$disk): void {
         // Given
         $disk->makeDirectory('to-remove');
         $disk->put('to-remove/file.txt', 'data');
@@ -249,8 +269,28 @@ describe('delete', function () use (&$disk): void {
         $disk->assertMissing('to-remove');
     });
 
-    it('rejects deleting a non-empty directory without force', function () use (&$disk): void {
+    it('soft deletes a directory to trash by default', function () use (&$disk): void {
         // Given
+        $disk->makeDirectory('to-soft-remove');
+        $disk->put('to-soft-remove/file.txt', 'data');
+        $route = route('storage-manager.api.fm.delete');
+
+        // When
+        $response = $this->deleteJson($route, [
+            'path' => '/to-soft-remove',
+            'disk' => 'local',
+        ]);
+
+        // Then
+        $response->assertOk()
+            ->assertJsonPath('data.trashed', true);
+        $disk->assertMissing('to-soft-remove');
+    });
+
+    it('rejects deleting a non-empty directory without force when trash is disabled', function () use (&$disk): void {
+        // Given
+        Config::set('storage-manager.trash.enabled', false);
+        app()->forgetInstance(ConfigRepository::class);
         $disk->makeDirectory('to-reject');
         $disk->put('to-reject/file.txt', 'data');
         $route = route('storage-manager.api.fm.delete');

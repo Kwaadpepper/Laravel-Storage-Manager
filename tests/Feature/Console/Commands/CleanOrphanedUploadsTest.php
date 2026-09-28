@@ -9,6 +9,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadPathResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
+use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Tests\TestCase;
 
 describe('CleanOrphanedUploadsCommand', function (): void {
@@ -17,6 +18,7 @@ describe('CleanOrphanedUploadsCommand', function (): void {
         Storage::fake('temp_disk');
         Config::set('storage-manager.upload.temp_disk', 'temp_disk');
         Config::set('storage-manager.upload.temp_path', 'temp_uploads');
+        app()->forgetInstance(ConfigRepository::class);
     });
 
     it('cleans up orphaned uploads older than 24 hours', function (): void {
@@ -39,6 +41,7 @@ describe('CleanOrphanedUploadsCommand', function (): void {
         $oldTime       = $oldCreatedAt->timestamp;
         touch($oldDirAbsPath, $oldTime);
         touch($pathResolver->getAbsolutePath($pathResolver->getMetadataPath($oldUploadId)), $oldTime);
+        clearstatcache();
 
         // When
         $action = $this->artisan('sm:clean-orphaned-uploads');
