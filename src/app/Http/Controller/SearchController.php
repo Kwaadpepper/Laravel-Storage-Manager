@@ -13,19 +13,20 @@ use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 final class SearchController extends Controller
 {
     public function __construct(
-        private readonly FileManager $fileManager
+        private readonly FileManager $fileManager,
     ) {
     }
 
     public function search(SearchRequest $request): ApiResponse
     {
-        $paths     = $request->getPaths();
-        $query     = $request->getSearchQuery();
-        $extension = $request->getExtension();
-        $minSize   = $request->getMinSize();
-        $maxSize   = $request->getMaxSize();
-
-        $searchResult = $this->fileManager->searchContent($paths, $query, $extension, $minSize, $maxSize);
+        $searchResult = $this->fileManager->searchContent(
+            $request->getDisk(),
+            $request->getPaths(),
+            $request->getSearchQuery(),
+            $request->getExtension(),
+            $request->getMinSize(),
+            $request->getMaxSize()
+        );
 
         return ApiResponse::json(
             new SearchResultDto($searchResult),

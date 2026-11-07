@@ -4,19 +4,35 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Service;
 
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Cache;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
+use Kwaadpepper\LaravelStorageManager\Event\DiskSelected;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskStatsDto;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use League\Flysystem\FileAttributes;
 
 class DiskService
 {
     public function __construct(
-        private readonly ConfigRepository $configRepository
+        private readonly StorageManagerConfig $config,
+        private readonly EventDispatcher $eventDispatcher,
+        private readonly CacheRepository $cache,
+        private readonly StorageGateway $storageGateway,
     ) {
+    }
+
+    public function selectDisk(Disk $disk): Disk
+    {
+        $this->eventDispatcher->dispatch(DiskSelected::class, [
+            'disk' => $disk->name,
+        ]);
+
+        return $disk;
     }
 
     /**
@@ -42,7 +58,7 @@ class DiskService
 
     public function getDiskStats(Disk $disk): DiskStatsDto
     {
-        if (! $this->configRepository->isStatsEnabled()) {
+        if (! $this->config->stats->enabled) {
             return new DiskStatsDto(
                 disk: $disk->name,
                 driver: $disk->driver,
@@ -55,11 +71,11 @@ class DiskService
             );
         }
 
-        $duration = $this->configRepository->getStatsCacheDuration();
+        $duration = $this->config->stats->cacheDuration;
         $cacheKey = "sm_disk_stats_{$disk->name}";
 
         if ($duration > 0) {
-            $cached = Cache::get($cacheKey);
+            $cached = $this->cache->get($cacheKey);
             if (is_array($cached)) {
                 try {
                     return DiskStatsDto::fromArray($cached);
@@ -72,7 +88,7 @@ class DiskService
         $stats = $this->computeDiskStats($disk);
 
         if ($duration > 0) {
-            Cache::put($cacheKey, $stats->toArray(), $duration);
+            $this->cache->put($cacheKey, $stats->toArray(), $duration);
         }
 
         return $stats;
@@ -80,12 +96,13 @@ class DiskService
 
     public function clearDiskStatsCache(string $diskName): void
     {
-        Cache::forget("sm_disk_stats_{$diskName}");
+        $this->cache->forget("sm_disk_stats_{$diskName}");
     }
 
     public function calculateDiskUsedBytes(Disk $disk): int
     {
-        $storage    = $disk->getStorageDisk();
+        /** @var Filesystem $storage */
+        $storage    = $this->storageGateway->disk($disk);
         $totalBytes = 0;
 
         try {
@@ -116,7 +133,7 @@ class DiskService
 
     private function computeDiskStats(Disk $disk): DiskStatsDto
     {
-        $quota = $this->configRepository->getDiskQuota($disk->name);
+        $quota = $this->config->stats->getDiskQuota($disk->name);
 
         if ($quota !== null) {
             $used       = $this->calculateDiskUsedBytes($disk);
@@ -137,10 +154,9 @@ class DiskService
 
         if ($disk->driver === 'local') {
             try {
-                $storage   = $disk->getStorageDisk();
-                $localPath = $storage->path('');
+                $localPath = $this->storageGateway->localPath($disk);
 
-                if (is_dir($localPath)) {
+                if ($localPath !== null && is_dir($localPath)) {
                     $totalSpace = disk_total_space($localPath);
                     $freeSpace  = disk_free_space($localPath);
 
@@ -197,6 +213,6 @@ class DiskService
      */
     private function getConfiguredDisks(): array
     {
-        return $this->configRepository->getDisksMap();
+        return $this->config->disks->getDisksMap();
     }
 }

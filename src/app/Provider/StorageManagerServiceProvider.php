@@ -6,26 +6,46 @@ namespace Kwaadpepper\LaravelStorageManager\Provider;
 
 use Composer\InstalledVersions;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanOrphanedUploads;
 use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanTrash;
 use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
+use Kwaadpepper\LaravelStorageManager\Factory\StorageManagerConfigFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher as LSMEventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileMetadataExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
+use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
+use Kwaadpepper\LaravelStorageManager\Lib\Storage\LocalStorageStrategy;
+use Kwaadpepper\LaravelStorageManager\Lib\Storage\RemoteStorageStrategy;
+use Kwaadpepper\LaravelStorageManager\Lib\Storage\S3StorageStrategy;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
+use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadPathResolver;
+use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
+use Kwaadpepper\LaravelStorageManager\Service\ArchiveService;
+use Kwaadpepper\LaravelStorageManager\Service\AuthService;
+use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 use Kwaadpepper\LaravelStorageManager\Service\ThumbnailService;
 use Kwaadpepper\LaravelStorageManager\Service\TrashService;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class StorageManagerServiceProvider extends ServiceProvider
 {
@@ -40,11 +60,11 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->loadRoutes();
         $this->publishAssets();
 
-        Route::bind('uploadId', function (string $value) {
+        Route::bind('uploadId', function (string $value): UploadId {
             try {
                 return new UploadId($value);
-            } catch (IllegalDomainStateException $e) {
-                abort(400, 'Invalid Upload ID format.');
+            } catch (IllegalDomainStateException) {
+                throw new HttpException(400, 'Invalid Upload ID format.');
             }
         });
 
@@ -54,7 +74,7 @@ class StorageManagerServiceProvider extends ServiceProvider
                 CleanTrash::class,
             ]);
 
-            $this->app->booted(function () {
+            $this->app->booted(function (): void {
                 $schedule = $this->app->make(Schedule::class);
                 $schedule->command('sm:clean-orphaned-uploads')->daily();
                 $schedule->command('sm:clean-trash')->daily();
@@ -77,52 +97,166 @@ class StorageManagerServiceProvider extends ServiceProvider
     private function registerDependenciesInjection(): void
     {
         $this->app->singleton(
-            ConfigRepository::class,
-            fn () => new ConfigRepository(
-                Arr::wrap(Config::get('storage-manager')),
-                Arr::wrap(Config::get('storage-manager::static-config', []))
-            )
-        );
-        $this->app->singleton(
-            FileManager::class,
-            function (Application $app) {
-                $configRepository      = $app->make(ConfigRepository::class);
-                $pathNormalizer        = $app->make(PathNormalizer::class);
-                $filePropertyExtractor = $app->make(FilePropertyExtractor::class);
+            StorageManagerConfig::class,
+            function (Application $app): StorageManagerConfig {
+                /** @var array<string, mixed> $config */
+                $config = Arr::wrap(Config::get('storage-manager'));
+                /** @var array<string, mixed> $staticConfig */
+                $staticConfig = Arr::wrap(Config::get('storage-manager::static-config', []));
+                $rawDisks     = Arr::wrap(Config::get('filesystems.disks', []));
+                /** @var array<string, array<string, scalar|null>> $filesystemsDisks */
+                $filesystemsDisks = [];
+                foreach ($rawDisks as $name => $diskConfig) {
+                    if (is_string($name) && is_array($diskConfig)) {
+                        /** @var array<string, scalar|null> $typedDiskConfig */
+                        $typedDiskConfig = [];
+                        foreach ($diskConfig as $k => $v) {
+                            if (is_string($k) && (is_scalar($v) || $v === null)) {
+                                $typedDiskConfig[$k] = $v;
+                            }
+                        }
+                        $filesystemsDisks[$name] = $typedDiskConfig;
+                    }
+                }
 
-                return new FileManager(
-                    $pathNormalizer,
-                    $filePropertyExtractor,
-                    $configRepository->getDefaultDisk(),
-                    $configRepository
-                );
+                return $app->make(StorageManagerConfigFactory::class)->create($config, $staticConfig, $filesystemsDisks);
             }
         );
         $this->app->singleton(
             EventDispatcher::class,
-            fn () => new EventDispatcher()
+            fn (): EventDispatcher => new EventDispatcher()
         );
         $this->app->singleton(
-            ThumbnailService::class,
-            fn (Application $app): ThumbnailService => new ThumbnailService(
-                $app->make(ConfigRepository::class),
-                $app->make(FileManager::class)
+            MimeTypeChecker::class,
+            fn (): MimeTypeChecker => new MimeTypeChecker()
+        );
+        $this->app->singleton(
+            LocalStorageStrategy::class,
+            fn (Application $app): LocalStorageStrategy => new LocalStorageStrategy(
+                $app->make(FilesystemFactory::class),
+                $app->make(PathNormalizer::class),
+                $app->make(LoggerInterface::class)
+            )
+        );
+        $this->app->singleton(
+            S3StorageStrategy::class,
+            fn (Application $app): S3StorageStrategy => new S3StorageStrategy(
+                $app->make(FilesystemFactory::class),
+                $app->make(PathNormalizer::class),
+                $app->make(LoggerInterface::class)
+            )
+        );
+        $this->app->singleton(
+            RemoteStorageStrategy::class,
+            fn (Application $app): RemoteStorageStrategy => new RemoteStorageStrategy(
+                $app->make(FilesystemFactory::class),
+                $app->make(PathNormalizer::class),
+                $app->make(LoggerInterface::class)
+            )
+        );
+        $this->app->singleton(
+            FilePropertyExtractor::class,
+            fn (Application $app): FilePropertyExtractor => new FilePropertyExtractor(
+                $app->make(StorageGateway::class)
+            )
+        );
+        $this->app->singleton(
+            FileMetadataExtractor::class,
+            fn (Application $app): FileMetadataExtractor => new FileMetadataExtractor(
+                $app->make(FilePropertyExtractor::class),
+                $app->make(StorageGateway::class)
+            )
+        );
+        $this->app->singleton(
+            StorageGateway::class,
+            fn (Application $app): StorageGateway => new StorageGateway(
+                $app->make(FilesystemFactory::class),
+                $app->make(PathNormalizer::class),
+                $app->make(StorageManagerConfig::class),
+                $app->make(LocalStorageStrategy::class),
+                $app->make(S3StorageStrategy::class),
+                $app->make(RemoteStorageStrategy::class)
             )
         );
         $this->app->singleton(
             TrashService::class,
             fn (Application $app): TrashService => new TrashService(
-                $app->make(ConfigRepository::class),
+                $app->make(StorageManagerConfig::class),
                 $app->make(PathNormalizer::class),
                 $app->make(LSMEventDispatcher::class),
-                $app->make(FileManager::class)
+                $app->make(StorageGateway::class)
+            )
+        );
+        $this->app->singleton(
+            ThumbnailService::class,
+            fn (Application $app): ThumbnailService => new ThumbnailService(
+                $app->make(StorageManagerConfig::class),
+                $app->make(StorageGateway::class)
+            )
+        );
+        $this->app->singleton(
+            ArchiveService::class,
+            fn (Application $app): ArchiveService => new ArchiveService(
+                $app->make(PathNormalizer::class),
+                $app->make(StorageGateway::class),
+                $app->make(StorageManagerConfig::class),
+                $app->make(MimeTypeChecker::class),
+                $app->make(LSMEventDispatcher::class)
+            )
+        );
+        $this->app->singleton(
+            FileManager::class,
+            fn (Application $app): FileManager => new FileManager(
+                $app->make(PathNormalizer::class),
+                $app->make(FilePropertyExtractor::class),
+                $app->make(FileMetadataExtractor::class),
+                $app->make(StorageManagerConfig::class),
+                $app->make(StorageGateway::class),
+                $app->make(MimeTypeChecker::class),
+                $app->make(TrashService::class),
+                $app->make(LSMEventDispatcher::class)
+            )
+        );
+        $this->app->singleton(
+            UploadPathResolver::class,
+            fn (Application $app): UploadPathResolver => new UploadPathResolver(
+                $app->make(StorageManagerConfig::class),
+                $app->make(FilesystemFactory::class)
+            )
+        );
+        $this->app->singleton(
+            UploadSessionService::class,
+            fn (Application $app): UploadSessionService => new UploadSessionService(
+                $app->make(UploadPathResolver::class),
+                $app->make(StorageManagerConfig::class),
+                $app->make(MimeTypeChecker::class),
+                $app->make(StorageGateway::class),
+                $app->make(PathSanitizer::class),
+                $app->make(LSMEventDispatcher::class)
+            )
+        );
+        $this->app->singleton(
+            DiskService::class,
+            fn (Application $app): DiskService => new DiskService(
+                $app->make(StorageManagerConfig::class),
+                $app->make(LSMEventDispatcher::class),
+                $app->make(CacheRepository::class),
+                $app->make(StorageGateway::class)
+            )
+        );
+        $this->app->singleton(
+            AuthService::class,
+            fn (Application $app): AuthService => new AuthService(
+                $app->make(StorageManagerConfig::class),
+                $app->make(AuthFactory::class),
+                $app->make(Request::class)
             )
         );
     }
 
     public function registerAliases(): void
     {
-        $this->app->alias(ConfigRepository::class, 'storage-manager.config');
+        $this->app->alias(StorageManagerConfig::class, 'storage-manager.config');
     }
 
     private function loadConfig(): void
@@ -187,9 +321,10 @@ class StorageManagerServiceProvider extends ServiceProvider
         view()->composer(
             'storage-manager::*',
             function (View $view): void {
-                $configRepository = $this->app->make(ConfigRepository::class);
-                $composerJsonPath = __DIR__ . '/../../../composer.json';
-                $composer         = Arr::wrap(Cache::remember(
+                $storageManagerConfig = $this->app->make(StorageManagerConfig::class);
+                $cacheRepository      = $this->app->make(CacheRepository::class);
+                $composerJsonPath     = __DIR__ . '/../../../composer.json';
+                $composer             = Arr::wrap($cacheRepository->remember(
                     'storage-manager-composer',
                     now()->addDay(),
                     fn () => json_decode(
@@ -197,14 +332,22 @@ class StorageManagerServiceProvider extends ServiceProvider
                         true
                     )
                 ));
-                $packageName         = strval($configRepository->getStaticConfig('packageName'));
+                $packageName         = strval($storageManagerConfig->getStaticConfig('packageName'));
                 $composerPackageName = Arr::get($composer, 'name', $packageName);
                 $composerPackageName = is_string($composerPackageName) ? $composerPackageName : $packageName;
                 $version             = InstalledVersions::getVersion($composerPackageName);
 
                 $packageLogo = route('storage-manager.assets', ['dir' => 'images', 'file' => 'favicon.svg']);
+                $cspNonce    = $storageManagerConfig->frontend->getCspNonce();
 
+                $view->with('cspNonce', $cspNonce);
+                $view->with('useDevServer', $storageManagerConfig->frontend->devServerEnabled);
+                $view->with('devServerUrl', $storageManagerConfig->frontend->devServerUrl);
                 $view->with('storageManagerConfig', [
+                    'cspNonce'            => $cspNonce,
+                    'locale'              => App::getLocale(),
+                    'translations'        => is_array($uiTrans = Lang::get('storage-manager::storage-manager.ui')) ? $uiTrans : [],
+                    'routePrefix'         => '/' . trim($storageManagerConfig->route->prefix, '/'),
                     'packageName'         => $packageName,
                     'packageVersion'      => $version,
                     'packageLogo'         => $packageLogo,
@@ -212,21 +355,22 @@ class StorageManagerServiceProvider extends ServiceProvider
                     'appDescription'      => Arr::get($composer, 'description'),
                     'appAuthors'          => Arr::get($composer, 'authors'),
                     'disks'               => Arr::map(
-                        $configRepository->getDisksMap(),
+                        $storageManagerConfig->disks->getDisksMap(),
                         fn (Disk $_, string $diskName) => $diskName
                     ),
                     'readOnlyDisks'       => array_keys(array_filter(
-                        $configRepository->getDisksMap(),
+                        $storageManagerConfig->disks->getDisksMap(),
                         fn (Disk $disk) => $disk->readOnly
                     )),
-                    'chunkMinSize'        => $configRepository->getUploadChunkMinSize(),
-                    'chunkMaxSize'        => $configRepository->getUploadChunkMaxSize(),
-                    'duplicatePolicy'     => $configRepository->getUploadDuplicatePolicy()->value,
-                    'sanitizeFilenames'   => $configRepository->shouldSanitizeUploadFileNames(),
-                    'supportsZip'         => extension_loaded('zip')                  && class_exists(\ZipArchive::class),
-                    'supportsThumbnails'  => $configRepository->isThumbnailsEnabled() && extension_loaded('gd'),
-                    'supportsDiskStats'   => $configRepository->isStatsEnabled(),
-                    'supportsTrash'       => $configRepository->isTrashEnabled(),
+                    'allowedExtensions'   => $storageManagerConfig->upload->allowedExtensions,
+                    'chunkMinSize'        => $storageManagerConfig->upload->chunkMinSize,
+                    'chunkMaxSize'        => $storageManagerConfig->upload->chunkMaxSize,
+                    'duplicatePolicy'     => $storageManagerConfig->upload->duplicatePolicy->value,
+                    'sanitizeFilenames'   => $storageManagerConfig->upload->sanitizeFilenames,
+                    'supportsZip'         => extension_loaded('zip')                             && class_exists(\ZipArchive::class),
+                    'supportsThumbnails'  => $storageManagerConfig->thumbnails->thumbsAreEnabled && extension_loaded('gd'),
+                    'supportsDiskStats'   => $storageManagerConfig->stats->enabled,
+                    'supportsTrash'       => $storageManagerConfig->trash->enabled,
                     'routes'              => [
                         'fmInit'            => route('storage-manager.api.fm.init'),
                         'fmTree'            => route('storage-manager.api.fm.tree'),

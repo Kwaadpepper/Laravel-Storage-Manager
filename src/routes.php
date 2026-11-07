@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\AssetController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\BasicOperationsController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\DiskController;
@@ -16,25 +17,24 @@ use Kwaadpepper\LaravelStorageManager\Http\Controller\TrashController;
 use Kwaadpepper\LaravelStorageManager\Http\Controller\UploadController;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerApiMiddleware;
 use Kwaadpepper\LaravelStorageManager\Http\Middleware\StorageManagerMiddleware;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
-$config = resolve(ConfigRepository::class);
+$config = resolve(StorageManagerConfig::class);
 
-if (! $config->isEnabled()) {
+if (! $config->isStorageManagerEnabled) {
     return;
 }
 
-$middlewares   = $config->getRouteMiddleware();
+$middlewares   = $config->route->middleware;
 $middlewares[] = StorageManagerMiddleware::class;
 $middlewares[] = SubstituteBindings::class;
 
-if ($config->isAuthEnabled()) {
-    $middlewares[] = 'auth:' . $config->getAuthGuard();
+if ($config->auth->enabled) {
+    $middlewares[] = 'auth:' . $config->auth->guard;
 }
 
 Route::group([
     'middleware' => $middlewares,
-    'prefix'     => $config->getRoutePrefix(),
+    'prefix'     => $config->route->prefix,
     'as'         => 'storage-manager.',
 ], function (): void {
 

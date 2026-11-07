@@ -2,41 +2,41 @@
 
 declare(strict_types=1);
 
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Provider\StorageManagerServiceProvider;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 describe('StorageManagerServiceProvider', function (): void {
     it('boots the service provider', function (): void {
-        // Given
+        // GIVEN
         $providerClass = StorageManagerServiceProvider::class;
 
-        // When
+        // WHEN
         $provider = $this->app->getProvider($providerClass);
 
-        // Then
+        // THEN
         expect($provider)->not->toBeNull();
     });
 
     it('resolves the config repository from the container', function (): void {
-        // Given
-        $abstract = ConfigRepository::class;
+        // GIVEN
+        $abstract = StorageManagerConfig::class;
 
-        // When
+        // WHEN
         $instance = $this->app->make($abstract);
 
-        // Then
-        expect($instance)->toBeInstanceOf(ConfigRepository::class);
+        // THEN
+        expect($instance)->toBeInstanceOf(StorageManagerConfig::class);
     });
 
     it('resolves the file manager from the container', function (): void {
-        // Given
+        // GIVEN
         $abstract = FileManager::class;
 
-        // When
+        // WHEN
         $instance = $this->app->make($abstract);
 
-        // Then
+        // THEN
         expect($instance)->toBeInstanceOf(FileManager::class);
     });
 });

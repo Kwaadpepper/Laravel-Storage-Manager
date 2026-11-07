@@ -9,17 +9,17 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
 
 describe('UploadMetadata', function (): void {
     it('creates a valid upload metadata object', function (): void {
-        // Given
+        // GIVEN
         $uploadId    = UploadId::generate();
         $fileName    = 'test.txt';
         $totalChunks = 2;
         $totalSize   = 1024;
         $createdAt   = CarbonImmutable::now();
 
-        // When
+        // WHEN
         $metadata = new UploadMetadata($uploadId, $fileName, $totalChunks, $totalSize, $createdAt);
 
-        // Then
+        // THEN
         expect($metadata->totalSize)->toBe($totalSize);
         expect($metadata->totalChunks)->toBe($totalChunks);
         expect($metadata->fileName)->toBe($fileName);
@@ -28,61 +28,61 @@ describe('UploadMetadata', function (): void {
     });
 
     it('throws exception when fileName is empty', function (): void {
-        // Given
+        // GIVEN
         $uploadId    = UploadId::generate();
         $fileName    = '   ';
         $totalChunks = 2;
         $totalSize   = 1024;
         $createdAt   = CarbonImmutable::now();
 
-        // When
+        // WHEN
         $action = fn () => new UploadMetadata($uploadId, $fileName, $totalChunks, $totalSize, $createdAt);
 
-        // Then
+        // THEN
         expect($action)->toThrow(IllegalDomainStateException::class, 'fileName cannot be empty.');
     });
 
     it('throws exception when totalChunks is less than 1', function (): void {
-        // Given
+        // GIVEN
         $uploadId    = UploadId::generate();
         $fileName    = 'test.txt';
         $totalChunks = 0;
         $totalSize   = 1024;
         $createdAt   = CarbonImmutable::now();
 
-        // When
+        // WHEN
         $action = fn () => new UploadMetadata($uploadId, $fileName, $totalChunks, $totalSize, $createdAt);
 
-        // Then
+        // THEN
         expect($action)->toThrow(IllegalDomainStateException::class, 'totalChunks must be greater than 0.');
     });
 
     it('throws exception when totalSize is negative or zero', function (): void {
-        // Given
+        // GIVEN
         $uploadId    = UploadId::generate();
         $fileName    = 'test.txt';
         $totalChunks = 2;
         $totalSize   = 0;
         $createdAt   = CarbonImmutable::now();
 
-        // When
+        // WHEN
         $action = fn () => new UploadMetadata($uploadId, $fileName, $totalChunks, $totalSize, $createdAt);
 
-        // Then
+        // THEN
         expect($action)->toThrow(IllegalDomainStateException::class, 'totalSize must be greater than 0.');
     });
 
     it('can be serialized and deserialized to array', function (): void {
-        // Given
+        // GIVEN
         $uploadId  = UploadId::generate();
         $createdAt = CarbonImmutable::now();
         $metadata  = new UploadMetadata($uploadId, 'test.txt', 2, 1024, $createdAt);
 
-        // When
+        // WHEN
         $array        = $metadata->toArray();
         $deserialized = UploadMetadata::fromArray($array);
 
-        // Then
+        // THEN
         expect($array)->toHaveKey('totalSize', 1024)
             ->toHaveKey('totalChunks', 2)
             ->toHaveKey('fileName', 'test.txt')
@@ -96,7 +96,7 @@ describe('UploadMetadata', function (): void {
     });
 
     it('gracefully handles missing uploadId during deserialization', function (): void {
-        // Given
+        // GIVEN
         $legacyArray = [
             'totalSize'   => 500,
             'totalChunks' => 1,
@@ -104,12 +104,12 @@ describe('UploadMetadata', function (): void {
             'created_at'  => CarbonImmutable::now()->toIso8601String(),
         ];
 
-        // When
+        // WHEN
         $deserialized = UploadMetadata::fromArray($legacyArray);
 
-        // Then
+        // THEN
         expect($deserialized->totalSize)->toBe(500);
         expect($deserialized->fileName)->toBe('legacy.txt');
-        expect($deserialized->uploadId)->toBeInstanceOf(UploadId::class); // It should generate a new one
+        expect($deserialized->uploadId)->toBeInstanceOf(UploadId::class);
     });
 });

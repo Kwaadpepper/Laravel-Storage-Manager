@@ -4,13 +4,24 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
-use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
-use Kwaadpepper\LaravelStorageManager\Enum\GenericDomainError;
-use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
+use Kwaadpepper\LaravelStorageManager\Event\BulkRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryCopied;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreated;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleted;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryMoved;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\FileCopied;
+use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
+use Kwaadpepper\LaravelStorageManager\Event\FileDeleted;
+use Kwaadpepper\LaravelStorageManager\Event\FileManagerShowed;
+use Kwaadpepper\LaravelStorageManager\Event\FileMoved;
+use Kwaadpepper\LaravelStorageManager\Event\FileRenamed;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
+use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\FileStream;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\DirectoryPathProperties;
@@ -18,72 +29,67 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList as PathContent;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Trash\TrashedItem;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeFile;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
+use Kwaadpepper\LaravelStorageManager\Service\TrashService;
 
-class FileManager
+readonly class FileManager
 {
+    private const int MIME_SAMPLE_BYTES = 1048576; // 1 MB
+
     public function __construct(
-        private readonly PathNormalizer $pathNormalizer,
-        private readonly FilePropertyExtractor $filePropertyExtractor,
-        private ?Disk $activeDisk,
-        private readonly ?ConfigRepository $configRepository = null
+        private PathNormalizer $pathNormalizer,
+        private FilePropertyExtractor $filePropertyExtractor,
+        private FileMetadataExtractor $fileMetadataExtractor,
+        private StorageManagerConfig $config,
+        private StorageGateway $storageGateway,
+        private MimeTypeChecker $mimeTypeChecker,
+        private TrashService $trashService,
+        private EventDispatcher $eventDispatcher,
     ) {
-        $this->setActiveDisk($activeDisk);
     }
 
-    public function setActiveDisk(?Disk $disk): void
+    /**
+     * @return array{chunkMinSize: int, chunkMaxSize: int}
+     */
+    public function init(): array
     {
-        $this->activeDisk = $disk;
+        $this->eventDispatcher->dispatch(FileManagerShowed::class);
 
-        if ($disk !== null) {
-            $this->assertDiskExists($disk->name);
-        }
+        return [
+            'chunkMinSize' => $this->config->upload->chunkMinSize,
+            'chunkMaxSize' => $this->config->upload->chunkMaxSize,
+        ];
     }
 
-    public function getProperties(Path $path): PathProperties
+    /**
+     * @throws FileOperationException
+     */
+    public function getProperties(Disk $disk, Path $path): PathProperties
     {
-        $disk             = $this->getDisk();
-        $normalizedPath   = $this->pathNormalizer->normalizePath($path->value);
-        $sourceIsDir      = $this->isDirectory($path);
-        $sourceIsFile     = $this->isFile($path);
-
-        if (! $sourceIsDir && ! $sourceIsFile) {
-            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-        }
-
-        $normalizedPath = new Path($normalizedPath);
+        $normalizedPath    = $this->pathNormalizer->normalizePath($path->value);
+        $sourceIsDir       = $this->storageGateway->resolveIsDirectory($disk, $path);
+        $normalizedPathObj = new Path($normalizedPath);
 
         return $sourceIsDir
-            ? $this->filePropertyExtractor->directoryProperties($disk, $normalizedPath)
-            : $this->filePropertyExtractor->fileProperties($disk, $normalizedPath);
+            ? $this->filePropertyExtractor->directoryProperties($disk, $normalizedPathObj)
+            : $this->fileMetadataExtractor->extract($disk, $normalizedPathObj);
     }
 
-    public function getContent(?Path $path = null): PathContent
+    public function getContent(Disk $disk, ?Path $path = null): PathContent
     {
-        $filesystem  = $this->getStorage();
-        $directory   = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
+        $directory = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
 
         if ($this->isTrashPath($directory)) {
             return new PathContent([], []);
         }
 
-        $files       = array_map(
-            fn (string $file): string => $this->pathNormalizer->normalizePath($file),
-            $filesystem->files($directory)
-        );
-        $directories = array_map(
-            fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
-            $filesystem->directories($directory)
-        );
+        $entries = $this->listCleanDirectoryEntries($disk, $directory);
 
-        $files       = array_values(array_filter($files, fn (string $file): bool => ! $this->isTrashPath($file)));
-        $directories = array_values(array_filter($directories, fn (string $dir): bool => ! $this->isTrashPath($dir)));
-
-        $files       = array_map(fn (string $file): Path => new Path($file), $files);
-        $directories = array_map(fn (string $dir): Path => new Path($dir), $directories);
+        $files       = array_map(fn (string $file): Path => new Path($file), $entries['files']);
+        $directories = array_map(fn (string $dir): Path => new Path($dir), $entries['directories']);
 
         return new PathContent(
             array_values($files),
@@ -91,65 +97,53 @@ class FileManager
         );
     }
 
-    public function getPathTree(?Path $path = null): PathTreeLevel
+    public function getPathTree(Disk $disk, ?Path $path = null): PathTreeLevel
     {
-        $filesystem  = $this->getStorage();
-        $directory   = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
+        $directory = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
 
         if ($this->isTrashPath($directory)) {
             return new PathTreeLevel([], []);
         }
 
-        $directories = array_map(
-            fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
-            $filesystem->directories($directory)
-        );
+        $entries = $this->listCleanDirectoryEntries($disk, $directory);
 
-        $files = array_map(
-            fn (string $file): string => $this->pathNormalizer->normalizePath($file),
-            $filesystem->files($directory)
-        );
-
-        $directories = array_values(array_filter($directories, fn (string $dir): bool => ! $this->isTrashPath($dir)));
-        $files       = array_values(array_filter($files, fn (string $file): bool => ! $this->isTrashPath($file)));
-
-        $directories = array_map(function (string $dir) use ($filesystem): PathTreeDirectory {
-            $path       = new Path($dir);
-            $properties = $this->getProperties($path);
+        $directories = array_map(function (string $dir) use ($disk): PathTreeDirectory {
+            $dirPath    = new Path($dir);
+            $properties = $this->filePropertyExtractor->directoryProperties($disk, $dirPath);
 
             if (! ($properties instanceof DirectoryPathProperties)) {
-                throw new \LogicException("Expected directory properties for path '{$path}', got file properties.");
+                throw new \LogicException("Expected directory properties for path '{$dirPath}', got file properties.");
             }
 
             return new PathTreeDirectory(
-                $path,
-                $this->hasSubdirectories((string) $path, $filesystem),
+                $dirPath,
+                $this->hasSubdirectories((string) $dirPath, $disk),
                 $properties->visibility
             );
-        }, $directories);
+        }, $entries['directories']);
 
-        $files = array_map(function (string $file) use ($filesystem): PathTreeFile {
-            $path       = new Path($file);
-            $properties = $this->getProperties($path);
+        $files = array_map(function (string $file) use ($disk): PathTreeFile {
+            $filePath   = new Path($file);
+            $properties = $this->filePropertyExtractor->fileProperties($disk, $filePath);
 
             if (! ($properties instanceof FilePathProperties)) {
-                throw new \LogicException("Expected file properties for path '{$path}', got directory properties.");
+                throw new \LogicException("Expected file properties for path '{$filePath}', got directory properties.");
             }
 
             try {
-                $publicUrl = $filesystem->url(ltrim($path->value, '/'));
-            } catch (\Throwable $e) {
+                $publicUrl = $this->storageGateway->publicUrl($disk, $filePath);
+            } catch (\Throwable) {
                 $publicUrl = null;
             }
 
             return new PathTreeFile(
-                $path,
+                $filePath,
                 $properties->size,
                 $properties->extension,
                 $properties->visibility,
                 $publicUrl
             );
-        }, $files);
+        }, $entries['files']);
 
         return new PathTreeLevel(
             array_values($directories),
@@ -160,12 +154,14 @@ class FileManager
     /**
      * @param  Path[]  $paths
      */
-    /**
-     * @param  Path[]  $paths
-     */
-    public function searchContent(array $paths, ?string $query, ?string $extension, ?int $minSize, ?int $maxSize): SearchResult
-    {
-        $filesystem         = $this->getStorage();
+    public function searchContent(
+        Disk $disk,
+        array $paths,
+        ?string $query,
+        ?string $extension,
+        ?int $minSize,
+        ?int $maxSize,
+    ): SearchResult {
         $directoriesToScan  = [];
         $matchedDirectories = [];
         $matchedFiles       = [];
@@ -177,39 +173,28 @@ class FileManager
                 continue;
             }
 
-            $directories = array_map(
-                fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
-                $filesystem->directories($directory)
-            );
+            $entries = $this->listCleanDirectoryEntries($disk, $directory);
 
-            $files = array_map(
-                fn (string $file): string => $this->pathNormalizer->normalizePath($file),
-                $filesystem->files($directory)
-            );
-
-            $directories = array_values(array_filter($directories, fn (string $dir): bool => ! $this->isTrashPath($dir)));
-            $files       = array_values(array_filter($files, fn (string $file): bool => ! $this->isTrashPath($file)));
-
-            foreach ($directories as $dir) {
+            foreach ($entries['directories'] as $dir) {
                 $path                = new Path($dir);
                 $directoriesToScan[] = $path;
 
-                $properties = $this->getProperties($path);
+                $properties = $this->filePropertyExtractor->directoryProperties($disk, $path);
 
                 if ($properties instanceof DirectoryPathProperties) {
                     if ($this->isDirectoryMatchingFilters($path, $query, $extension, $minSize, $maxSize)) {
                         $matchedDirectories[] = new PathTreeDirectory(
                             $path,
-                            $this->hasSubdirectories((string) $path, $filesystem),
+                            $this->hasSubdirectories((string) $path, $disk),
                             $properties->visibility
                         );
                     }
                 }
             }
 
-            foreach ($files as $file) {
+            foreach ($entries['files'] as $file) {
                 $path       = new Path($file);
-                $properties = $this->getProperties($path);
+                $properties = $this->filePropertyExtractor->fileProperties($disk, $path);
 
                 if (! ($properties instanceof FilePathProperties)) {
                     continue;
@@ -219,11 +204,7 @@ class FileManager
                     continue;
                 }
 
-                try {
-                    $publicUrl = $filesystem->url(ltrim($path->value, '/'));
-                } catch (\Throwable $e) {
-                    $publicUrl = null;
-                }
+                $publicUrl = $this->storageGateway->publicUrl($disk, $path);
 
                 $matchedFiles[] = new PathTreeFile(
                     $path,
@@ -243,9 +224,8 @@ class FileManager
         ?string $query,
         ?string $extension,
         ?int $minSize,
-        ?int $maxSize
+        ?int $maxSize,
     ): bool {
-        // Directories don't have extension or size. If the user filters by them, directories shouldn't match.
         if ($extension !== null || $minSize !== null || $maxSize !== null) {
             return false;
         }
@@ -260,16 +240,13 @@ class FileManager
         return true;
     }
 
-    /**
-     * @throws FileOperationException
-     */
     private function isFileMatchingFilters(
         Path $path,
         FilePathProperties $properties,
         ?string $query,
         ?string $extension,
         ?int $minSize,
-        ?int $maxSize
+        ?int $maxSize,
     ): bool {
         if ($extension !== null && strtolower($properties->extension) !== strtolower($extension)) {
             return false;
@@ -293,110 +270,162 @@ class FileManager
         return true;
     }
 
-    public function createDirectory(Path $path): void
+    /**
+     * @throws FileOperationException
+     */
+    public function createDirectory(Disk $disk, Path $path): void
     {
-        $this->assertNotReadOnly();
+        $disk->assertWritable();
 
-        $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
-        if ($filesystem->exists($normalizedPath)) {
+        if ($this->storageGateway->exists($disk, $path)) {
             FileOperationException::throwWith(FileOperationError::DIRECTORY_ALREADY_EXISTS);
         }
 
-        if ($filesystem->makeDirectory($normalizedPath) === false) {
+        if ($this->storageGateway->makeDirectory($disk, $normalizedPath) === false) {
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
+
+        $this->eventDispatcher->dispatch(
+            DirectoryCreated::class,
+            ['path' => $path->value]
+        );
     }
 
     /**
      * @throws FileOperationException
      */
-    public function deleteDirectory(Path $path, bool $force = false): void
+    public function delete(Disk $disk, Path $path, bool $force = false): ?TrashedItem
     {
-        $this->assertNotReadOnly();
+        $disk->assertWritable();
 
-        $filesystem     = $this->getStorage();
+        if ($this->config->trash->enabled && ! $force) {
+            return $this->trashService->moveToTrash($disk, $path);
+        }
+
+        if ($this->storageGateway->resolveIsDirectory($disk, $path)) {
+            $this->deleteDirectory($disk, $path, $force);
+
+            return null;
+        }
+
+        $this->deleteFile($disk, $path);
+
+        return null;
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function deleteDirectory(Disk $disk, Path $path, bool $force = false): void
+    {
+        $disk->assertWritable();
+
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
-        if (preg_match('/^\/?$/', $normalizedPath)) {
+        if ($this->pathNormalizer->isRootPath($normalizedPath)) {
             FileOperationException::throwWith(FileOperationError::INVALID_PATH);
         }
 
-        if (! $filesystem->exists($normalizedPath)) {
+        if (! $this->storageGateway->isDirectory($disk, $path)) {
             FileOperationException::throwWith(FileOperationError::DIRECTORY_NOT_FOUND);
         }
 
         if (! $force) {
-            $files       = $filesystem->files($normalizedPath);
-            $directories = $filesystem->directories($normalizedPath);
+            $files       = $this->storageGateway->files($disk, $normalizedPath);
+            $directories = $this->storageGateway->directories($disk, $normalizedPath);
             if (count($files) > 0 || count($directories) > 0) {
                 FileOperationException::throwWith(FileOperationError::DIRECTORY_NOT_EMPTY);
             }
         }
 
-        if ($filesystem->deleteDirectory($normalizedPath) === false) {
+        if ($this->storageGateway->deleteDirectory($disk, $normalizedPath) === false) {
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
+
+        $this->eventDispatcher->dispatch(
+            DirectoryDeleted::class,
+            ['path' => $path->value]
+        );
     }
 
-    public function createFile(Path $path, string $content = ''): void
+    /**
+     * @throws FileOperationException
+     */
+    public function createFile(Disk $disk, Path $path, string $content = ''): void
     {
-        $this->assertNotReadOnly();
+        $disk->assertWritable();
 
-        $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
+        $extension      = strtolower(pathinfo($normalizedPath, PATHINFO_EXTENSION));
 
-        if ($filesystem->exists($normalizedPath)) {
+        if (! $this->config->upload->isExtensionAllowed($extension)) {
+            FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_EXTENSION);
+        }
+
+        if ($content !== '') {
+            $detectedMime = $this->mimeTypeChecker->detectBufferMimeType($content);
+            if (! $this->mimeTypeChecker->isMimeAllowedForExtension($extension, $detectedMime)) {
+                FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_MIME);
+            }
+        }
+
+        if ($this->storageGateway->exists($disk, $path)) {
             FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
         }
 
-        // Create an empty file
-        $filesystem->put($normalizedPath, $content);
+        $this->storageGateway->put($disk, $normalizedPath, $content);
+
+        $this->eventDispatcher->dispatch(
+            FileCreated::class,
+            ['path' => $path->value]
+        );
     }
 
     /**
      * @throws FileOperationException
      */
-    public function deleteFile(Path $path): void
+    public function deleteFile(Disk $disk, Path $path): void
     {
-        $this->assertNotReadOnly();
+        $disk->assertWritable();
 
-        $filesystem     = $this->getStorage();
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
-        if (! $filesystem->exists($normalizedPath)) {
+        if (! $this->storageGateway->isFile($disk, $path)) {
             FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
         }
 
-        if ($filesystem->delete($normalizedPath) === false) {
+        if ($this->storageGateway->delete($disk, $normalizedPath) === false) {
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
+
+        $this->eventDispatcher->dispatch(
+            FileDeleted::class,
+            ['path' => $path->value]
+        );
     }
 
     /**
      * @throws FileOperationException
      */
-    public function rename(Path $source, string $newName): Path
+    public function rename(Disk $disk, Path $source, string $newName): Path
     {
-        $this->assertNotReadOnly();
+        $disk->assertWritable();
 
-        $filesystem       = $this->getStorage();
         $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
-        $sourceIsDir      = $this->isDirectory($source);
-        $sourceIsFile     = $this->isFile($source);
+        $sourceIsDir      = $this->storageGateway->resolveIsDirectory($disk, $source);
 
-        if (! $sourceIsDir && ! $sourceIsFile) {
-            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-        }
-
-        $destination          = Path::appendTo(
+        $destination = Path::appendTo(
             new Path(dirname($normalizedSource)),
             $this->pathNormalizer->normalizePath($newName)
         );
-        $normalizedDestination = (string) $destination;
 
-        if ($this->isDirectory($destination) || $this->isFile($destination)) {
+        if (! $sourceIsDir) {
+            $this->validateFileRenameTarget($disk, $source, $destination);
+        }
+
+        if ($this->storageGateway->exists($disk, $destination)) {
             FileOperationException::throwWith(
                 $sourceIsDir
                     ? FileOperationError::DIRECTORY_ALREADY_EXISTS
@@ -404,144 +433,86 @@ class FileManager
             );
         }
 
-        if ($sourceIsDir && in_array($this->getDisk()->driver, ['s3', 'ftp'], true)) {
-            $this->polyfillMoveDirectory($normalizedSource, $normalizedDestination);
-        } else {
-            if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
-                FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-            }
-        }
+        $this->storageGateway->move($disk, $normalizedSource, $destination->value, $sourceIsDir);
 
-        return $destination;
-    }
-
-    /**
-     * @throws FileOperationException
-     */
-    public function copy(Path $source, Path $destinationDir): Path
-    {
-        $this->assertNotReadOnly();
-
-        $filesystem       = $this->getStorage();
-        $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
-        $sourceIsDir      = $this->isDirectory($source);
-        $sourceIsFile     = $this->isFile($source);
-
-        if (! $sourceIsDir && ! $sourceIsFile) {
-            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-        }
-
-        $basename    = basename($normalizedSource);
-        $destination = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
-
-        $counter             = 1;
-        $originalDestination = (string) $destination;
-        while ($this->isDirectory($destination) || $this->isFile($destination)) {
-            $pathInfo  = pathinfo($originalDestination);
-            $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
-            $filename  = $pathInfo['filename'];
-
-            // Re-join dir with modified basename
-            $newBasename = sprintf('%s (copy%s)%s', $filename, $counter > 1 ? ' ' . $counter : '', $extension);
-            $destination = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($newBasename));
-            $counter++;
-        }
-
-        $normalizedDestination = (string) $destination;
-
-        if ($sourceIsFile) {
-            if ($filesystem->copy($normalizedSource, $normalizedDestination) === false) {
-                FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-            }
-        } else {
-            if ($filesystem->makeDirectory($normalizedDestination) === false) {
-                FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-            }
-
-            $directories = $filesystem->allDirectories($normalizedSource);
-            foreach ($directories as $dir) {
-                $normalizedDir = $this->pathNormalizer->normalizePath($dir);
-                $relativePath  = substr($normalizedDir, strlen($normalizedSource) + 1);
-                $filesystem->makeDirectory((string) Path::appendTo($destination, $relativePath));
-            }
-
-            $files = $filesystem->allFiles($normalizedSource);
-            foreach ($files as $file) {
-                $normalizedFile = $this->pathNormalizer->normalizePath($file);
-                $relativePath   = substr($normalizedFile, strlen($normalizedSource) + 1);
-                $filesystem->copy($file, (string) Path::appendTo($destination, $relativePath));
-            }
-        }
-
-        return $destination;
-    }
-
-    /**
-     * @throws FileOperationException
-     */
-    public function move(Path $source, Path $destinationDir): void
-    {
-        $this->assertNotReadOnly();
-
-        $filesystem       = $this->getStorage();
-        $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
-        $sourceIsDir      = $this->isDirectory($source);
-        $sourceIsFile     = $this->isFile($source);
-
-        if (! $sourceIsDir && ! $sourceIsFile) {
-            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-        }
-
-        $basename    = basename($normalizedSource);
-        $destination = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
-
-        $counter             = 1;
-        $originalDestination = (string) $destination;
-        while ($this->isDirectory($destination) || $this->isFile($destination)) {
-            $pathInfo  = pathinfo($originalDestination);
-            $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
-            $filename  = $pathInfo['filename'];
-
-            $newBasename = sprintf('%s (copy%s)%s', $filename, $counter > 1 ? ' ' . $counter : '', $extension);
-            $destination = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($newBasename));
-            $counter++;
-        }
-
-        $normalizedDestination = (string) $destination;
-
-        if ($sourceIsDir && in_array($this->getDisk()->driver, ['s3', 'ftp'], true)) {
-            $this->polyfillMoveDirectory($normalizedSource, $normalizedDestination);
-        } else {
-            if ($filesystem->move($normalizedSource, $normalizedDestination) === false) {
-                FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-            }
-        }
-    }
-
-    public function exists(Path $path): bool
-    {
-        return $this->getStorage()->exists(
-            $this->pathNormalizer->normalizePath((string) $path)
+        $this->eventDispatcher->dispatch(
+            $sourceIsDir ? DirectoryRenamed::class : FileRenamed::class,
+            [
+                'old_path' => $source->value,
+                'new_path' => $destination->value,
+            ]
         );
+
+        return $destination;
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function copy(Disk $disk, Path $source, Path $destinationDir): Path
+    {
+        $disk->assertWritable();
+
+        $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
+        $sourceIsDir      = $this->storageGateway->resolveIsDirectory($disk, $source);
+
+        $basename    = basename($normalizedSource);
+        $desired     = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
+        $destination = $this->storageGateway->resolveAvailablePath($disk, $desired, '%s (copy%s)%s');
+
+        $this->storageGateway->copy($disk, $source, $destination, $sourceIsDir);
+
+        $this->eventDispatcher->dispatch(
+            $sourceIsDir ? DirectoryCopied::class : FileCopied::class,
+            [
+                'source_path' => $source->value,
+                'target_path' => $destination->value,
+            ]
+        );
+
+        return $destination;
+    }
+
+    /**
+     * @throws FileOperationException
+     */
+    public function move(Disk $disk, Path $source, Path $destinationDir): void
+    {
+        $disk->assertWritable();
+
+        $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
+        $sourceIsDir      = $this->storageGateway->resolveIsDirectory($disk, $source);
+
+        $basename    = basename($normalizedSource);
+        $desired     = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
+        $destination = $this->storageGateway->resolveAvailablePath($disk, $desired, '%s (copy%s)%s');
+
+        $this->storageGateway->move($disk, $normalizedSource, $destination->value, $sourceIsDir);
+
+        $this->eventDispatcher->dispatch(
+            $sourceIsDir ? DirectoryMoved::class : FileMoved::class,
+            [
+                'source_path' => $source->value,
+                'target_path' => $destinationDir->value,
+            ]
+        );
+    }
+
+    public function exists(Disk $disk, Path $path): bool
+    {
+        return $this->storageGateway->exists($disk, $path);
     }
 
     private function isTrashPath(string $normalizedPath): bool
     {
-        if ($this->configRepository === null) {
-            return false;
-        }
-
-        $trashFolder = '/' . trim($this->configRepository->getTrashFolder(), '/');
+        $trashFolder = '/' . trim($this->config->trash->folder, '/');
 
         return $normalizedPath === $trashFolder || str_starts_with($normalizedPath, $trashFolder . '/');
     }
 
-    private function hasSubdirectories(string $path, Filesystem $filesystem): bool
+    private function hasSubdirectories(string $path, Disk $disk): bool
     {
-        $directories = $filesystem->directories($path);
-        if ($this->configRepository === null) {
-            return ! empty($directories);
-        }
+        $directories = $this->storageGateway->directories($disk, $path);
 
         return ! empty(array_filter(
             $directories,
@@ -549,112 +520,67 @@ class FileManager
         ));
     }
 
-    public function isDirectory(Path $path): bool
+    public function isDirectory(Disk $disk, Path $path): bool
     {
-        $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
-
-        if ($normalizedPath === '/') {
-            return true;
-        }
-
-        $filesystem  = $this->getStorage();
-        $parentDir   = dirname($normalizedPath);
-        $directories = array_map(
-            fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
-            $filesystem->directories($parentDir)
-        );
-
-        return in_array($normalizedPath, $directories, true);
+        return $this->storageGateway->isDirectory($disk, $path);
     }
 
-    public function isFile(Path $path): bool
+    public function isFile(Disk $disk, Path $path): bool
     {
-        return $this->getStorage()->exists(
-            $this->pathNormalizer->normalizePath($path->value)
-        ) && ! $this->isDirectory($path);
+        return $this->storageGateway->isFile($disk, $path);
     }
 
     /**
      * @throws FileOperationException
      */
-    public function readStream(Path $path): FileStream
+    public function readStream(Disk $disk, Path $path): FileStream
     {
-        $filesystem     = $this->getStorage();
-        $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
-
-        if (! $filesystem->exists($normalizedPath)) {
-            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-        }
-
-        if ($this->isDirectory($path)) {
-            FileOperationException::throwWith(FileOperationError::INVALID_PATH);
-        }
-
-        $stream = $filesystem->readStream($normalizedPath);
-
-        if ($stream === null) {
-            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-        }
-
-        return new FileStream($stream);
-    }
-
-    public function getDisk(): Disk
-    {
-        if ($this->activeDisk === null) {
-            throw new \LogicException('No active disk set for FileManager.');
-        }
-
-        return $this->activeDisk;
-    }
-
-    private function assertNotReadOnly(): void
-    {
-        if ($this->getDisk()->readOnly) {
-            FileOperationException::throwWith(FileOperationError::READ_ONLY_DISK);
-        }
-    }
-
-    private function polyfillMoveDirectory(string $source, string $destination): void
-    {
-        $filesystem = $this->getStorage();
-
-        if ($filesystem->makeDirectory($destination) === false) {
-            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-        }
-
-        $directories = $filesystem->allDirectories($source);
-        foreach ($directories as $dir) {
-            $normalizedDir = $this->pathNormalizer->normalizePath($dir);
-            $relativePath  = substr($normalizedDir, strlen($source) + 1);
-            $filesystem->makeDirectory((string) Path::appendTo(new Path($destination), $relativePath));
-        }
-
-        $files = $filesystem->allFiles($source);
-        foreach ($files as $file) {
-            $normalizedFile = $this->pathNormalizer->normalizePath($file);
-            $relativePath   = substr($normalizedFile, strlen($source) + 1);
-            $filesystem->move($file, (string) Path::appendTo(new Path($destination), $relativePath));
-        }
-
-        $filesystem->deleteDirectory($source);
+        return $this->storageGateway->readStream($disk, $path);
     }
 
     /**
-     * /**
+     * @throws FileOperationException
+     */
+    private function validateFileRenameTarget(Disk $disk, Path $source, Path $destination): void
+    {
+        $oldExt = strtolower(pathinfo($source->value, PATHINFO_EXTENSION));
+        $newExt = strtolower(pathinfo($destination->value, PATHINFO_EXTENSION));
+
+        if (! $this->config->upload->isExtensionAllowed($newExt)) {
+            FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_EXTENSION);
+        }
+
+        if ($oldExt === $newExt) {
+            return;
+        }
+
+        $sample = $this->storageGateway->readStream($disk, $source)->getContents(self::MIME_SAMPLE_BYTES);
+
+        if ($sample !== '') {
+            $detectedMime = $this->mimeTypeChecker->detectBufferMimeType($sample);
+            if (! $this->mimeTypeChecker->isMimeAllowedForExtension($newExt, $detectedMime)) {
+                FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_MIME);
+            }
+        }
+    }
+
+    /**
      * @param  array<int, array{from: Path, to: string}>  $renames
      * @return array<int, array{from: string, to: string}>
      *
      * @throws FileOperationException
      */
-    public function bulkRename(array $renames): array
+    public function bulkRename(Disk $disk, array $renames): array
     {
-        $this->assertNotReadOnly();
+        $disk->assertWritable();
 
-        $plan = $this->buildBulkRenamePlan($renames);
+        $plan = $this->buildBulkRenamePlan($disk, $renames);
 
-        $sourcePaths = array_map(fn (array $p): string => $this->pathNormalizer->normalizePath($p['from']->value), $plan);
-        $hasOverlap  = false;
+        $sourcePaths = array_map(
+            fn (array $p): string => $this->pathNormalizer->normalizePath($p['from']->value),
+            $plan
+        );
+        $hasOverlap = false;
         foreach ($plan as $p) {
             $normTarget = $this->pathNormalizer->normalizePath($p['target']->value);
             if (in_array($normTarget, $sourcePaths, true)) {
@@ -663,16 +589,23 @@ class FileManager
             }
         }
 
-        return $this->executeBulkRename($plan, $hasOverlap);
+        $result = $this->executeBulkRename($disk, $plan, $hasOverlap);
+
+        $this->eventDispatcher->dispatch(
+            BulkRenamed::class,
+            ['renamed' => $result]
+        );
+
+        return $result;
     }
 
     /**
      * @param  array<int, array{from: Path, to: string}>  $renames
-     * @return array<int, array{from: Path, toName: string, target: Path}>
+     * @return array<int, array{from: Path, toName: string, target: Path, isDir: bool}>
      *
      * @throws FileOperationException
      */
-    private function buildBulkRenamePlan(array $renames): array
+    private function buildBulkRenamePlan(Disk $disk, array $renames): array
     {
         $plan = [];
 
@@ -680,20 +613,22 @@ class FileManager
             $from           = $rename['from'];
             $toName         = $rename['to'];
             $normalizedFrom = $this->pathNormalizer->normalizePath($from->value);
-
-            if (! $this->isDirectory($from) && ! $this->isFile($from)) {
-                FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-            }
+            $isDir          = $this->storageGateway->resolveIsDirectory($disk, $from);
 
             $target = Path::appendTo(
                 new Path(dirname($normalizedFrom)),
                 $this->pathNormalizer->normalizePath($toName)
             );
 
+            if (! $isDir) {
+                $this->validateFileRenameTarget($disk, $from, $target);
+            }
+
             $plan[] = [
                 'from'   => $from,
                 'toName' => $toName,
                 'target' => $target,
+                'isDir'  => $isDir,
             ];
         }
 
@@ -702,12 +637,15 @@ class FileManager
             FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
         }
 
-        $sourcePaths = array_map(fn (array $p): string => $this->pathNormalizer->normalizePath($p['from']->value), $plan);
+        $sourcePaths = array_map(
+            fn (array $p): string => $this->pathNormalizer->normalizePath($p['from']->value),
+            $plan
+        );
         foreach ($plan as $p) {
             $normTarget = $this->pathNormalizer->normalizePath($p['target']->value);
-            if (! in_array($normTarget, $sourcePaths, true) && ($this->isDirectory($p['target']) || $this->isFile($p['target']))) {
+            if (! in_array($normTarget, $sourcePaths, true) && $this->storageGateway->exists($disk, $p['target'])) {
                 FileOperationException::throwWith(
-                    $this->isDirectory($p['from'])
+                    $p['isDir']
                         ? FileOperationError::DIRECTORY_ALREADY_EXISTS
                         : FileOperationError::FILE_ALREADY_EXISTS
                 );
@@ -718,34 +656,48 @@ class FileManager
     }
 
     /**
-     * @param  array<int, array{from: Path, toName: string, target: Path}>  $plan
+     * @param  array<int, array{from: Path, toName: string, target: Path, isDir: bool}>  $plan
      * @return array<int, array{from: string, to: string}>
      */
-    private function executeBulkRename(array $plan, bool $hasOverlap): array
+    private function executeBulkRename(Disk $disk, array $plan, bool $hasOverlap): array
     {
-        $filesystem = $this->getStorage();
-        $result     = [];
+        $result = [];
 
         if ($hasOverlap) {
             $tempPlan = [];
             foreach ($plan as $idx => $p) {
                 $tempName   = sprintf('.tmp_bulk_%s_%d', uniqid(), $idx);
-                $tempTarget = Path::appendTo(new Path(dirname($this->pathNormalizer->normalizePath($p['from']->value))), $tempName);
-                $filesystem->move(
-                    $this->pathNormalizer->normalizePath($p['from']->value),
-                    $this->pathNormalizer->normalizePath($tempTarget->value)
+                $tempTarget = Path::appendTo(
+                    new Path(dirname($this->pathNormalizer->normalizePath($p['from']->value))),
+                    $tempName
+                );
+                $this->storageGateway->move(
+                    $disk,
+                    $p['from']->value,
+                    $tempTarget->value,
+                    $p['isDir']
                 );
                 $tempPlan[] = [
                     'temp'   => $tempTarget,
                     'target' => $p['target'],
                     'from'   => $p['from'],
+                    'isDir'  => $p['isDir'],
                 ];
             }
 
             foreach ($tempPlan as $tp) {
-                $filesystem->move(
-                    $this->pathNormalizer->normalizePath($tp['temp']->value),
-                    $this->pathNormalizer->normalizePath($tp['target']->value)
+                $this->storageGateway->move(
+                    $disk,
+                    $tp['temp']->value,
+                    $tp['target']->value,
+                    $tp['isDir']
+                );
+                $this->eventDispatcher->dispatch(
+                    $tp['isDir'] ? DirectoryRenamed::class : FileRenamed::class,
+                    [
+                        'old_path' => (string) $tp['from'],
+                        'new_path' => (string) $tp['target'],
+                    ]
                 );
                 $result[] = [
                     'from' => (string) $tp['from'],
@@ -754,7 +706,7 @@ class FileManager
             }
         } else {
             foreach ($plan as $p) {
-                $this->rename($p['from'], $p['toName']);
+                $this->rename($disk, $p['from'], $p['toName']);
                 $result[] = [
                     'from' => (string) $p['from'],
                     'to'   => (string) $p['target'],
@@ -765,246 +717,30 @@ class FileManager
         return $result;
     }
 
-    public function supportsZip(): bool
-    {
-        return extension_loaded('zip') && class_exists(\ZipArchive::class);
-    }
-
     /**
-     * @param  Path[]  $paths
-     *
-     * @throws FileOperationException
+     * @return array{directories: list<string>, files: list<string>}
      */
-    public function zip(array $paths, Path $destinationZip): Path
+    private function listCleanDirectoryEntries(Disk $disk, string $directory): array
     {
-        $this->assertCanZip($paths, $destinationZip);
+        $rawDirectories = $this->storageGateway->directories($disk, $directory);
+        $rawFiles       = $this->storageGateway->files($disk, $directory);
 
-        $tempZip = tempnam(sys_get_temp_dir(), 'sm_zip_');
-        if ($tempZip === false) {
-            FileOperationException::throwWith(FileOperationError::ARCHIVE_OPERATION_FAILED);
-        }
+        $directories = array_map(
+            fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
+            $rawDirectories
+        );
 
-        $zip = new \ZipArchive();
-        $res = $zip->open($tempZip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-        if ($res !== true) {
-            if (file_exists($tempZip)) {
-                unlink($tempZip);
-            }
-            FileOperationException::throwWith(FileOperationError::ARCHIVE_OPERATION_FAILED);
-        }
+        $files = array_map(
+            fn (string $file): string => $this->pathNormalizer->normalizePath($file),
+            $rawFiles
+        );
 
-        $filesystem = $this->getStorage();
-        foreach ($paths as $path) {
-            $this->addPathToZip($zip, $filesystem, $path);
-        }
+        $directories = array_values(array_filter($directories, fn (string $dir): bool => ! $this->isTrashPath($dir)));
+        $files       = array_values(array_filter($files, fn (string $file): bool => ! $this->isTrashPath($file)));
 
-        $zip->close();
-
-        $normDest = $this->pathNormalizer->normalizePath($destinationZip->value);
-        $fp       = fopen($tempZip, 'rb');
-        if (is_resource($fp)) {
-            $filesystem->writeStream($normDest, $fp);
-            fclose($fp);
-        }
-
-        if (file_exists($tempZip)) {
-            unlink($tempZip);
-        }
-
-        return $destinationZip;
-    }
-
-    /**
-     * @param  Path[]  $paths
-     *
-     * @throws FileOperationException
-     */
-    private function assertCanZip(array $paths, Path $destinationZip): void
-    {
-        $this->assertNotReadOnly();
-
-        if (! $this->supportsZip()) {
-            FileOperationException::throwWith(FileOperationError::ZIP_EXTENSION_NOT_AVAILABLE);
-        }
-
-        if ($this->exists($destinationZip)) {
-            FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
-        }
-
-        foreach ($paths as $path) {
-            if (! $this->exists($path)) {
-                FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-            }
-        }
-    }
-
-    private function addPathToZip(\ZipArchive $zip, Filesystem $filesystem, Path $path): void
-    {
-        $normPath = $this->pathNormalizer->normalizePath($path->value);
-
-        if ($this->isFile($path)) {
-            $stream = $filesystem->readStream($normPath);
-            if (is_resource($stream)) {
-                $content = stream_get_contents($stream);
-                fclose($stream);
-                if ($content !== false) {
-                    $zip->addFromString(basename($normPath), $content);
-                }
-            }
-
-            return;
-        }
-
-        $baseDirName = basename($normPath);
-        $zip->addEmptyDir($baseDirName);
-
-        $allFiles = $filesystem->allFiles($normPath);
-        foreach ($allFiles as $file) {
-            $normFile = $this->pathNormalizer->normalizePath($file);
-            $relFile  = substr($normFile, strlen($normPath) + 1);
-            $stream   = $filesystem->readStream($normFile);
-            if (is_resource($stream)) {
-                $content = stream_get_contents($stream);
-                fclose($stream);
-                if ($content !== false) {
-                    $zip->addFromString($baseDirName . '/' . $relFile, $content);
-                }
-            }
-        }
-
-        $allDirs = $filesystem->allDirectories($normPath);
-        foreach ($allDirs as $dir) {
-            $normDir = $this->pathNormalizer->normalizePath($dir);
-            $relDir  = substr($normDir, strlen($normPath) + 1);
-            $zip->addEmptyDir($baseDirName . '/' . $relDir);
-        }
-    }
-
-    /**
-     * @throws FileOperationException
-     */
-    public function unzip(Path $archivePath, Path $destinationDir): void
-    {
-        $this->assertCanUnzip($archivePath);
-
-        $filesystem  = $this->getStorage();
-        $normArchive = $this->pathNormalizer->normalizePath($archivePath->value);
-
-        $tempZip = tempnam(sys_get_temp_dir(), 'sm_unzip_');
-        if ($tempZip === false) {
-            FileOperationException::throwWith(FileOperationError::ARCHIVE_OPERATION_FAILED);
-        }
-
-        $sourceStream = $filesystem->readStream($normArchive);
-        $destStream   = fopen($tempZip, 'wb');
-        if (is_resource($sourceStream) && is_resource($destStream)) {
-            stream_copy_to_stream($sourceStream, $destStream);
-            fclose($destStream);
-            fclose($sourceStream);
-        }
-
-        $zip = new \ZipArchive();
-        $res = $zip->open($tempZip);
-        if ($res !== true) {
-            if (file_exists($tempZip)) {
-                unlink($tempZip);
-            }
-            FileOperationException::throwWith(FileOperationError::INVALID_ARCHIVE);
-        }
-
-        $normDestDir = $this->pathNormalizer->normalizePath($destinationDir->value);
-        if ($normDestDir !== '/' && ! $filesystem->exists($normDestDir)) {
-            $filesystem->makeDirectory($normDestDir);
-        }
-
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $entryName = $zip->getNameIndex($i);
-            if ($entryName !== false) {
-                $this->extractZipEntry($zip, $filesystem, $entryName, $normDestDir, $tempZip);
-            }
-        }
-
-        $zip->close();
-        if (file_exists($tempZip)) {
-            unlink($tempZip);
-        }
-    }
-
-    /**
-     * @throws FileOperationException
-     */
-    private function assertCanUnzip(Path $archivePath): void
-    {
-        $this->assertNotReadOnly();
-
-        if (! $this->supportsZip()) {
-            FileOperationException::throwWith(FileOperationError::ZIP_EXTENSION_NOT_AVAILABLE);
-        }
-
-        if (! $this->exists($archivePath)) {
-            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-        }
-
-        if (! str_ends_with(strtolower($archivePath->value), '.zip')) {
-            FileOperationException::throwWith(FileOperationError::INVALID_ARCHIVE);
-        }
-    }
-
-    /**
-     * @throws FileOperationException
-     */
-    private function extractZipEntry(
-        \ZipArchive $zip,
-        Filesystem $filesystem,
-        string $entryName,
-        string $normDestDir,
-        string $tempZip
-    ): void {
-        $cleanEntry = ltrim(str_replace('\\', '/', $entryName), '/');
-        $parts      = explode('/', $cleanEntry);
-        if (in_array('..', $parts, true)) {
-            $zip->close();
-            if (file_exists($tempZip)) {
-                unlink($tempZip);
-            }
-            FileOperationException::throwWith(FileOperationError::INVALID_PATH);
-        }
-
-        $targetPath = $normDestDir === '/' ? '/' . $cleanEntry : $normDestDir . '/' . $cleanEntry;
-        $targetPath = $this->pathNormalizer->normalizePath($targetPath);
-
-        if (str_ends_with($entryName, '/')) {
-            if (! $filesystem->exists($targetPath)) {
-                $filesystem->makeDirectory($targetPath);
-            }
-
-            return;
-        }
-
-        $parentDir = dirname($targetPath);
-        if ($parentDir !== '/' && ! $filesystem->exists($parentDir)) {
-            $filesystem->makeDirectory($parentDir);
-        }
-        $entryStream = $zip->getStream($entryName);
-        if ($entryStream !== false) {
-            $filesystem->writeStream($targetPath, $entryStream);
-            fclose($entryStream);
-        }
-    }
-
-    private function getStorage(): Filesystem
-    {
-        $disk = $this->getDisk();
-
-        return Storage::disk($disk->name);
-    }
-
-    private function assertDiskExists(string $diskName): void
-    {
-        $disks = Arr::wrap(config('filesystems.disks', []));
-
-        if (! isset($disks[$diskName])) {
-            throw new DomainException(GenericDomainError::DISK_NOT_FOUND);
-        }
+        return [
+            'directories' => $directories,
+            'files'       => $files,
+        ];
     }
 }

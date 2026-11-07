@@ -3,11 +3,15 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
+use Kwaadpepper\LaravelStorageManager\Lib\Storage\StorageDriverStrategy;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -127,13 +131,23 @@ describe('naming conventions', function () use ($libraryNamespace): void {
         ->expect("{$libraryNamespace}\Provider")
         ->toHaveSuffix('Provider');
 
-    arch('repositories have Repository suffix')
-        ->expect("{$libraryNamespace}\Repository")
-        ->toHaveSuffix('Repository');
+    arch('config classes have Config suffix and are final readonly')
+        ->expect("{$libraryNamespace}\Config")
+        ->toHaveSuffix('Config')
+        ->toBeFinal()
+        ->toBeReadonly();
+
+    arch('factories have Factory suffix')
+        ->expect("{$libraryNamespace}\Factory")
+        ->toHaveSuffix('Factory');
 
     arch('services have Service suffix')
         ->expect("{$libraryNamespace}\Service")
         ->toHaveSuffix('Service');
+
+    arch('storage strategies have Strategy suffix')
+        ->expect("{$libraryNamespace}\Lib\Storage")
+        ->toHaveSuffix('Strategy');
 });
 
 describe('inheritance contracts', function () use ($libraryNamespace): void {
@@ -160,6 +174,10 @@ describe('inheritance contracts', function () use ($libraryNamespace): void {
     arch('Dto implements Dto interface')
         ->expect("{$libraryNamespace}\Http\Dto")
         ->toImplement(Dto::class);
+
+    arch('Storage strategies implement StorageDriverStrategy')
+        ->expect("{$libraryNamespace}\Lib\Storage")
+        ->toImplement(StorageDriverStrategy::class);
 });
 
 describe('controller contracts', function () use ($libraryNamespace): void {
@@ -168,4 +186,45 @@ describe('controller contracts', function () use ($libraryNamespace): void {
             assertControllerPublicMethodsReturnApiResponse($controllerClass);
         }
     });
+
+    arch('controllers do not use EventDispatcher or Storage')
+        ->expect("{$libraryNamespace}\Http\Controller")
+        ->not->toUse([
+            "{$libraryNamespace}\Lib\Event\EventDispatcher",
+            Storage::class,
+        ]);
+
+    arch('controllers do not use low-level stream functions')
+        ->expect("{$libraryNamespace}\Http\Controller")
+        ->not->toUse(['fopen', 'fpassthru', 'fread', 'fseek', 'fclose']);
+});
+
+describe('layer boundaries', function () use ($libraryNamespace): void {
+    arch('Lib does not depend on Http')
+        ->expect("{$libraryNamespace}\Lib")
+        ->not->toUse("{$libraryNamespace}\Http");
+
+    arch('Lib does not depend on HttpKernel')
+        ->expect("{$libraryNamespace}\Lib")
+        ->not->toUse('Symfony\Component\HttpKernel');
+
+    arch('Lib does not depend on Service')
+        ->expect("{$libraryNamespace}\Lib")
+        ->not->toUse("{$libraryNamespace}\Service")
+        ->ignoring([
+            "{$libraryNamespace}\Lib\FileManager\FileManager",
+            "{$libraryNamespace}\Lib\Event\EventDispatcher",
+        ]);
+
+    arch('ValueObjects do not use Storage facade')
+        ->expect("{$libraryNamespace}\Lib\ValueObjects")
+        ->not->toUse(Storage::class);
+
+    arch('application does not use Storage, Cache or Auth facades directly')
+        ->expect($libraryNamespace)
+        ->not->toUse([
+            Storage::class,
+            Cache::class,
+            Auth::class,
+        ]);
 });

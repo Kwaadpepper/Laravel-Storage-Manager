@@ -6,15 +6,18 @@ use Illuminate\Support\Facades\Storage;
 
 describe('BasicOperationsProperties', function (): void {
     it('returns full metadata for an existing file', function (): void {
+        // GIVEN
         Storage::fake('local');
         $content = 'Sample content for metadata test';
         Storage::disk('local')->put('documents/file.txt', $content);
 
+        // WHEN
         $response = $this->getJson(route('storage-manager.api.fm.properties', [
             'disk' => 'local',
             'path' => '/documents/file.txt',
         ]));
 
+        // THEN
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
@@ -45,14 +48,17 @@ describe('BasicOperationsProperties', function (): void {
     });
 
     it('returns directory properties for an existing directory', function (): void {
+        // GIVEN
         Storage::fake('local');
         Storage::disk('local')->makeDirectory('my-folder');
 
+        // WHEN
         $response = $this->getJson(route('storage-manager.api.fm.properties', [
             'disk' => 'local',
             'path' => '/my-folder',
         ]));
 
+        // THEN
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
@@ -72,13 +78,16 @@ describe('BasicOperationsProperties', function (): void {
     });
 
     it('returns 404 for a non-existent path', function (): void {
+        // GIVEN
         Storage::fake('local');
 
+        // WHEN
         $response = $this->getJson(route('storage-manager.api.fm.properties', [
             'disk' => 'local',
             'path' => '/does-not-exist.txt',
         ]));
 
+        // THEN
         $response->assertStatus(404);
         expect($response->json('errors.error'))->toBe('The specified path does not exist.');
     });

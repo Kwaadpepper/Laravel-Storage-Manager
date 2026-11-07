@@ -6,21 +6,21 @@ namespace Kwaadpepper\LaravelStorageManager\Service;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class ApiService
 {
     public function __construct(
-        private readonly ConfigRepository $configRepository
+        private readonly StorageManagerConfig $config
     ) {
     }
 
     public function isAllowedToRequest(Request $request): bool
     {
-        if (! $this->configRepository->isEnabled()) {
+        if (! $this->config->isStorageManagerEnabled) {
             return false;
         }
 
@@ -29,7 +29,7 @@ class ApiService
 
     public function isAllowedToRequestApi(Request $request): bool
     {
-        if (! $this->configRepository->isEnabled()) {
+        if (! $this->config->isStorageManagerEnabled) {
             return false;
         }
 
@@ -50,8 +50,9 @@ class ApiService
         }
 
         $statusCode = $response->getStatusCode();
-        $content    = json_decode($response->getContent() ?: '[]', true) ?: [];
-        $content    = Arr::wrap($content);
+        $decoded    = json_decode($response->getContent() ?: '[]', true) ?: [];
+        /** @var array<string, mixed> $content */
+        $content    = Arr::wrap($decoded);
 
         $dto = new class ($content) implements Dto
         {

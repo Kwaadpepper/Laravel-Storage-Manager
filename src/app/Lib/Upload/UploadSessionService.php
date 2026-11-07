@@ -6,13 +6,22 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\Upload;
 
 use Illuminate\Http\File;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
+use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
+use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Enum\UploadStatus;
+use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
+use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\AssembleFailedException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\MissingChunkException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\MissingMetadataException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\TransferFailedException;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
+use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\Stream\UploadProgressFilter;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
@@ -22,8 +31,14 @@ class UploadSessionService
 {
     private const string METADATA_FILE = 'metadata.json';
 
-    public function __construct(private readonly UploadPathResolver $pathResolver)
-    {
+    public function __construct(
+        private readonly UploadPathResolver $pathResolver,
+        private readonly StorageManagerConfig $config,
+        private readonly MimeTypeChecker $mimeTypeChecker,
+        private readonly StorageGateway $storageGateway,
+        private readonly PathSanitizer $pathSanitizer,
+        private readonly EventDispatcher $eventDispatcher,
+    ) {
     }
 
     public function createSession(UploadId $uploadId, UploadMetadata $metadata): void
@@ -77,7 +92,7 @@ class UploadSessionService
             $data = json_decode((string) $disk->get($path), true, 512, JSON_THROW_ON_ERROR);
 
             return is_array($data) ? UploadSessionStatus::fromArray($data) : null;
-        } catch (\JsonException $e) {
+        } catch (\JsonException) {
             return null;
         }
     }
@@ -127,11 +142,68 @@ class UploadSessionService
     }
 
     /**
-     * Verify all chunks exist, assemble them, stream to final destination, and clean up.
-     * Throws an exception if any chunk is missing.
+     * Resolve duplicate policy, assemble chunks, validate binary MIME, transfer to target disk, and emit FileCreated.
+     *
+     * @throws FileOperationException
+     * @throws \RuntimeException
      */
-    public function assembleAndTransfer(UploadId $uploadId, Path $finalDestination, string $diskName, ?callable $onProgress = null): void
-    {
+    public function completeUpload(
+        UploadId $uploadId,
+        Disk $disk,
+        Path $destinationDir,
+        string $fileName,
+        ?DuplicatePolicy $requestedPolicy = null,
+        ?callable $onProgress = null,
+    ): string {
+        $disk->assertWritable();
+
+        if ($this->config->upload->sanitizeFilenames) {
+            $fileName = $this->pathSanitizer->sanitizeFileName($fileName);
+        }
+
+        $policy             = $requestedPolicy ?? $this->config->upload->duplicatePolicy;
+        $desiredDestination = Path::appendTo($destinationDir, $fileName);
+
+        if (! $this->storageGateway->exists($disk, $desiredDestination)) {
+            $finalDestination = $desiredDestination;
+        } else {
+            if ($policy === DuplicatePolicy::ERROR) {
+                $this->deleteSession($uploadId);
+                FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
+            }
+            $finalDestination = match ($policy) {
+                DuplicatePolicy::OVERWRITE   => $desiredDestination,
+                DuplicatePolicy::AUTO_RENAME => $this->storageGateway->resolveAvailablePath($disk, $desiredDestination),
+            };
+            $fileName = basename($finalDestination->value);
+        }
+
+        $this->assembleAndTransfer(
+            $uploadId,
+            $finalDestination,
+            $disk->name,
+            $onProgress
+        );
+
+        $this->eventDispatcher->dispatch(
+            FileCreated::class,
+            ['path' => $finalDestination->value]
+        );
+
+        return $fileName;
+    }
+
+    /**
+     * Verify all chunks exist, assemble them, validate extension and binary MIME, stream to final destination, and clean up.
+     *
+     * @throws FileOperationException
+     */
+    public function assembleAndTransfer(
+        UploadId $uploadId,
+        Path $finalDestination,
+        string $diskName,
+        ?callable $onProgress = null,
+    ): void {
         $metadata = $this->readMetadata($uploadId);
         if (! $metadata) {
             throw new MissingMetadataException('Metadata not found for upload session');
@@ -152,6 +224,18 @@ class UploadSessionService
 
         $this->assembleChunks($uploadId, $totalChunks, $assembledFilePath, $onProgress);
 
+        $extension = strtolower(pathinfo($finalDestination->value, PATHINFO_EXTENSION));
+        if (! $this->config->upload->isExtensionAllowed($extension)) {
+            $this->deleteSession($uploadId);
+            FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_EXTENSION);
+        }
+
+        $detectedMime = $this->mimeTypeChecker->detectMimeType($assembledFilePath);
+        if (! $this->mimeTypeChecker->isMimeAllowedForExtension($extension, $detectedMime)) {
+            $this->deleteSession($uploadId);
+            FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_MIME);
+        }
+
         $this->writeStatus($uploadId, UploadStatus::TRANSFERRING, 0);
 
         $this->transferFile(
@@ -165,8 +249,12 @@ class UploadSessionService
         $this->deleteSession($uploadId);
     }
 
-    private function assembleChunks(UploadId $uploadId, int $totalChunks, string $assembledFilePath, ?callable $onProgress = null): void
-    {
+    private function assembleChunks(
+        UploadId $uploadId,
+        int $totalChunks,
+        string $assembledFilePath,
+        ?callable $onProgress = null,
+    ): void {
         $outputHandle = fopen($assembledFilePath, 'wb');
         if ($outputHandle === false) {
             throw new AssembleFailedException('Failed to open output assembled file.');
@@ -188,7 +276,6 @@ class UploadSessionService
             fclose($chunkHandle);
             $this->deleteChunk($uploadId, $i);
 
-            // Update status every 5% or so to avoid spamming the disk
             $progress = (int) (($i + 1) / $totalChunks * 100);
             if ($progress % 5 === 0 || $progress === 100) {
                 $this->writeStatus($uploadId, UploadStatus::ASSEMBLING, $progress);
@@ -205,7 +292,7 @@ class UploadSessionService
         string $assembledFilePath,
         Path $finalDestination,
         string $diskName,
-        ?callable $onProgress = null
+        ?callable $onProgress = null,
     ): void {
         $totalSize = filesize($assembledFilePath);
 
@@ -231,7 +318,7 @@ class UploadSessionService
 
         $filter = stream_filter_append($stream, 'lsm_upload_progress', STREAM_FILTER_READ, $filterParams);
 
-        Storage::disk($diskName)->put($finalDestination->value, $stream);
+        $this->storageGateway->disk($diskName)->put($finalDestination->toRelative(), $stream);
 
         if ($filter !== false) {
             stream_filter_remove($filter);

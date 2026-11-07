@@ -9,38 +9,37 @@ use Ramsey\Uuid\Uuid;
 
 describe('UploadId', function (): void {
     it('generates a valid uuid v7', function (): void {
-        // Given
-        // No specific setup needed
+        // GIVEN
 
-        // When
+        // WHEN
         $uploadId = UploadId::generate();
 
-        // Then
+        // THEN
         expect($uploadId->value)->toBeString();
         expect(Str::isUuid($uploadId->value))->toBeTrue();
         expect(Uuid::fromString($uploadId->value)->getVersion())->toBe(7);
     });
 
     it('accepts a valid uuid', function (): void {
-        // Given
+        // GIVEN
         $validUuid = UploadId::generate()->value;
 
-        // When
+        // WHEN
         $uploadId = new UploadId($validUuid);
 
-        // Then
+        // THEN
         expect($uploadId->value)->toBe($validUuid);
         expect((string) $uploadId)->toBe($validUuid);
     });
 
     it('throws an exception for invalid uuid', function (): void {
-        // Given
+        // GIVEN
         $invalidUuid = 'invalid-uuid-string';
 
-        // When
+        // WHEN
         $action = fn () => new UploadId($invalidUuid);
 
-        // Then
+        // THEN
         expect($action)->toThrow(IllegalDomainStateException::class, 'UploadId must be a valid UUID.');
     });
 });

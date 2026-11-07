@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\Upload;
 
+use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Filesystem\FilesystemManager;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 class UploadPathResolver
 {
@@ -17,26 +18,32 @@ class UploadPathResolver
 
     private const string ASSEMBLED_FILE = 'assembled_file';
 
-    public function __construct(private readonly ConfigRepository $configRepository)
-    {
+    public function __construct(
+        private readonly StorageManagerConfig $config,
+        private readonly FilesystemFactory $filesystemFactory,
+    ) {
     }
 
     public function getDisk(): Filesystem
     {
-        $diskName = $this->configRepository->getUploadTempDisk();
+        $diskName = $this->config->upload->tempDisk;
         if (! $diskName) {
-            return Storage::build([
-                'driver' => 'local',
-                'root'   => sys_get_temp_dir(),
-            ]);
+            if ($this->filesystemFactory instanceof FilesystemManager) {
+                return $this->filesystemFactory->build([
+                    'driver' => 'local',
+                    'root'   => sys_get_temp_dir(),
+                ]);
+            }
+
+            return $this->filesystemFactory->disk();
         }
 
-        return Storage::disk($diskName);
+        return $this->filesystemFactory->disk($diskName);
     }
 
     public function getBasePath(): string
     {
-        return $this->configRepository->getUploadTempPath();
+        return $this->config->upload->tempPath;
     }
 
     public function getUploadDir(UploadId $uploadId): string

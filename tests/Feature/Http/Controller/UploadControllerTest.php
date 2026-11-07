@@ -6,11 +6,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\UploadStatus;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 use Tests\TestCase;
 
 describe('UploadController', function (): void {
@@ -25,17 +25,17 @@ describe('UploadController', function (): void {
 
     it('can init an upload session', function (): void {
         assert($this instanceof TestCase);
-        // Given
+        // GIVEN
         $payload = [
             'fileName'    => 'video.mp4',
             'totalSize'   => 1024 * 1024,
             'totalChunks' => 2,
         ];
 
-        // When
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.init'), $payload);
 
-        // Then
+        // THEN
         $response->assertOk()
             ->assertJsonStructure(['data' => ['upload_id']]);
 
@@ -49,24 +49,24 @@ describe('UploadController', function (): void {
 
     it('rejects init with invalid data', function (): void {
         assert($this instanceof TestCase);
-        // Given
+        // GIVEN
         $payload = [
             'fileName'    => '',
             'totalSize'   => -10,
             'totalChunks' => 0,
         ];
 
-        // When
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.init'), $payload);
 
-        // Then
+        // THEN
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['fileName', 'totalSize', 'totalChunks']);
     });
 
     it('can store a chunk', function (): void {
         assert($this instanceof TestCase);
-        // Given
+        // GIVEN
         $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
@@ -82,10 +82,10 @@ describe('UploadController', function (): void {
             'file'           => $file,
         ];
 
-        // When
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.chunk'), $payload);
 
-        // Then
+        // THEN
         $response->assertOk()
             ->assertJson(['data' => ['success' => true]]);
 
@@ -94,7 +94,7 @@ describe('UploadController', function (): void {
 
     it('rejects chunk with invalid checksum', function (): void {
         assert($this instanceof TestCase);
-        // Given
+        // GIVEN
         $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
@@ -109,26 +109,26 @@ describe('UploadController', function (): void {
             'file'           => $file,
         ];
 
-        // When
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.chunk'), $payload);
 
-        // Then
+        // THEN
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['chunk_checksum']);
     });
 
     it('can get upload status', function (): void {
         assert($this instanceof TestCase);
-        // Given
+        // GIVEN
         $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
         $sessionService->writeStatus($uploadId, UploadStatus::ASSEMBLING, 20);
 
-        // When
+        // WHEN
         $response = $this->getJson(route('storage-manager.api.fm.upload.status', ['uploadId' => $uploadId->value]));
 
-        // Then
+        // THEN
         $response->assertOk()
             ->assertJson([
                 'data' => [
@@ -140,15 +140,15 @@ describe('UploadController', function (): void {
 
     it('returns waiting for non-existent status file', function (): void {
         assert($this instanceof TestCase);
-        // Given
+        // GIVEN
         $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
 
-        // When
+        // WHEN
         $response = $this->getJson(route('storage-manager.api.fm.upload.status', ['uploadId' => $uploadId->value]));
 
-        // Then
+        // THEN
         $response->assertOk()
             ->assertJson([
                 'data' => [
@@ -160,13 +160,13 @@ describe('UploadController', function (): void {
 
     it('returns waiting for unknown upload id', function (): void {
         assert($this instanceof TestCase);
-        // Given
+        // GIVEN
         $uploadId = UploadId::generate()->value;
 
-        // When
+        // WHEN
         $response = $this->getJson(route('storage-manager.api.fm.upload.status', ['uploadId' => $uploadId]));
 
-        // Then
+        // THEN
         $response->assertOk()
             ->assertJson([
                 'data' => [
@@ -178,7 +178,7 @@ describe('UploadController', function (): void {
 
     it('can complete an upload', function (): void {
         assert($this instanceof TestCase);
-        // Given
+        // GIVEN
         $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
         $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 11, CarbonImmutable::now()));
@@ -199,10 +199,10 @@ describe('UploadController', function (): void {
             'path'        => '/',
         ];
 
-        // When
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
 
-        // Then
+        // THEN
         $response->assertOk();
         expect($response->headers->get('Content-Type'))->toContain('text/event-stream');
 
@@ -218,8 +218,9 @@ describe('UploadController', function (): void {
 
     it('sanitizes filename on complete', function (): void {
         assert($this instanceof TestCase);
+        // GIVEN
         Config::set('storage-manager.upload.sanitize_filenames', true);
-        app()->forgetInstance(ConfigRepository::class);
+        app()->forgetInstance(StorageManagerConfig::class);
 
         $uploadId       = UploadId::generate();
         $sessionService = resolve(UploadSessionService::class);
@@ -237,7 +238,10 @@ describe('UploadController', function (): void {
             'path'        => '/',
         ];
 
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+
+        // THEN
         $response->assertOk();
 
         $content = $response->streamedContent();
@@ -248,8 +252,9 @@ describe('UploadController', function (): void {
 
     it('applies auto_rename duplicate policy on complete', function (): void {
         assert($this instanceof TestCase);
+        // GIVEN
         Config::set('storage-manager.upload.duplicate_policy', 'auto_rename');
-        app()->forgetInstance(ConfigRepository::class);
+        app()->forgetInstance(StorageManagerConfig::class);
         Storage::disk('local')->put('test.txt', 'existing content');
 
         $uploadId       = UploadId::generate();
@@ -268,7 +273,10 @@ describe('UploadController', function (): void {
             'path'        => '/',
         ];
 
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+
+        // THEN
         $response->assertOk();
 
         $content = $response->streamedContent();
@@ -280,8 +288,9 @@ describe('UploadController', function (): void {
 
     it('applies error duplicate policy on complete', function (): void {
         assert($this instanceof TestCase);
+        // GIVEN
         Config::set('storage-manager.upload.duplicate_policy', 'error');
-        app()->forgetInstance(ConfigRepository::class);
+        app()->forgetInstance(StorageManagerConfig::class);
         Storage::disk('local')->put('test.txt', 'existing content');
 
         $uploadId       = UploadId::generate();
@@ -300,19 +309,23 @@ describe('UploadController', function (): void {
             'path'        => '/',
         ];
 
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+
+        // THEN
         $response->assertOk();
 
         $content = $response->streamedContent();
         expect($content)->toContain('"status":"error"');
-        expect($content)->toContain('File already exists: test.txt');
-        expect(Storage::disk('local')->get('test.txt'))->toBe('existing content'); // Intact
+        expect($content)->toContain('The file already exists.');
+        expect(Storage::disk('local')->get('test.txt'))->toBe('existing content');
     });
 
     it('applies overwrite duplicate policy on complete', function (): void {
         assert($this instanceof TestCase);
+        // GIVEN
         Config::set('storage-manager.upload.duplicate_policy', 'overwrite');
-        app()->forgetInstance(ConfigRepository::class);
+        app()->forgetInstance(StorageManagerConfig::class);
         Storage::disk('local')->put('test.txt', 'existing content');
 
         $uploadId       = UploadId::generate();
@@ -331,13 +344,64 @@ describe('UploadController', function (): void {
             'path'        => '/',
         ];
 
+        // WHEN
         $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+
+        // THEN
         $response->assertOk();
 
         $content = $response->streamedContent();
         expect($content)->toContain('"status":"completed"');
         expect($content)->toContain('"fileName":"test.txt"');
         expect(Storage::disk('local')->exists('test.txt'))->toBeTrue();
-        expect(Storage::disk('local')->get('test.txt'))->toBe($fileContent); // Overwritten
+        expect(Storage::disk('local')->get('test.txt'))->toBe($fileContent);
+    });
+
+    it('rejects init when file extension is forbidden', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        $payload = [
+            'fileName'    => 'shell.php',
+            'totalSize'   => 1024,
+            'totalChunks' => 1,
+        ];
+
+        // WHEN
+        $response = $this->postJson(route('storage-manager.api.fm.upload.init'), $payload);
+
+        // THEN
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['fileName']);
+    });
+
+    it('rejects complete and deletes session when assembled binary MIME does not match extension', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        $uploadId       = UploadId::generate();
+        $sessionService = resolve(UploadSessionService::class);
+        $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'spoofed.jpg', 1, 30, CarbonImmutable::now()));
+
+        $phpPayload = "<?php echo 'hacked';";
+        $file       = UploadedFile::fake()->createWithContent('chunk0.part', $phpPayload);
+        $sessionService->storeChunk($uploadId, 0, $file);
+
+        $payload = [
+            'upload_id'   => $uploadId->value,
+            'fileName'    => 'spoofed.jpg',
+            'totalChunks' => 1,
+            'disk'        => 'local',
+            'path'        => '/',
+        ];
+
+        // WHEN
+        $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+
+        // THEN
+        $response->assertOk();
+
+        $content = $response->streamedContent();
+        expect($content)->toContain('"status":"error"');
+        expect(Storage::disk('local')->exists('spoofed.jpg'))->toBeFalse();
+        expect($sessionService->sessionExists($uploadId))->toBeFalse();
     });
 });

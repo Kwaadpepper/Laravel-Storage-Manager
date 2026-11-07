@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Service;
 
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Filesystem\AwsS3V3Adapter;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryRestored;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryTrashed;
@@ -18,52 +15,46 @@ use Kwaadpepper\LaravelStorageManager\Event\FileTrashed;
 use Kwaadpepper\LaravelStorageManager\Event\TrashEmptied;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Trash\TrashedItem;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 class TrashService
 {
     public function __construct(
-        private readonly ConfigRepository $configRepository,
+        private readonly StorageManagerConfig $config,
         private readonly PathNormalizer $pathNormalizer,
         private readonly EventDispatcher $eventDispatcher,
-        private readonly FileManager $fileManager,
+        private readonly StorageGateway $storageGateway,
     ) {
     }
 
     public function moveToTrash(Disk $disk, Path $path): TrashedItem
     {
-        if (! $this->configRepository->isTrashEnabled()) {
+        if (! $this->config->trash->enabled) {
             FileOperationException::throwWith(FileOperationError::TRASH_DISABLED);
         }
+
+        $disk->assertWritable();
 
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
         if ($normalizedPath === '/') {
             FileOperationException::throwWith(FileOperationError::INVALID_PATH);
         }
 
-        $this->fileManager->setActiveDisk($disk);
-        $isDir  = $this->fileManager->isDirectory($path);
-        $isFile = $this->fileManager->isFile($path);
-
-        if (! $isDir && ! $isFile) {
-            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-        }
+        $isDir = $this->storageGateway->resolveIsDirectory($disk, $path);
 
         $this->assertNotInTrashFolder($normalizedPath);
 
-        $storage   = Storage::disk($disk->name);
         $size      = $this->calculateItemSize($disk, $normalizedPath, $isDir);
         $trashId   = (string) Str::orderedUuid();
         $name      = basename($normalizedPath);
         $dirs      = $this->ensureTrashDirectoriesExist($disk);
         $storedRel = $dirs['files'] . '/' . $trashId . '_' . $name;
 
-        $this->moveItem($disk, $normalizedPath, $storedRel, $isDir);
+        $this->storageGateway->move($disk, $normalizedPath, $storedRel, $isDir);
 
         $trashedItem = new TrashedItem(
             trashId: $trashId,
@@ -76,7 +67,7 @@ class TrashService
         );
 
         $metaRel = $dirs['meta'] . '/' . $trashId . '.json';
-        $storage->put($metaRel, (string) json_encode($trashedItem->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $this->storageGateway->put($disk, $metaRel, (string) json_encode($trashedItem->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         $this->eventDispatcher->dispatch(
             $isDir ? DirectoryTrashed::class : FileTrashed::class,
@@ -91,14 +82,14 @@ class TrashService
      */
     public function list(Disk $disk): array
     {
-        $storage = Storage::disk($disk->name);
         $metaDir = $this->getTrashMetaDir();
 
-        if (! $storage->exists($metaDir) && ! $storage->directoryExists($metaDir)) {
+        if (! $this->storageGateway->exists($disk, $this->toPath($metaDir))) {
             return [];
         }
 
-        $metaFiles = $storage->files($metaDir);
+        /** @var list<string> $metaFiles */
+        $metaFiles = $this->storageGateway->files($disk, $metaDir);
         $items     = [];
 
         foreach ($metaFiles as $metaFile) {
@@ -106,7 +97,7 @@ class TrashService
                 continue;
             }
 
-            $content = $storage->get($metaFile);
+            $content = $this->storageGateway->get($disk, $metaFile);
             if (! is_string($content)) {
                 continue;
             }
@@ -119,8 +110,8 @@ class TrashService
 
             $trashId = basename($metaFile, '.json');
             $lockRel = $this->getTrashLockPath($trashId);
-            if ($storage->exists($lockRel)) {
-                $lockContent    = $storage->get($lockRel);
+            if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
+                $lockContent    = $this->storageGateway->get($disk, $lockRel);
                 $data['status'] = is_string($lockContent) && $lockContent !== '' ? $lockContent : 'restoring';
             } else {
                 $data['status'] = 'trashed';
@@ -144,14 +135,13 @@ class TrashService
 
     public function getItem(Disk $disk, string $trashId): ?TrashedItem
     {
-        $storage  = Storage::disk($disk->name);
         $metaPath = $this->getTrashMetaDir() . '/' . $trashId . '.json';
 
-        if (! $storage->exists($metaPath)) {
+        if (! $this->storageGateway->exists($disk, $this->toPath($metaPath))) {
             return null;
         }
 
-        $content = $storage->get($metaPath);
+        $content = $this->storageGateway->get($disk, $metaPath);
         if (! is_string($content)) {
             return null;
         }
@@ -163,8 +153,8 @@ class TrashService
         }
 
         $lockRel = $this->getTrashLockPath($trashId);
-        if ($storage->exists($lockRel)) {
-            $lockContent    = $storage->get($lockRel);
+        if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
+            $lockContent    = $this->storageGateway->get($disk, $lockRel);
             $data['status'] = is_string($lockContent) && $lockContent !== '' ? $lockContent : 'restoring';
         } else {
             $data['status'] = 'trashed';
@@ -176,10 +166,11 @@ class TrashService
 
     public function restore(Disk $disk, string $trashId): Path
     {
-        $storage = Storage::disk($disk->name);
+        $disk->assertWritable();
+
         $lockRel = $this->getTrashLockPath($trashId);
 
-        if ($this->isItemLocked($storage, $trashId)) {
+        if ($this->isItemLocked($disk, $trashId)) {
             FileOperationException::throwWith(FileOperationError::TRASH_ITEM_LOCKED);
         }
 
@@ -191,47 +182,52 @@ class TrashService
         $storedRel = $this->getTrashFilesDir() . '/' . $trashId . '_' . $item->name;
         $isDir     = $item->type === 'directory';
 
-        $exists = $isDir ? $storage->directoryExists($storedRel) : $storage->exists($storedRel);
+        $exists = $this->storageGateway->exists($disk, $this->toPath($storedRel));
         if (! $exists) {
             FileOperationException::throwWith(FileOperationError::TRASH_ITEM_NOT_FOUND);
         }
 
-        $storage->put($lockRel, 'restoring');
+        $this->storageGateway->put($disk, $lockRel, 'restoring');
 
         try {
             $originalPath = $this->pathNormalizer->normalizePath($item->originalPath->value);
             $parentDir    = ltrim(dirname($originalPath), '/');
 
-            if ($parentDir !== '' && ! $storage->directoryExists($parentDir) && ! $storage->exists($parentDir)) {
-                $storage->makeDirectory($parentDir);
+            if ($parentDir !== '' && ! $this->storageGateway->exists($disk, $this->toPath($parentDir))) {
+                $this->storageGateway->makeDirectory($disk, $parentDir);
             }
 
-            $targetPath = $this->resolveAvailableDestination($disk, $originalPath);
+            $targetPath = $this->storageGateway->resolveAvailablePath(
+                $disk,
+                $this->toPath($originalPath),
+                '%s (restored%s)%s'
+            );
 
-            $this->moveItem($disk, $storedRel, $targetPath, $isDir);
+            $this->storageGateway->move($disk, $storedRel, $targetPath->value, $isDir);
 
             $metaRel = $this->getTrashMetaDir() . '/' . $trashId . '.json';
-            $storage->delete($metaRel);
+            $this->storageGateway->delete($disk, $metaRel);
 
             $this->eventDispatcher->dispatch(
                 $isDir ? DirectoryRestored::class : FileRestored::class,
-                ['path' => $targetPath, 'trashId' => $trashId]
+                ['path' => $targetPath->value, 'trashId' => $trashId]
             );
 
-            return new Path($targetPath);
+            return $targetPath;
         } finally {
-            if ($storage->exists($lockRel)) {
-                $storage->delete($lockRel);
+            if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
+                $this->storageGateway->delete($disk, $lockRel);
             }
         }
     }
 
     public function purge(Disk $disk, string $trashId): void
     {
-        $storage = Storage::disk($disk->name);
+        $disk->assertWritable();
+
         $lockRel = $this->getTrashLockPath($trashId);
 
-        if ($this->isItemLocked($storage, $trashId)) {
+        if ($this->isItemLocked($disk, $trashId)) {
             FileOperationException::throwWith(FileOperationError::TRASH_ITEM_LOCKED);
         }
 
@@ -240,38 +236,41 @@ class TrashService
             return;
         }
 
-        $storage->put($lockRel, 'purging');
+        $this->storageGateway->put($disk, $lockRel, 'purging');
 
         try {
             $storedRel = $this->getTrashFilesDir() . '/' . $trashId . '_' . $item->name;
             if ($item->type === 'directory') {
-                if ($storage->directoryExists($storedRel)) {
-                    $storage->deleteDirectory($storedRel);
+                if ($this->storageGateway->isDirectory($disk, $this->toPath($storedRel))) {
+                    $this->storageGateway->deleteDirectory($disk, $storedRel);
                 }
             } else {
-                if ($storage->exists($storedRel)) {
-                    $storage->delete($storedRel);
+                if ($this->storageGateway->exists($disk, $this->toPath($storedRel))) {
+                    $this->storageGateway->delete($disk, $storedRel);
                 }
             }
 
             $metaRel = $this->getTrashMetaDir() . '/' . $trashId . '.json';
-            if ($storage->exists($metaRel)) {
-                $storage->delete($metaRel);
+            if ($this->storageGateway->exists($disk, $this->toPath($metaRel))) {
+                $this->storageGateway->delete($disk, $metaRel);
             }
         } finally {
-            if ($storage->exists($lockRel)) {
-                $storage->delete($lockRel);
+            if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
+                $this->storageGateway->delete($disk, $lockRel);
             }
         }
     }
 
     public function emptyTrash(Disk $disk): int
     {
-        $storage = Storage::disk($disk->name);
+        $disk->assertWritable();
+
         $metaDir = $this->getTrashMetaDir();
 
-        if ($storage->exists($metaDir) || $storage->directoryExists($metaDir)) {
-            foreach ($storage->files($metaDir) as $file) {
+        if ($this->storageGateway->exists($disk, $this->toPath($metaDir))) {
+            /** @var list<string> $metaFiles */
+            $metaFiles = $this->storageGateway->files($disk, $metaDir);
+            foreach ($metaFiles as $file) {
                 if (str_ends_with($file, '.lock')) {
                     FileOperationException::throwWith(FileOperationError::TRASH_ITEM_LOCKED);
                 }
@@ -283,16 +282,16 @@ class TrashService
 
         $filesDir = $this->getTrashFilesDir();
 
-        if ($storage->directoryExists($filesDir) || $storage->exists($filesDir)) {
-            $storage->deleteDirectory($filesDir);
+        if ($this->storageGateway->exists($disk, $this->toPath($filesDir))) {
+            $this->storageGateway->deleteDirectory($disk, $filesDir);
         }
 
-        if ($storage->directoryExists($metaDir) || $storage->exists($metaDir)) {
-            $storage->deleteDirectory($metaDir);
+        if ($this->storageGateway->exists($disk, $this->toPath($metaDir))) {
+            $this->storageGateway->deleteDirectory($disk, $metaDir);
         }
 
-        $storage->makeDirectory($filesDir);
-        $storage->makeDirectory($metaDir);
+        $this->storageGateway->makeDirectory($disk, $filesDir);
+        $this->storageGateway->makeDirectory($disk, $metaDir);
 
         $this->eventDispatcher->dispatch(
             TrashEmptied::class,
@@ -307,20 +306,20 @@ class TrashService
         return $this->getTrashMetaDir() . '/' . $trashId . '.lock';
     }
 
-    private function isItemLocked(Filesystem $storage, string $trashId): bool
+    private function isItemLocked(Disk $disk, string $trashId): bool
     {
-        return $storage->exists($this->getTrashLockPath($trashId));
+        return $this->storageGateway->exists($disk, $this->toPath($this->getTrashLockPath($trashId)));
     }
 
     public function pruneExpired(?Disk $disk = null, ?int $retentionDays = null): int
     {
-        $days = $retentionDays ?? $this->configRepository->getTrashRetentionDays();
+        $days = $retentionDays ?? $this->config->trash->retentionDays;
         if ($days <= 0) {
             return 0;
         }
 
         $cutoff = CarbonImmutable::now()->subDays($days);
-        $disks  = $disk !== null ? [$disk] : array_values($this->configRepository->getDisksMap());
+        $disks  = $disk !== null ? [$disk] : array_values($this->config->disks->getDisksMap());
         $purged = 0;
 
         foreach ($disks as $d) {
@@ -338,7 +337,7 @@ class TrashService
 
     public function getTrashBaseFolder(): string
     {
-        return '/' . trim($this->configRepository->getTrashFolder(), '/');
+        return '/' . trim($this->config->trash->folder, '/');
     }
 
     public function getTrashFilesDir(): string
@@ -364,16 +363,15 @@ class TrashService
      */
     private function ensureTrashDirectoriesExist(Disk $disk): array
     {
-        $storage  = Storage::disk($disk->name);
         $filesDir = $this->getTrashFilesDir();
         $metaDir  = $this->getTrashMetaDir();
 
-        if (! $storage->exists($filesDir) && ! $storage->directoryExists($filesDir)) {
-            $storage->makeDirectory($filesDir);
+        if (! $this->storageGateway->exists($disk, $this->toPath($filesDir))) {
+            $this->storageGateway->makeDirectory($disk, $filesDir);
         }
 
-        if (! $storage->exists($metaDir) && ! $storage->directoryExists($metaDir)) {
-            $storage->makeDirectory($metaDir);
+        if (! $this->storageGateway->exists($disk, $this->toPath($metaDir))) {
+            $this->storageGateway->makeDirectory($disk, $metaDir);
         }
 
         return [
@@ -384,198 +382,24 @@ class TrashService
 
     private function calculateItemSize(Disk $disk, string $normalizedPath, bool $isDir): int
     {
-        $storage = Storage::disk($disk->name);
         $relPath = ltrim($normalizedPath, '/');
 
         if (! $isDir) {
-            return $storage->size($relPath);
+            return $this->storageGateway->size($disk, $relPath);
         }
 
         $total = 0;
-        foreach ($storage->allFiles($relPath) as $file) {
-            $total += $storage->size($file);
+        /** @var list<string> $allFiles */
+        $allFiles = $this->storageGateway->allFiles($disk, $relPath);
+        foreach ($allFiles as $file) {
+            $total += $this->storageGateway->size($disk, $file);
         }
 
         return $total;
     }
 
-    private function resolveAvailableDestination(Disk $disk, string $originalPath): string
+    private function toPath(string $path): Path
     {
-        $storage    = Storage::disk($disk->name);
-        $targetPath = $originalPath;
-        $counter    = 1;
-        $parentDir  = dirname($originalPath);
-
-        while ($storage->exists(ltrim($targetPath, '/')) || $storage->directoryExists(ltrim($targetPath, '/'))) {
-            $pathInfo   = pathinfo($originalPath);
-            $ext        = isset($pathInfo['extension']) && $pathInfo['extension'] !== '' ? '.' . $pathInfo['extension'] : '';
-            $filename   = $pathInfo['filename'];
-            $suffix     = $counter > 1 ? " {$counter}" : '';
-            $newName    = sprintf('%s (restored%s)%s', $filename, $suffix, $ext);
-            $targetPath = $this->pathNormalizer->normalizePath($parentDir . '/' . $newName);
-            $counter++;
-        }
-
-        return $targetPath;
-    }
-
-    private function moveItem(Disk $disk, string $source, string $destination, bool $isDir): void
-    {
-        $storage = Storage::disk($disk->name);
-        $srcRel  = ltrim($source, '/');
-        $destRel = ltrim($destination, '/');
-
-        if ($isDir) {
-            if (in_array($disk->driver, ['s3', 'ftp', 'sftp'], true)) {
-                $this->polyfillMoveDirectory($disk, $srcRel, $destRel);
-            } else {
-                $moved = false;
-                try {
-                    $moved = $storage->move($srcRel, $destRel);
-                } catch (\Throwable) {
-                    $moved = false;
-                }
-
-                if (! $moved) {
-                    $this->polyfillMoveDirectory($disk, $srcRel, $destRel);
-                }
-            }
-        } else {
-            if ($storage instanceof AwsS3V3Adapter) {
-                $this->polyfillMoveFile($storage, $srcRel, $destRel);
-            } else {
-                $moved = false;
-                try {
-                    $moved = $storage->move($srcRel, $destRel);
-                } catch (\Throwable) {
-                    $moved = false;
-                }
-
-                if (! $moved) {
-                    $this->polyfillMoveFile($storage, $srcRel, $destRel);
-                }
-            }
-        }
-    }
-
-    private function polyfillMoveFile(Filesystem $storage, string $source, string $destination): void
-    {
-        $copied = false;
-
-        if ($storage instanceof AwsS3V3Adapter) {
-            $copied = $this->attemptS3ServerSideCopy($storage, $source, $destination);
-        }
-
-        if (! $copied) {
-            $copied = $this->attemptCopy($storage, $source, $destination);
-        }
-
-        if (! $copied) {
-            $copied = $this->attemptStreamCopy($storage, $source, $destination);
-        }
-
-        if (! $copied) {
-            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-        }
-
-        $this->deleteSourceFile($storage, $source);
-    }
-
-    private function attemptCopy(Filesystem $storage, string $source, string $destination): bool
-    {
-        try {
-            return $storage->copy($source, $destination);
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
-    private function attemptS3ServerSideCopy(AwsS3V3Adapter $storage, string $source, string $destination): bool
-    {
-        $bucket  = (string) ($storage->getConfig()['bucket'] ?? '');
-        $srcKey  = $storage->path($source);
-        $destKey = $storage->path($destination);
-
-        $encodedKey = implode('/', array_map('rawurlencode', explode('/', ltrim($srcKey, '/'))));
-
-        try {
-            $storage->getClient()->copyObject([
-                'Bucket'     => $bucket,
-                'Key'        => $destKey,
-                'CopySource' => '/' . $bucket . '/' . $encodedKey,
-            ]);
-
-            return true;
-        } catch (\Throwable) {
-            try {
-                $storage->getClient()->copyObject([
-                    'Bucket'     => $bucket,
-                    'Key'        => $destKey,
-                    'CopySource' => $bucket . '/' . $encodedKey,
-                ]);
-
-                return true;
-            } catch (\Throwable $e2) {
-                Log::warning(sprintf('S3 server-side copy failed for %s to %s: %s', $source, $destination, $e2->getMessage()));
-
-                return false;
-            }
-        }
-    }
-
-    private function attemptStreamCopy(Filesystem $storage, string $source, string $destination): bool
-    {
-        try {
-            $stream = $storage->readStream($source);
-            if ($stream === false || $stream === null) {
-                return false;
-            }
-
-            $written = $storage->writeStream($destination, $stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-
-            return $written !== false;
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
-    private function deleteSourceFile(Filesystem $storage, string $source): void
-    {
-        try {
-            $deleted = $storage->delete($source);
-        } catch (\Throwable) {
-            $deleted = false;
-        }
-
-        if (! $deleted) {
-            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-        }
-    }
-
-    private function polyfillMoveDirectory(Disk $disk, string $source, string $destination): void
-    {
-        $storage = Storage::disk($disk->name);
-        if ($storage->makeDirectory($destination) === false) {
-            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
-        }
-
-        $directories = $storage->allDirectories($source);
-        foreach ($directories as $dir) {
-            $normalizedDir = $this->pathNormalizer->normalizePath($dir);
-            $relativePath  = substr($normalizedDir, strlen('/' . $source) + 1);
-            $storage->makeDirectory(ltrim($destination . '/' . $relativePath, '/'));
-        }
-
-        $files = $storage->allFiles($source);
-        foreach ($files as $file) {
-            $normalizedFile = $this->pathNormalizer->normalizePath($file);
-            $relativePath   = substr($normalizedFile, strlen('/' . $source) + 1);
-            $this->polyfillMoveFile($storage, $file, ltrim($destination . '/' . $relativePath, '/'));
-        }
-
-        $storage->deleteDirectory($source);
+        return new Path('/' . ltrim($path, '/'));
     }
 }

@@ -7,13 +7,15 @@ use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Event\BulkRenamed;
 use Kwaadpepper\LaravelStorageManager\Event\FileRenamed;
 
-describe('BulkRename', function () {
-    it('can rename multiple files in batch', function () {
+describe('BulkRename', function (): void {
+    it('can rename multiple files in batch', function (): void {
+        // GIVEN
         Event::fake([BulkRenamed::class, FileRenamed::class]);
         Storage::fake('local');
         Storage::disk('local')->put('photos/img1.jpg', 'content 1');
         Storage::disk('local')->put('photos/img2.jpg', 'content 2');
 
+        // WHEN
         $response = $this->putJson(route('storage-manager.api.fm.bulk-rename'), [
             'disk'    => 'local',
             'renames' => [
@@ -22,6 +24,7 @@ describe('BulkRename', function () {
             ],
         ]);
 
+        // THEN
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
@@ -38,11 +41,13 @@ describe('BulkRename', function () {
         Event::assertDispatched(FileRenamed::class, 2);
     });
 
-    it('handles cyclic / shifting renames safely', function () {
+    it('handles cyclic / shifting renames safely', function (): void {
+        // GIVEN
         Storage::fake('local');
         Storage::disk('local')->put('items/a.txt', 'AAA');
         Storage::disk('local')->put('items/b.txt', 'BBB');
 
+        // WHEN
         $response = $this->putJson(route('storage-manager.api.fm.bulk-rename'), [
             'disk'    => 'local',
             'renames' => [
@@ -51,6 +56,7 @@ describe('BulkRename', function () {
             ],
         ]);
 
+        // THEN
         $response->assertStatus(200);
         expect(Storage::disk('local')->exists('items/b.txt'))->toBeTrue();
         expect(Storage::disk('local')->get('items/b.txt'))->toBe('AAA');
@@ -59,9 +65,11 @@ describe('BulkRename', function () {
         expect(Storage::disk('local')->exists('items/a.txt'))->toBeFalse();
     });
 
-    it('rejects bulk rename when source file does not exist', function () {
+    it('rejects bulk rename when source file does not exist', function (): void {
+        // GIVEN
         Storage::fake('local');
 
+        // WHEN
         $response = $this->putJson(route('storage-manager.api.fm.bulk-rename'), [
             'disk'    => 'local',
             'renames' => [
@@ -69,14 +77,17 @@ describe('BulkRename', function () {
             ],
         ]);
 
+        // THEN
         $response->assertStatus(422);
     });
 
-    it('rejects bulk rename when destination conflicts with non-batch file', function () {
+    it('rejects bulk rename when destination conflicts with non-batch file', function (): void {
+        // GIVEN
         Storage::fake('local');
         Storage::disk('local')->put('test/src.txt', 'src');
         Storage::disk('local')->put('test/existing.txt', 'exists');
 
+        // WHEN
         $response = $this->putJson(route('storage-manager.api.fm.bulk-rename'), [
             'disk'    => 'local',
             'renames' => [
@@ -84,6 +95,45 @@ describe('BulkRename', function () {
             ],
         ]);
 
+        // THEN
         $response->assertStatus(422);
+    });
+
+    it('rejects bulk rename when target extension is forbidden', function (): void {
+        // GIVEN
+        Storage::fake('local');
+        Storage::disk('local')->put('items/safe.txt', 'text content');
+
+        // WHEN
+        $response = $this->putJson(route('storage-manager.api.fm.bulk-rename'), [
+            'disk'    => 'local',
+            'renames' => [
+                ['from' => '/items/safe.txt', 'to' => 'evil.php'],
+            ],
+        ]);
+
+        // THEN
+        $response->assertStatus(422);
+        expect(Storage::disk('local')->exists('items/safe.txt'))->toBeTrue();
+        expect(Storage::disk('local')->exists('items/evil.php'))->toBeFalse();
+    });
+
+    it('rejects bulk rename when target extension conflicts with file MIME type', function (): void {
+        // GIVEN
+        Storage::fake('local');
+        Storage::disk('local')->put('items/safe.txt', 'plain text content');
+
+        // WHEN
+        $response = $this->putJson(route('storage-manager.api.fm.bulk-rename'), [
+            'disk'    => 'local',
+            'renames' => [
+                ['from' => '/items/safe.txt', 'to' => 'FakeImage.jpg'],
+            ],
+        ]);
+
+        // THEN
+        $response->assertStatus(422);
+        expect(Storage::disk('local')->exists('items/safe.txt'))->toBeTrue();
+        expect(Storage::disk('local')->exists('items/FakeImage.jpg'))->toBeFalse();
     });
 });

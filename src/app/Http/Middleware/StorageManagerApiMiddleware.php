@@ -10,7 +10,7 @@ use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Kwaadpepper\LaravelStorageManager\Service\ApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class StorageManagerApiMiddleware
 {
@@ -23,12 +23,13 @@ final class StorageManagerApiMiddleware
     public function handle(Request $request, \Closure $next): Response
     {
         if (! $this->apiService->isAllowedToRequestApi($request)) {
-            abort(403);
+            throw new HttpException(403, 'Forbidden');
         }
 
         try {
+            /** @var Response $response */
             $response = $next($request);
-        } catch (Throwable $exception) {
+        } catch (\Throwable $exception) {
             $response = $this->apiExceptionHandler->toApiResponse($exception);
         }
 

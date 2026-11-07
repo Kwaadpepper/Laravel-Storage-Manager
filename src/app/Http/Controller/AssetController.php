@@ -7,6 +7,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 use Illuminate\Routing\Controller;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class AssetController extends Controller
 {
@@ -26,7 +27,7 @@ class AssetController extends Controller
         $assetPath = $this->getAssetPath($dir, $file);
 
         if ($assetPath === null) {
-            abort(404);
+            throw new NotFoundHttpException();
         }
 
         return response()->file($assetPath)->setPublic()->setMaxAge(31536000);

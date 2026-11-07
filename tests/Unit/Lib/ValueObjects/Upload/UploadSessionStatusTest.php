@@ -7,51 +7,51 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadSessionStatu
 
 describe('UploadSessionStatus', function (): void {
     it('creates a valid status object', function (): void {
-        // Given
+        // GIVEN
         $statusEnum = UploadStatus::TRANSFERRING;
         $progress   = 50;
 
-        // When
+        // WHEN
         $status = new UploadSessionStatus($statusEnum, $progress);
 
-        // Then
+        // THEN
         expect($status->status)->toBe($statusEnum);
         expect($status->progress)->toBe($progress);
     });
 
     it('throws exception if progress is less than 0', function (): void {
-        // Given
+        // GIVEN
         $statusEnum = UploadStatus::WAITING;
         $progress   = -1;
 
-        // When
+        // WHEN
         $action = fn () => new UploadSessionStatus($statusEnum, $progress);
 
-        // Then
+        // THEN
         expect($action)->toThrow(\InvalidArgumentException::class, 'progress must be between 0 and 100.');
     });
 
     it('throws exception if progress is greater than 100', function (): void {
-        // Given
+        // GIVEN
         $statusEnum = UploadStatus::WAITING;
         $progress   = 101;
 
-        // When
+        // WHEN
         $action = fn () => new UploadSessionStatus($statusEnum, $progress);
 
-        // Then
+        // THEN
         expect($action)->toThrow(\InvalidArgumentException::class, 'progress must be between 0 and 100.');
     });
 
     it('can be serialized and deserialized to array', function (): void {
-        // Given
+        // GIVEN
         $status = new UploadSessionStatus(UploadStatus::ASSEMBLING, 10);
 
-        // When
+        // WHEN
         $array        = $status->toArray();
         $deserialized = UploadSessionStatus::fromArray($array);
 
-        // Then
+        // THEN
         expect($array)->toHaveKey('status', 'assembling')
             ->toHaveKey('progress', 10);
 

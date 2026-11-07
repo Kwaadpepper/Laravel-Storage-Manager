@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Service;
 
 use GdImage;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 class ThumbnailService
 {
@@ -18,8 +18,8 @@ class ThumbnailService
     ];
 
     public function __construct(
-        private readonly ConfigRepository $configRepository,
-        private readonly FileManager $fileManager,
+        private readonly StorageManagerConfig $config,
+        private readonly StorageGateway $storageGateway,
     ) {
     }
 
@@ -47,9 +47,9 @@ class ThumbnailService
         $ext          = strtolower($extension);
         $fileSize     = $properties->size;
         $lastModified = $properties->timestamp->getTimestamp();
-        $width        = $this->configRepository->getThumbnailsWidth();
-        $height       = $this->configRepository->getThumbnailsHeight();
-        $quality      = $this->configRepository->getThumbnailsQuality();
+        $width        = $this->config->thumbnails->width;
+        $height       = $this->config->thumbnails->height;
+        $quality      = $this->config->thumbnails->quality;
 
         if ($ext === 'svg') {
             return $this->handleSvgThumbnail($disk, $path, $cacheDir, $fileSize, $lastModified);
@@ -74,16 +74,9 @@ class ThumbnailService
             return $cachedFilePath;
         }
 
-        $this->fileManager->setActiveDisk($disk);
-        $stream = $this->fileManager->readStream($path)->stream();
-        if (! is_resource($stream)) {
-            return null;
-        }
+        $content = $this->storageGateway->readStream($disk, $path)->getContents();
 
-        $content = stream_get_contents($stream);
-        fclose($stream);
-
-        if ($content === false || $content === '') {
+        if ($content === '') {
             return null;
         }
 
@@ -104,16 +97,9 @@ class ThumbnailService
             return null;
         }
 
-        $this->fileManager->setActiveDisk($disk);
-        $stream = $this->fileManager->readStream($path)->stream();
-        if (! is_resource($stream)) {
-            return null;
-        }
+        $content = $this->storageGateway->readStream($disk, $path)->getContents();
 
-        $content = stream_get_contents($stream);
-        fclose($stream);
-
-        if ($content === false || $content === '') {
+        if ($content === '') {
             return null;
         }
 

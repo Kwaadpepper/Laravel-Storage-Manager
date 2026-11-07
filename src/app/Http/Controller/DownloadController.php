@@ -5,89 +5,36 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
-use Kwaadpepper\LaravelStorageManager\Service\DiskService;
+use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Http\Response\StreamResponseFactory;
+use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Mime\MimeTypes;
 
 class DownloadController extends Controller
 {
-    private const string OCTET_STREAM_MIME_TYPE = 'application/octet-stream';
-
     public function __construct(
-        private readonly FileManager $fileManager,
-        private readonly DiskService $diskService,
-        private readonly PathNormalizer $pathNormalizer,
+        private readonly StorageGateway $storageGateway,
+        private readonly MimeTypeChecker $mimeTypeChecker,
     ) {
     }
 
     public function __invoke(string $disk, string $path): StreamedResponse
     {
-        $filePathProps = $this->resolveFilePathPropsFrom($disk, $path);
+        try {
+            $resolvedFile = $this->storageGateway->resolveExistingFile($disk, $path);
+            $mimeType     = $this->mimeTypeChecker->guessMimeTypeFromExtension($resolvedFile->properties->extension ?? '');
+            $stream       = $this->storageGateway->readStream($resolvedFile->disk, $resolvedFile->path, true);
 
-        if ($filePathProps->properties->size === 0) {
-            return response()->streamDownload(
-                function () {
-                    echo '';
-                },
-                $filePathProps->properties->basename,
-                [
-                    'Content-Type' => self::OCTET_STREAM_MIME_TYPE,
-                ]
+            return StreamResponseFactory::download(
+                $stream,
+                $resolvedFile->properties->basename,
+                $mimeType,
+                $resolvedFile->properties->size,
             );
+        } catch (FileOperationException $e) {
+            throw new NotFoundHttpException($e->getMessage(), $e);
         }
-
-        $mimeType = $filePathProps->properties->extension ?
-            (new MimeTypes())->getMimeTypes($filePathProps->properties->extension)[0] ?? self::OCTET_STREAM_MIME_TYPE :
-            self::OCTET_STREAM_MIME_TYPE;
-
-        return response()->streamDownload(
-            function () use ($filePathProps): void {
-                $stream   = $this->fileManager->readStream($filePathProps->path);
-                $resource = $stream->stream();
-                if (is_resource($resource)) {
-                    fpassthru($resource);
-                    fclose($resource);
-                }
-            },
-            $filePathProps->properties->basename,
-            ['Content-Type' => $mimeType]
-        );
-    }
-
-    /**
-     * @return object{path:Path,properties:FilePathProperties}
-     */
-    private function resolveFilePathPropsFrom(string $disk, string $path): object
-    {
-        $disks = $this->diskService->getDiskNamesList();
-
-        if (! in_array($disk, $disks, true)) {
-            throw new NotFoundHttpException();
-        }
-
-        $diskObject     = $this->diskService->getDisk($disk);
-        $normalizedPath = $this->pathNormalizer->normalizePath(rawurldecode($path));
-        $pathObject     = new Path($normalizedPath);
-
-        $this->fileManager->setActiveDisk($diskObject);
-        if (! $this->fileManager->exists($pathObject)) {
-            throw new NotFoundHttpException();
-        }
-
-        $properties = $this->fileManager->getProperties($pathObject);
-
-        if (! ($properties instanceof FilePathProperties)) {
-            throw new NotFoundHttpException();
-        }
-
-        return (object) [
-            'path'       => $pathObject,
-            'properties' => $properties,
-        ];
     }
 }

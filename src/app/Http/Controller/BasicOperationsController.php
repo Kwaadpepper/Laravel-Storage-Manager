@@ -5,19 +5,8 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
-use Kwaadpepper\LaravelStorageManager\Event\ArchiveExtracted;
-use Kwaadpepper\LaravelStorageManager\Event\BulkRenamed;
-use Kwaadpepper\LaravelStorageManager\Event\DirectoryCopied;
-use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreated;
-use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleted;
-use Kwaadpepper\LaravelStorageManager\Event\DirectoryMoved;
-use Kwaadpepper\LaravelStorageManager\Event\DirectoryRenamed;
-use Kwaadpepper\LaravelStorageManager\Event\FileCopied;
-use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
-use Kwaadpepper\LaravelStorageManager\Event\FileDeleted;
-use Kwaadpepper\LaravelStorageManager\Event\FileMoved;
-use Kwaadpepper\LaravelStorageManager\Event\FileRenamed;
-use Kwaadpepper\LaravelStorageManager\Event\ZipCreated;
+use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
+use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\BulkRenamedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CopiedDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\CreatedDirectoryDto;
@@ -41,59 +30,33 @@ use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\RenamePathReq
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\UnzipRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations\ZipRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
-use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileMetadataExtractor;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
-use Kwaadpepper\LaravelStorageManager\Service\TrashService;
+use Kwaadpepper\LaravelStorageManager\Service\ArchiveService;
 
 class BasicOperationsController extends Controller
 {
     private const string ERROR_PATH_NOT_FOUND = 'The specified path does not exist.';
 
     public function __construct(
-        private readonly EventDispatcher $eventDispatcher,
         private readonly FileManager $fileManager,
-        private readonly FileMetadataExtractor $fileMetadataExtractor,
-        private readonly ConfigRepository $configRepository,
-        private readonly TrashService $trashService,
+        private readonly ArchiveService $archiveService,
     ) {
     }
 
     public function properties(PropertiesPathRequest $request): ApiResponse
     {
-        $path = $request->getPath();
+        return $this->handleNotFound(function () use ($request): ApiResponse {
+            $fileProperties = $this->fileManager->getProperties($request->getDisk(), $request->getPath());
 
-        if (! $this->fileManager->exists($path)) {
-            return ApiResponse::json(
-                $this->presentError(self::ERROR_PATH_NOT_FOUND),
-                ApiResponse::HTTP_NOT_FOUND
-            );
-        }
-
-        if ($this->fileManager->isFile($path)) {
-            $metadata = $this->fileMetadataExtractor->extract(
-                $this->fileManager->getDisk(),
-                $path
-            );
-
-            return ApiResponse::json($metadata, ApiResponse::HTTP_OK);
-        }
-
-        $fileProperties = $this->fileManager->getProperties($path);
-
-        return ApiResponse::json($this->presentProperties($fileProperties), ApiResponse::HTTP_OK);
+            return ApiResponse::json(PropertiesDto::fromPathProperties($fileProperties), ApiResponse::HTTP_OK);
+        });
     }
 
     public function exists(PropertiesPathRequest $request): ApiResponse
     {
-        $path = $request->getPath();
-
         return ApiResponse::json(
-            new ExistsDto($this->fileManager->exists($path)),
+            new ExistsDto($this->fileManager->exists($request->getDisk(), $request->getPath())),
             ApiResponse::HTTP_OK
         );
     }
@@ -105,14 +68,9 @@ class BasicOperationsController extends Controller
             $request->string('name')->value()
         );
 
-        $this->fileManager->createDirectory($path);
+        $this->fileManager->createDirectory($request->getDisk(), $path);
 
-        $this->eventDispatcher->dispatch(
-            DirectoryCreated::class,
-            ['path' => $path->value]
-        );
-
-        return ApiResponse::json($this->presentCreatedDirectory(), ApiResponse::HTTP_CREATED);
+        return ApiResponse::json(new CreatedDirectoryDto(), ApiResponse::HTTP_CREATED);
     }
 
     public function createFile(CreateFileRequest $request): ApiResponse
@@ -121,212 +79,88 @@ class BasicOperationsController extends Controller
             $request->getPath(),
             $request->string('name')->value()
         );
-        $content = $request->string('content')->value();
 
-        $this->fileManager->createFile($path, $content);
-
-        $this->eventDispatcher->dispatch(
-            FileCreated::class,
-            ['path' => $path->value]
+        $this->fileManager->createFile(
+            $request->getDisk(),
+            $path,
+            $request->string('content')->value()
         );
 
-        return ApiResponse::json($this->presentCreatedFile(), ApiResponse::HTTP_CREATED);
+        return ApiResponse::json(new CreatedFileDto(), ApiResponse::HTTP_CREATED);
     }
 
     public function delete(DeletePathRequest $request): ApiResponse
     {
-        $path = $request->getPath();
-
-        if (! $this->fileManager->exists($path)) {
-            return ApiResponse::json(
-                $this->presentError(self::ERROR_PATH_NOT_FOUND),
-                ApiResponse::HTTP_NOT_FOUND
+        return $this->handleNotFound(function () use ($request): ApiResponse {
+            $trashedItem = $this->fileManager->delete(
+                $request->getDisk(),
+                $request->getPath(),
+                $request->boolean('force')
             );
-        }
 
-        if ($this->configRepository->isTrashEnabled() && ! $request->boolean('force')) {
-            $trashedItem = $this->trashService->moveToTrash($request->getDisk(), $path);
+            if ($trashedItem !== null) {
+                return ApiResponse::json(
+                    new DeletedDto(trashed: true, trashId: $trashedItem->trashId),
+                    ApiResponse::HTTP_OK
+                );
+            }
 
-            return ApiResponse::json(
-                new DeletedDto(trashed: true, trashId: $trashedItem->trashId),
-                ApiResponse::HTTP_OK
-            );
-        }
-
-        if ($this->fileManager->isDirectory($path)) {
-            $this->fileManager->deleteDirectory($path, $request->boolean('force'));
-            $this->eventDispatcher->dispatch(
-                DirectoryDeleted::class,
-                ['path' => $path->value]
-            );
-        } elseif ($this->fileManager->isFile($path)) {
-            $this->fileManager->deleteFile($path);
-            $this->eventDispatcher->dispatch(
-                FileDeleted::class,
-                ['path' => $path->value]
-            );
-        } else {
-            return ApiResponse::json(
-                $this->presentError('The specified path is invalid.'),
-                ApiResponse::HTTP_BAD_REQUEST
-            );
-        }
-
-        return ApiResponse::json($this->presentDeleted(), ApiResponse::HTTP_NO_CONTENT);
+            return ApiResponse::json(new DeletedDto(), ApiResponse::HTTP_NO_CONTENT);
+        });
     }
 
     public function rename(RenamePathRequest $request): ApiResponse
     {
-        $path    = $request->getPath();
-        $newName = $request->string('to')->value();
-
-        if (! $this->fileManager->exists($path)) {
-            return ApiResponse::json(
-                $this->presentError(self::ERROR_PATH_NOT_FOUND),
-                ApiResponse::HTTP_NOT_FOUND
+        return $this->handleNotFound(function () use ($request): ApiResponse {
+            $this->fileManager->rename(
+                $request->getDisk(),
+                $request->getPath(),
+                $request->string('to')->value()
             );
-        }
 
-        $newPath = $this->fileManager->rename($path, $newName);
-
-        $this->eventDispatcher->dispatch(
-            $this->fileManager->isDirectory($path) ?
-              DirectoryRenamed::class : FileRenamed::class,
-            [
-                'old_path' => $path->value,
-                'new_path' => $newPath->value,
-            ]
-        );
-
-        return ApiResponse::json($this->presentRenamed(), ApiResponse::HTTP_OK);
+            return ApiResponse::json(new RenamedDto(), ApiResponse::HTTP_OK);
+        });
     }
 
     public function copy(CopyPathRequest $request): ApiResponse
     {
-        $path           = $request->getPath();
-        $destinationDir = $request->getDestinationDir();
-
-        if (! $this->fileManager->exists($path)) {
-            return ApiResponse::json(
-                $this->presentError(self::ERROR_PATH_NOT_FOUND),
-                ApiResponse::HTTP_NOT_FOUND
+        return $this->handleNotFound(function () use ($request): ApiResponse {
+            $this->fileManager->copy(
+                $request->getDisk(),
+                $request->getPath(),
+                $request->getDestinationDir()
             );
-        }
 
-        $newPath = $this->fileManager->copy($path, $destinationDir);
-
-        $this->eventDispatcher->dispatch(
-            $this->fileManager->isDirectory($path) ?
-              DirectoryCopied::class : FileCopied::class,
-            [
-                'source_path' => $path->value,
-                'target_path' => $newPath->value,
-            ]
-        );
-
-        return ApiResponse::json($this->presentCopied(), ApiResponse::HTTP_OK);
-    }
-
-    private function presentError(string $message): ErrorDto
-    {
-        return new ErrorDto($message);
-    }
-
-    private function presentProperties(PathProperties $properties): PropertiesDto
-    {
-        return new PropertiesDto(
-            path: (string) $properties->path,
-            basename: $properties->basename,
-            dirname: $properties->dirname,
-            timestamp: $properties->timestamp,
-            visibility: $properties->visibility?->value,
-            isFile: $properties->isFile,
-            isDirectory: $properties->isDirectory,
-            extension: $properties instanceof FilePathProperties ? $properties->extension : null,
-            size: $properties instanceof FilePathProperties ? $properties->size : null,
-        );
-    }
-
-    private function presentCreatedDirectory(): CreatedDirectoryDto
-    {
-        return new CreatedDirectoryDto();
-    }
-
-    private function presentCreatedFile(): CreatedFileDto
-    {
-        return new CreatedFileDto();
-    }
-
-    private function presentDeleted(): DeletedDto
-    {
-        return new DeletedDto();
-    }
-
-    private function presentRenamed(): RenamedDto
-    {
-        return new RenamedDto();
+            return ApiResponse::json(new CopiedDto(), ApiResponse::HTTP_OK);
+        });
     }
 
     public function move(MovePathRequest $request): ApiResponse
     {
-        $path           = $request->getPath();
-        $destinationDir = $request->getDestinationDir();
-
-        if (! $this->fileManager->exists($path)) {
-            return ApiResponse::json(
-                $this->presentError(self::ERROR_PATH_NOT_FOUND),
-                ApiResponse::HTTP_NOT_FOUND
+        return $this->handleNotFound(function () use ($request): ApiResponse {
+            $this->fileManager->move(
+                $request->getDisk(),
+                $request->getPath(),
+                $request->getDestinationDir()
             );
-        }
 
-        $this->fileManager->move($path, $destinationDir);
-
-        $this->eventDispatcher->dispatch(
-            $this->fileManager->isDirectory($path) ?
-              DirectoryMoved::class : FileMoved::class,
-            [
-                'source_path' => $path->value,
-                'target_path' => $destinationDir->value,
-            ]
-        );
-
-        return ApiResponse::json($this->presentMoved(), ApiResponse::HTTP_OK);
+            return ApiResponse::json(new MovedDto(), ApiResponse::HTTP_OK);
+        });
     }
 
     public function bulkRename(BulkRenameRequest $request): ApiResponse
     {
-        $renames = $request->getRenames();
-        $results = $this->fileManager->bulkRename($renames);
-
-        foreach ($results as $item) {
-            $isDir = $this->fileManager->isDirectory(new Path($item['to']));
-            $this->eventDispatcher->dispatch(
-                $isDir ? DirectoryRenamed::class : FileRenamed::class,
-                [
-                    'old_path' => $item['from'],
-                    'new_path' => $item['to'],
-                ]
-            );
-        }
-
-        $this->eventDispatcher->dispatch(
-            BulkRenamed::class,
-            ['renamed' => $results]
-        );
+        $results = $this->fileManager->bulkRename($request->getDisk(), $request->getRenames());
 
         return ApiResponse::json(new BulkRenamedDto($results), ApiResponse::HTTP_OK);
     }
 
     public function zip(ZipRequest $request): ApiResponse
     {
-        $paths       = $request->getPaths();
-        $destination = $request->getDestination();
-
-        $archivePath = $this->fileManager->zip($paths, $destination);
-
-        $this->eventDispatcher->dispatch(
-            ZipCreated::class,
-            ['path' => $archivePath->value]
+        $archivePath = $this->archiveService->zip(
+            $request->getDisk(),
+            $request->getPaths(),
+            $request->getDestination()
         );
 
         return ApiResponse::json(new ZippedDto($archivePath->value), ApiResponse::HTTP_CREATED);
@@ -334,29 +168,33 @@ class BasicOperationsController extends Controller
 
     public function unzip(UnzipRequest $request): ApiResponse
     {
-        $archivePath    = $request->getPath();
         $destinationDir = $request->getDestinationDir();
 
-        $this->fileManager->unzip($archivePath, $destinationDir);
-
-        $this->eventDispatcher->dispatch(
-            ArchiveExtracted::class,
-            [
-                'path'        => $archivePath->value,
-                'destination' => $destinationDir->value,
-            ]
+        $this->archiveService->unzip(
+            $request->getDisk(),
+            $request->getPath(),
+            $destinationDir
         );
 
         return ApiResponse::json(new UnzippedDto($destinationDir->value), ApiResponse::HTTP_OK);
     }
 
-    private function presentCopied(): CopiedDto
+    /**
+     * @param  callable(): ApiResponse  $callback
+     */
+    private function handleNotFound(callable $callback): ApiResponse
     {
-        return new CopiedDto();
-    }
+        try {
+            return $callback();
+        } catch (FileOperationException $e) {
+            if ($e->getDomainErrorCode() === FileOperationError::FILE_NOT_FOUND) {
+                return ApiResponse::json(
+                    new ErrorDto(self::ERROR_PATH_NOT_FOUND),
+                    ApiResponse::HTTP_NOT_FOUND
+                );
+            }
 
-    private function presentMoved(): MovedDto
-    {
-        return new MovedDto();
+            throw $e;
+        }
     }
 }

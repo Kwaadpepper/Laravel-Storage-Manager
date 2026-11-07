@@ -11,11 +11,10 @@ use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\FieldErrorsDto;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Throwable;
 
 final class ApiExceptionHandler
 {
-    public function toApiResponse(Throwable $exception): ApiResponse
+    public function toApiResponse(\Throwable $exception): ApiResponse
     {
         if ($exception instanceof ValidationException) {
             return ApiResponse::json(
@@ -44,11 +43,12 @@ final class ApiExceptionHandler
 
     public function toApiResponseFromRenderedJsonResponse(JsonResponse $response): ?ApiResponse
     {
+        /** @var array<string, mixed>|mixed $content */
         $content = json_decode($response->getContent() ?: '[]', true);
         if (! is_array($content)) {
             return null;
         }
-
+        /** @var array<string, mixed> $content */
         $exceptionClass = $content['exception'] ?? null;
         $apiResponse    = null;
 
@@ -78,13 +78,16 @@ final class ApiExceptionHandler
      */
     private function normalizeValidationErrors(ValidationException $exception): array
     {
+        /** @var array<string, string> $errors */
         $errors = [];
 
-        foreach ($exception->errors() as $field => $messages) {
-            $firstMessage   = $messages[0] ?? trans('storage-manager::storage-manager.error.unknown');
-            $errors[$field] = is_string($firstMessage)
-                ? $firstMessage
-                : trans('storage-manager::storage-manager.error.unknown');
+        /** @var array<string, list<string>> $rawErrors */
+        $rawErrors = $exception->errors();
+
+        foreach ($rawErrors as $field => $messages) {
+            $fallback       = (string) trans('storage-manager::storage-manager.error.unknown');
+            $firstMessage   = $messages[0] ?? $fallback;
+            $errors[$field] = is_string($firstMessage) ? $firstMessage : $fallback;
         }
 
         return $errors;

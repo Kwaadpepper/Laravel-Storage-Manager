@@ -6,11 +6,14 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
 use Kwaadpepper\LaravelStorageManager\Enum\UploadStatus;
+use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\MissingChunkException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\MissingMetadataException;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadPathResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
@@ -23,18 +26,18 @@ describe('UploadSessionService', function (): void {
         Config::set('storage-manager.upload.temp_path', 'temp_uploads');
 
         $this->pathResolver   = resolve(UploadPathResolver::class);
-        $this->sessionService = new UploadSessionService($this->pathResolver);
+        $this->sessionService = resolve(UploadSessionService::class);
     });
 
     it('creates a session successfully', function (): void {
-        // Given
+        // GIVEN
         $uploadId = UploadId::generate();
         $metadata = new UploadMetadata($uploadId, 'test.txt', 1, 100, CarbonImmutable::now());
 
-        // When
+        // WHEN
         $this->sessionService->createSession($uploadId, $metadata);
 
-        // Then
+        // THEN
         expect($this->sessionService->sessionExists($uploadId))->toBeTrue();
 
         $savedMetadata = $this->sessionService->readMetadata($uploadId);
@@ -43,62 +46,60 @@ describe('UploadSessionService', function (): void {
     });
 
     it('stores a chunk successfully', function (): void {
-        // Given
+        // GIVEN
         $uploadId = UploadId::generate();
         $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 1, 100, CarbonImmutable::now()));
         $file = UploadedFile::fake()->createWithContent('chunk.part', 'dummy content');
 
-        // When
+        // WHEN
         $this->sessionService->storeChunk($uploadId, 0, $file);
 
-        // Then
+        // THEN
         expect($this->sessionService->chunkExists($uploadId, 0))->toBeTrue();
     });
 
     it('reads and writes status correctly', function (): void {
-        // Given
+        // GIVEN
         $uploadId = UploadId::generate();
         $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 1, 100, CarbonImmutable::now()));
 
-        // When
+        // WHEN
         $this->sessionService->writeStatus($uploadId, UploadStatus::ASSEMBLING, 50);
         $status = $this->sessionService->readStatus($uploadId);
 
-        // Then
+        // THEN
         expect($status)->not->toBeNull();
         expect($status->status)->toBe(UploadStatus::ASSEMBLING);
         expect($status->progress)->toBe(50);
     });
 
     it('throws MissingMetadataException on assemble if no metadata', function (): void {
-        // Given
+        // GIVEN
         $uploadId = UploadId::generate();
 
-        // When
+        // WHEN
         $action = fn () => $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), 'final_disk');
 
-        // Then
+        // THEN
         expect($action)->toThrow(MissingMetadataException::class);
     });
 
     it('throws MissingChunkException on assemble if chunk is missing', function (): void {
-        // Given
+        // GIVEN
         $uploadId = UploadId::generate();
         $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
-
-        // Only store chunk 0, chunk 1 is missing
         $file = UploadedFile::fake()->createWithContent('chunk0.part', 'content 1');
         $this->sessionService->storeChunk($uploadId, 0, $file);
 
-        // When
+        // WHEN
         $action = fn () => $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), 'final_disk');
 
-        // Then
+        // THEN
         expect($action)->toThrow(MissingChunkException::class);
     });
 
     it('assembles chunks and transfers file successfully', function (): void {
-        // Given
+        // GIVEN
         $uploadId = UploadId::generate();
         $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
 
@@ -108,15 +109,65 @@ describe('UploadSessionService', function (): void {
         $file2 = UploadedFile::fake()->createWithContent('chunk1.part', 'World!');
         $this->sessionService->storeChunk($uploadId, 1, $file2);
 
-        // When
+        // WHEN
         $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), 'final_disk');
 
-        // Then
-        // Verify it was assembled and transferred
+        // THEN
         expect(Storage::disk('final_disk')->exists('/final/test.txt'))->toBeTrue();
         expect(Storage::disk('final_disk')->get('/final/test.txt'))->toBe('Hello World!');
-
-        // Verify cleanup
         expect($this->sessionService->sessionExists($uploadId))->toBeFalse();
+    });
+
+    it('throws FileOperationException when completeUpload targets a read-only disk', function (): void {
+        // GIVEN
+        $uploadId = UploadId::generate();
+        $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'ro.txt', 1, 5, CarbonImmutable::now()));
+
+        $file = UploadedFile::fake()->createWithContent('chunk0.part', 'hello');
+        $this->sessionService->storeChunk($uploadId, 0, $file);
+
+        $readOnlyDisk = new Disk('local', 'final_disk', false, false, true);
+
+        // WHEN
+        $action = fn (): string => $this->sessionService->completeUpload(
+            $uploadId,
+            $readOnlyDisk,
+            new Path('/'),
+            'ro.txt'
+        );
+
+        // THEN
+        expect($action)->toThrow(FileOperationException::class);
+    });
+
+    it('throws FileOperationException with DuplicatePolicy::ERROR when file already exists', function (): void {
+        // GIVEN
+        Storage::disk('final_disk')->put('test.txt', 'existing content');
+
+        $uploadId = UploadId::generate();
+        $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 1, 5, CarbonImmutable::now()));
+
+        $file = UploadedFile::fake()->createWithContent('chunk0.part', 'hello');
+        $this->sessionService->storeChunk($uploadId, 0, $file);
+
+        $disk = new Disk('local', 'final_disk');
+
+        // WHEN
+        $action = fn (): string => $this->sessionService->completeUpload(
+            $uploadId,
+            $disk,
+            new Path('/'),
+            'test.txt',
+            DuplicatePolicy::ERROR
+        );
+
+        // THEN
+        expect($action)->toThrow(FileOperationException::class);
+
+        // AND the session is cleaned up
+        expect($this->sessionService->sessionExists($uploadId))->toBeFalse();
+
+        // AND the original file is untouched
+        expect(Storage::disk('final_disk')->get('test.txt'))->toBe('existing content');
     });
 });

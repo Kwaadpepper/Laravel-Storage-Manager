@@ -10,18 +10,18 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathVisibility;
 
 describe('FilePropertyExtractorTest', function (): void {
     it('extracts file properties correctly', function (): void {
-        // Given
+        // GIVEN
         $diskName  = 'test_disk';
         $path      = new Path('/path/to/file.txt');
         Storage::fake($diskName);
         Storage::disk($diskName)->put($path, 'some content');
         $disk      = new Disk(driver: 'local', name: $diskName, throw: false, report: false);
-        $extractor = new FilePropertyExtractor();
+        $extractor = resolve(FilePropertyExtractor::class);
 
-        // When
+        // WHEN
         $properties = $extractor->fileProperties($disk, $path);
 
-        // Then
+        // THEN
         expect($properties->path)->toBe($path);
         expect($properties->basename)->toBe('file.txt');
         expect($properties->dirname)->toBe('/path/to');
@@ -36,4 +36,25 @@ describe('FilePropertyExtractorTest', function (): void {
         expect($properties->isFile)->toBe(true);
         expect($properties->isDirectory)->toBe(false);
     });
-});
+
+    it('extracts directory properties with null visibility for sftp driver', function (): void {
+        // GIVEN
+        $diskName  = 'sftp_disk';
+        $path      = new Path('/path/to/dir');
+        Storage::fake($diskName);
+        Storage::disk($diskName)->makeDirectory('/path/to/dir');
+        $disk      = new Disk(driver: 'sftp', name: $diskName, throw: false, report: false);
+        $extractor = resolve(FilePropertyExtractor::class);
+
+        // WHEN
+        $properties = $extractor->directoryProperties($disk, $path);
+
+        // THEN
+        expect($properties->path)->toBe($path);
+        expect($properties->basename)->toBe('dir');
+        expect($properties->dirname)->toBe('/path/to');
+        expect($properties->visibility)->toBeNull();
+        expect($properties->isDirectory)->toBe(true);
+        expect($properties->isFile)->toBe(false);
+    });
+})->covers(FilePropertyExtractor::class);

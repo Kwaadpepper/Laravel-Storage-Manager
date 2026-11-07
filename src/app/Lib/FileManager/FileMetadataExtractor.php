@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
 use DateTimeImmutable;
-use Illuminate\Contracts\Filesystem\Filesystem;
-use Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations\PropertiesDto;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
 class FileMetadataExtractor
@@ -26,49 +26,50 @@ class FileMetadataExtractor
         'jpg', 'jpeg', 'tif', 'tiff', 'webp',
     ];
 
-    public function extract(Disk $disk, Path $path): PropertiesDto
+    public function __construct(
+        private readonly FilePropertyExtractor $filePropertyExtractor,
+        private readonly StorageGateway $storageGateway,
+    ) {
+    }
+
+    public function extract(Disk $disk, Path $path): FilePathProperties
     {
-        /** @var Filesystem $storageDisk */
-        $storageDisk = $disk->getStorageDisk();
-        $pathValue   = $path->value;
+        $baseProps = $this->filePropertyExtractor->fileProperties($disk, $path);
+        if (! ($baseProps instanceof FilePathProperties)) {
+            throw new \LogicException("Expected FilePathProperties for '{$path->value}'.");
+        }
 
-        /** @var array<string,string> $pathInfo */
-        $pathInfo  = pathinfo($pathValue);
-        $dirname   = $pathInfo['dirname'] === '.' ? '' : $pathInfo['dirname'];
-        $basename  = $pathInfo['basename'];
-        $extension = strtolower($pathInfo['extension'] ?? '');
+        $extension = strtolower($baseProps->extension);
+        $mimeType  = $this->storageGateway->mimeType($disk, $path);
+        $publicUrl = $this->storageGateway->publicUrl($disk, $path);
 
-        $basic = $this->resolveBasicProperties($storageDisk, $pathValue);
-
-        $checksum   = $this->computeChecksum($storageDisk, $pathValue, $basic['size']);
+        $checksum   = $this->computeChecksum($disk, $path, $baseProps->size);
         $dimensions = null;
         $exif       = null;
         $rawExif    = null;
-        $mimeType   = $basic['mimeType'];
 
         $isImage = in_array($extension, self::IMAGE_EXTENSIONS, true)
             || ($mimeType !== null && str_starts_with($mimeType, 'image/'));
 
         if ($isImage) {
-            $imageMeta  = $this->extractImageMetadata($storageDisk, $pathValue, $extension);
+            $imageMeta  = $this->extractImageMetadata($disk, $path, $extension);
             $dimensions = $imageMeta['dimensions'];
             $exif       = $imageMeta['exif'];
             $rawExif    = $imageMeta['rawExif'];
             $mimeType   = $mimeType ?? $imageMeta['mimeType'];
         }
 
-        return new PropertiesDto(
-            path: $pathValue,
-            basename: $basename,
-            dirname: $dirname,
-            timestamp: $basic['timestamp'],
-            visibility: $basic['visibility'],
-            isFile: true,
-            isDirectory: false,
+        return new FilePathProperties(
+            path: $baseProps->path,
+            basename: $baseProps->basename,
+            dirname: $baseProps->dirname,
             extension: $extension,
-            size: $basic['size'],
+            filename: $baseProps->filename,
+            size: $baseProps->size,
+            timestamp: $baseProps->timestamp,
+            visibility: $baseProps->visibility,
             mimeType: $mimeType,
-            publicUrl: $basic['publicUrl'],
+            publicUrl: $publicUrl,
             checksum: $checksum,
             dimensions: $dimensions,
             exif: $exif,
@@ -76,70 +77,14 @@ class FileMetadataExtractor
         );
     }
 
-    /**
-     * @return array{size: int, timestamp: DateTimeImmutable, visibility: string|null, mimeType: string|null, publicUrl: string|null}
-     */
-    private function resolveBasicProperties(Filesystem $storageDisk, string $pathValue): array
-    {
-        try {
-            $size = (int) $storageDisk->size($pathValue);
-        } catch (\Throwable) {
-            $size = 0;
-        }
-
-        try {
-            $timestampRaw = $storageDisk->lastModified($pathValue);
-            $timestamp    = new DateTimeImmutable('@' . $timestampRaw);
-        } catch (\Throwable) {
-            $timestamp = new DateTimeImmutable();
-        }
-
-        try {
-            $visibility = $storageDisk->getVisibility($pathValue);
-        } catch (\Throwable) {
-            $visibility = null;
-        }
-
-        try {
-            $mimeType = $storageDisk->mimeType($pathValue);
-            $mimeType = is_string($mimeType) ? $mimeType : null;
-        } catch (\Throwable) {
-            $mimeType = null;
-        }
-
-        try {
-            $publicUrl = $storageDisk->url(ltrim($pathValue, '/'));
-        } catch (\Throwable) {
-            $publicUrl = null;
-        }
-
-        return [
-            'size'       => $size,
-            'timestamp'  => $timestamp,
-            'visibility' => $visibility,
-            'mimeType'   => $mimeType,
-            'publicUrl'  => $publicUrl,
-        ];
-    }
-
-    private function computeChecksum(Filesystem $storageDisk, string $pathValue, int $size): ?string
+    private function computeChecksum(Disk $disk, Path $path, int $size): ?string
     {
         if ($size > self::MAX_CHECKSUM_FILE_SIZE || $size < 0) {
             return null;
         }
 
         try {
-            /** @var resource|false $stream */
-            $stream = $storageDisk->readStream($pathValue);
-            if (! is_resource($stream)) {
-                return null;
-            }
-
-            $ctx = hash_init('md5');
-            hash_update_stream($ctx, $stream);
-            fclose($stream);
-
-            return hash_final($ctx);
+            return $this->storageGateway->readStream($disk, $path)->hash('md5');
         } catch (\Throwable) {
             return null;
         }
@@ -153,9 +98,9 @@ class FileMetadataExtractor
      *     mimeType: string|null
      * }
      */
-    private function extractImageMetadata(Filesystem $storageDisk, string $pathValue, string $extension): array
+    private function extractImageMetadata(Disk $disk, Path $path, string $extension): array
     {
-        $localFilePath = $this->resolveLocalOrTempFile($storageDisk, $pathValue);
+        $localFilePath = $this->resolveLocalOrTempFile($disk, $path);
         if ($localFilePath === null) {
             return ['dimensions' => null, 'exif' => null, 'rawExif' => null, 'mimeType' => null];
         }
@@ -216,44 +161,20 @@ class FileMetadataExtractor
     /**
      * @return array{path: string, isTemp: bool}|null
      */
-    private function resolveLocalOrTempFile(Filesystem $storageDisk, string $pathValue): ?array
+    private function resolveLocalOrTempFile(Disk $disk, Path $path): ?array
     {
-        try {
-            $localPath = (string) $storageDisk->path($pathValue);
-            if (file_exists($localPath)) {
-                return ['path' => $localPath, 'isTemp' => false];
-            }
-        } catch (\Throwable) {
-            $localPath = null;
+        $localPath = $this->storageGateway->localPath($disk, $path->value);
+        if ($localPath !== null && file_exists($localPath)) {
+            return ['path' => $localPath, 'isTemp' => false];
         }
 
         try {
-            /** @var resource|false $stream */
-            $stream = $storageDisk->readStream($pathValue);
-            if (! is_resource($stream)) {
-                return null;
-            }
-
             $tempFile = tempnam(sys_get_temp_dir(), 'sm_img_');
             if ($tempFile === false) {
-                fclose($stream);
-
                 return null;
             }
 
-            $dest = fopen($tempFile, 'wb');
-            if (! is_resource($dest)) {
-                fclose($stream);
-                if (file_exists($tempFile)) {
-                    unlink($tempFile);
-                }
-
-                return null;
-            }
-
-            stream_copy_to_stream($stream, $dest, self::HEADER_STREAM_BUFFER_SIZE);
-            fclose($stream);
-            fclose($dest);
+            $this->storageGateway->readStream($disk, $path)->copyToPath($tempFile, self::HEADER_STREAM_BUFFER_SIZE);
 
             return ['path' => $tempFile, 'isTemp' => true];
         } catch (\Throwable) {
@@ -278,6 +199,7 @@ class FileMetadataExtractor
                 return ['exif' => null, 'rawExif' => null];
             }
 
+            /** @var array<string, mixed> $data */
             $flatData = $this->flattenExifData($data);
 
             return [
@@ -300,7 +222,7 @@ class FileMetadataExtractor
         foreach ($data as $section => $values) {
             if (is_array($values)) {
                 foreach ($values as $k => $v) {
-                    $flatData[$k] = $v;
+                    $flatData[(string) $k] = $v;
                 }
             } else {
                 $flatData[$section] = $values;

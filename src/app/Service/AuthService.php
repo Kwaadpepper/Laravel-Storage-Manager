@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Service;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 
 /**
  * Is used in order to determine if a user can
@@ -17,39 +17,41 @@ use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 class AuthService
 {
     public function __construct(
-        private readonly ConfigRepository $configRepository
+        private readonly StorageManagerConfig $config,
+        private readonly AuthFactory $authFactory,
+        private readonly Request $request,
     ) {
     }
 
     public function check(): bool
     {
-        if (! $this->configRepository->isAuthEnabled()) {
+        if (! $this->config->auth->enabled) {
             return true;
         }
 
         $routeGuard = $this->getGuardFromCurrentRoute();
 
         if ($routeGuard) {
-            return Auth::guard($routeGuard)->check();
+            return $this->authFactory->guard($routeGuard)->check();
         }
 
-        return Auth::check();
+        return $this->authFactory->guard()->check();
     }
 
     public function user(): ?Authenticatable
     {
         $routeGuard = $this->getGuardFromCurrentRoute();
 
-        if ($routeGuard && Auth::guard($routeGuard)->check()) {
-            return Auth::guard($routeGuard)->user();
+        if ($routeGuard && $this->authFactory->guard($routeGuard)->check()) {
+            return $this->authFactory->guard($routeGuard)->user();
         }
 
-        return Auth::user();
+        return $this->authFactory->guard()->user();
     }
 
     private function getGuardFromCurrentRoute(): ?string
     {
-        $route = Request::route();
+        $route = $this->request->route();
 
         if (! $route || ! method_exists($route, 'gatherMiddleware')) {
             return null;
