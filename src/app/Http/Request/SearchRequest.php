@@ -5,21 +5,22 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Request;
 
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
 
 class SearchRequest extends RequestWithDisk
 {
     /**
-     * @return array<string,mixed>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
         return array_merge(parent::rules(), [
-            'paths'     => 'required|array',
-            'paths.*'   => 'required|string',
-            'query'     => 'nullable|string',
-            'extension' => 'nullable|string',
-            'minSize'   => 'nullable|integer|min:0',
-            'maxSize'   => 'nullable|integer|min:0|gte:minSize',
+            'paths'     => ['required', 'array'],
+            'paths.*'   => ['required', 'string', new IsValidPath()],
+            'query'     => ['nullable', 'string'],
+            'extension' => ['nullable', 'string'],
+            'minSize'   => ['nullable', 'integer', 'min:0'],
+            'maxSize'   => ['nullable', 'integer', 'min:0', 'gte:minSize'],
         ]);
     }
 
@@ -31,7 +32,7 @@ class SearchRequest extends RequestWithDisk
         /** @var string[] $pathsInput */
         $pathsInput = $this->input('paths', []);
 
-        return array_map(fn (string $path) => new Path($path), $pathsInput);
+        return array_map(fn (string $path): Path => new Path($path), $pathsInput);
     }
 
     public function getSearchQuery(): ?string

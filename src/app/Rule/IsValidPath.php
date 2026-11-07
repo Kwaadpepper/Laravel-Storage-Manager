@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Rule;
 
 use Illuminate\Contracts\Validation\ValidationRule;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Illuminate\Support\Facades\Lang;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 
 class IsValidPath implements ValidationRule
 {
@@ -16,26 +17,10 @@ class IsValidPath implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, \Closure $fail): void
     {
-        if (! $this->pathIsValid($value)) {
-            $fail(trans('storage-manager::storage-manager.validation.invalid_path'));
-        }
-    }
+        $normalizer = resolve(PathNormalizer::class);
 
-    private function pathIsValid(mixed $value): bool
-    {
-        try {
-            if (! is_string($value)) {
-                return false;
-            }
-
-            assert(
-                ! empty((new Path($value))->value),
-                'Path must be a non-empty string'
-            );
-
-            return true;
-        } catch (\DomainException) {
-            return false;
+        if (! $normalizer->isValidPath($value)) {
+            $fail((string) Lang::get('storage-manager::storage-manager.validation.invalid_path'));
         }
     }
 }

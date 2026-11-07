@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\Upload;
 
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Validation\Validator;
+use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Http\Request\ApiRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Upload\Traits\ValidatesUploadId;
-use Kwaadpepper\LaravelStorageManager\Repository\ConfigRepository;
 
 class UploadChunkRequest extends ApiRequest
 {
     use ValidatesUploadId;
 
-    protected ConfigRepository $configRepository;
+    protected StorageManagerConfig $config;
 
     public function prepareForValidation(): void
     {
         parent::prepareForValidation();
-        $this->configRepository = resolve(ConfigRepository::class);
+        $this->config = resolve(StorageManagerConfig::class);
     }
 
     /**
@@ -26,7 +27,7 @@ class UploadChunkRequest extends ApiRequest
      */
     public function rules(): array
     {
-        $uploadChunkMaxSize = $this->configRepository->getUploadChunkMaxSize();
+        $uploadChunkMaxSize = $this->config->upload->chunkMaxSize;
 
         return array_merge($this->getUploadIdRules(), [
             'chunk_index'    => ['required', 'integer', 'min:0'],
@@ -37,14 +38,17 @@ class UploadChunkRequest extends ApiRequest
 
     public function withValidator(Validator $validator): void
     {
-        $validator->after(function (Validator $validator) {
+        $validator->after(function (Validator $validator): void {
             if ($validator->errors()->isNotEmpty()) {
                 return;
             }
 
             $file = $this->file('file');
             if (! $file || ! $file->isValid()) {
-                $validator->errors()->add('file', 'Invalid file upload.');
+                $validator->errors()->add(
+                    'file',
+                    (string) Lang::get('storage-manager::storage-manager.validation.invalid_file_upload')
+                );
 
                 return;
             }
@@ -52,7 +56,10 @@ class UploadChunkRequest extends ApiRequest
             $chunkChecksum  = $this->string('chunk_checksum')->value();
             $actualChecksum = md5_file($file->getRealPath());
             if ($actualChecksum !== $chunkChecksum) {
-                $validator->errors()->add('chunk_checksum', 'Chunk checksum mismatch.');
+                $validator->errors()->add(
+                    'chunk_checksum',
+                    (string) Lang::get('storage-manager::storage-manager.validation.chunk_checksum_mismatch')
+                );
             }
         });
     }

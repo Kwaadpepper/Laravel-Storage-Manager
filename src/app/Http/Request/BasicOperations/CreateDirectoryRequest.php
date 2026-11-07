@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations;
 
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
+use Kwaadpepper\LaravelStorageManager\Rule\IsValidDirectoryName;
 
 class CreateDirectoryRequest extends RequestWithPath
 {
@@ -33,11 +34,7 @@ class CreateDirectoryRequest extends RequestWithPath
             'name' => [
                 'required',
                 'string',
-                function (string $_, mixed $value, \Closure $fail): void {
-                    if (is_string($value) && preg_match('/[\/\\\\]/', $value)) {
-                        $fail(trans('storage-manager::storage-manager.validation.invalid_directory_name'));
-                    }
-                },
+                new IsValidDirectoryName(),
             ],
         ]);
     }

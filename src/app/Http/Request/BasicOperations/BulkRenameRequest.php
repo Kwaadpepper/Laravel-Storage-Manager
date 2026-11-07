@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations;
 
-use Kwaadpepper\LaravelStorageManager\Http\Request\ApiRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithDisk;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Kwaadpepper\LaravelStorageManager\Rule\IsValidFileName;
+use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
 
-class BulkRenameRequest extends ApiRequest
+class BulkRenameRequest extends RequestWithDisk
 {
     private PathSanitizer $pathSanitizer;
 
@@ -48,15 +50,15 @@ class BulkRenameRequest extends ApiRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
-        return [
+        return array_merge(parent::rules(), [
             'renames'        => ['required', 'array', 'min:1'],
-            'renames.*.from' => ['required', 'string', 'min:1', 'starts_with:/'],
-            'renames.*.to'   => ['required', 'string', 'min:1', 'max:255'],
-        ];
+            'renames.*.from' => ['required', 'string', 'min:1', 'starts_with:/', new IsValidPath()],
+            'renames.*.to'   => ['required', 'string', 'min:1', 'max:255', new IsValidFileName()],
+        ]);
     }
 
     /**

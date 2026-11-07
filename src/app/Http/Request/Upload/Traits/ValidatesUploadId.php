@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Request\Upload\Traits;
 
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
+use Kwaadpepper\LaravelStorageManager\Rule\IsExistingUploadSession;
 
 trait ValidatesUploadId
 {
@@ -20,24 +21,11 @@ trait ValidatesUploadId
     protected function getUploadIdRules(): array
     {
         return [
-            'upload_id' => ['required', 'string', function (string $_, mixed $value, \Closure $fail) {
-                try {
-                    if (! is_string($value)) {
-                        $fail('The upload_id must be a string.');
-
-                        return;
-                    }
-
-                    $uploadId = new UploadId($value);
-
-                    $uploadSessionService = resolve(UploadSessionService::class);
-                    if (! $uploadSessionService->sessionExists($uploadId)) {
-                        $fail('Upload session not found.');
-                    }
-                } catch (\InvalidArgumentException) {
-                    $fail('The upload_id is invalid.');
-                }
-            }],
+            'upload_id' => [
+                'required',
+                'string',
+                new IsExistingUploadSession(resolve(UploadSessionService::class)),
+            ],
         ];
     }
 }

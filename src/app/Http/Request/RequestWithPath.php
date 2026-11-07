@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request;
 
+use Illuminate\Support\Facades\Lang;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
@@ -28,7 +29,7 @@ class RequestWithPath extends RequestWithDisk
     public function attributes(): array
     {
         return array_merge(parent::attributes(), [
-            'path' => trans('storage-manager::storage-manager.attribute.path'),
+            'path' => (string) Lang::get('storage-manager::storage-manager.attribute.path'),
         ]);
     }
 

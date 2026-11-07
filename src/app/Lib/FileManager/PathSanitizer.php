@@ -13,9 +13,41 @@ use Kwaadpepper\LaravelStorageManager\Exception\PathSanitizationException;
 class PathSanitizer
 {
     /** Chars forbidden by most file systems */
-    private const string ILLEGAL_CHARS = '/[<>:"\/\\\\|?*\x00-\x1F\x7F\xA0\xAD#\[\]@!$&\'()+,;={}^~`]/u';
+    public const string ILLEGAL_CHARS = '/[<>:"\/\\\\|?*\x00-\x1F\x7F]/u';
 
     private const string WHITESPACE_REGEX = '/\s+/';
+
+    public function isValidName(mixed $name): bool
+    {
+        if (! is_string($name)) {
+            return false;
+        }
+
+        $trimmed = trim($name);
+        if ($trimmed === '') {
+            return false;
+        }
+
+        if (in_array($trimmed, ['.', '..'], true)) {
+            return false;
+        }
+
+        if (strlen($name) > 255) {
+            return false;
+        }
+
+        return ! preg_match(self::ILLEGAL_CHARS, $name);
+    }
+
+    public function isValidFileName(mixed $name): bool
+    {
+        return $this->isValidName($name);
+    }
+
+    public function isValidDirectoryName(mixed $name): bool
+    {
+        return $this->isValidName($name);
+    }
 
     public function sanitizeDirectoryName(string $directoryName, bool $beautify = true): string
     {

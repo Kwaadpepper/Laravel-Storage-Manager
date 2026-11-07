@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations;
 
-use Kwaadpepper\LaravelStorageManager\Http\Request\ApiRequest;
+use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithDisk;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
 
-class ZipRequest extends ApiRequest
+class ZipRequest extends RequestWithDisk
 {
     private PathSanitizer $pathSanitizer;
 
@@ -41,15 +42,15 @@ class ZipRequest extends ApiRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
-        return [
-            'paths'         => ['required', 'array', 'min:1'],
-            'paths.*'       => ['required', 'string', 'min:1', 'starts_with:/'],
-            'destination'   => ['required', 'string', 'min:1', 'starts_with:/', 'ends_with:.zip'],
-        ];
+        return array_merge(parent::rules(), [
+            'paths'       => ['required', 'array', 'min:1'],
+            'paths.*'     => ['required', 'string', 'min:1', 'starts_with:/', new IsValidPath()],
+            'destination' => ['required', 'string', 'min:1', 'starts_with:/', 'ends_with:.zip', new IsValidPath()],
+        ]);
     }
 
     /**

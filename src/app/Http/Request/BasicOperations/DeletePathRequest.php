@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations;
 
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
+use Kwaadpepper\LaravelStorageManager\Rule\IsNotRootPath;
 
 class DeletePathRequest extends RequestWithPath
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $parentRules = parent::rules();
@@ -20,11 +24,7 @@ class DeletePathRequest extends RequestWithPath
             'path' => array_merge(
                 $parentRules['path'],
                 [
-                    function (string $_, mixed $value, \Closure $fail): void {
-                        if (is_string($value) && preg_match('/^\/?$/', $value)) {
-                            $fail(trans('storage-manager::storage-manager.validation.cannot_delete_root_path'));
-                        }
-                    },
+                    new IsNotRootPath(),
                 ]
             ),
             'force' => ['sometimes', 'boolean'],

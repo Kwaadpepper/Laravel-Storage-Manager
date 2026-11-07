@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations;
 
+use Illuminate\Support\Facades\Lang;
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
+use Kwaadpepper\LaravelStorageManager\Rule\IsValidFileName;
 
 class RenamePathRequest extends RequestWithPath
 {
@@ -30,14 +32,14 @@ class RenamePathRequest extends RequestWithPath
     public function rules(): array
     {
         return array_merge(parent::rules(), [
-            'to' => ['required', 'string', 'min:1'],
+            'to' => ['required', 'string', 'min:1', new IsValidFileName()],
         ]);
     }
 
     public function attributes(): array
     {
         return array_merge(parent::attributes(), [
-            'to' => trans('storage-manager::storage-manager.attribute.to'),
+            'to' => (string) Lang::get('storage-manager::storage-manager.attribute.to'),
         ]);
     }
 }

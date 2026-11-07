@@ -31,4 +31,25 @@ class PathNormalizer
 
         return '/' . implode('/', $stack);
     }
+
+    public function isValidPath(mixed $path): bool
+    {
+        if (! is_string($path) || ! str_starts_with($path, '/') || mb_trim($path) === '' || str_contains($path, "\0")) {
+            return false;
+        }
+
+        $segments = preg_split('/[\/\\\\]+/', $path, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        foreach ($segments as $segment) {
+            if ($segment === '..') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function isRootPath(mixed $path): bool
+    {
+        return is_string($path) && $this->normalizePath($path) === '/';
+    }
 }

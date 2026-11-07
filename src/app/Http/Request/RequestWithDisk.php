@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request;
 
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Validation\Rule;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 
@@ -13,13 +13,10 @@ abstract class RequestWithDisk extends ApiRequest
 {
     protected DiskService $diskService;
 
-    protected FileManager $fileManager;
-
     public function prepareForValidation(): void
     {
         parent::prepareForValidation();
-        $this->diskService  = resolve(DiskService::class);
-        $this->fileManager  = resolve(FileManager::class);
+        $this->diskService = resolve(DiskService::class);
     }
 
     /**
@@ -36,17 +33,10 @@ abstract class RequestWithDisk extends ApiRequest
         ];
     }
 
-    #[\Override]
-    public function passedValidation(): void
-    {
-        $disk = $this->getDisk();
-        $this->fileManager->setActiveDisk($disk);
-    }
-
     public function attributes(): array
     {
         return [
-            'disk' => trans('storage-manager::storage-manager.attribute.disk'),
+            'disk' => (string) Lang::get('storage-manager::storage-manager.attribute.disk'),
         ];
     }
 
