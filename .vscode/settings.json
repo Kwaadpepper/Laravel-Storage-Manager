@@ -57,38 +57,39 @@
       "source.fixAll.eslint": "always"
     }
   },
+  "peacock.color": "#022922",
+  "phpcs.ignorePatterns": [
+    "*.xml"
+  ],
+  "phpcs.phpcbfOnSave": true,
+  "js/ts.experimental.useTsgo": true,
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#045a4a",
+    "activityBar.activeBorder": "#e7e7e7",
     "activityBar.background": "#045a4a",
     "activityBar.foreground": "#e7e7e7",
     "activityBar.inactiveForeground": "#e7e7e799",
     "activityBarBadge.background": "#d029f5",
     "activityBarBadge.foreground": "#e7e7e7",
+    "activityBarTop.activeBackground": "#045a4a",
+    "activityBarTop.activeBorder": "#e7e7e7",
+    "activityBarTop.background": "#045a4a",
+    "activityBarTop.foreground": "#e7e7e7",
+    "activityBarTop.inactiveForeground": "#e7e7e799",
     "commandCenter.border": "#e7e7e799",
+    "commandCenter.foreground": "#e7e7e7",
     "sash.hoverBorder": "#045a4a",
     "statusBar.background": "#022922",
+    "statusBar.debuggingBackground": "#022922",
+    "statusBar.debuggingForeground": "#e7e7e7",
     "statusBar.foreground": "#e7e7e7",
+    "statusBar.inactiveBackground": "#022922",
     "statusBarItem.hoverBackground": "#045a4a",
     "statusBarItem.remoteBackground": "#9709b6",
     "statusBarItem.remoteForeground": "#e7e7e7",
     "titleBar.activeBackground": "#022922",
     "titleBar.activeForeground": "#e7e7e7",
     "titleBar.inactiveBackground": "#02292299",
-    "titleBar.inactiveForeground": "#e7e7e799",
-    "activityBarTop.activeBackground": "#045a4a",
-    "activityBarTop.background": "#045a4a",
-    "activityBarTop.foreground": "#e7e7e7",
-    "activityBarTop.inactiveForeground": "#e7e7e799",
-    "commandCenter.foreground": "#e7e7e7",
-    "statusBar.debuggingBackground": "#022922",
-    "statusBar.debuggingForeground": "#e7e7e7",
-    "activityBar.activeBorder": "#e7e7e7",
-    "activityBarTop.activeBorder": "#e7e7e7"
-  },
-  "peacock.color": "#022922",
-  "phpcs.ignorePatterns": [
-    "*.xml"
-  ],
-  "phpcs.phpcbfOnSave": true,
-  "js/ts.experimental.useTsgo": true
+    "titleBar.inactiveForeground": "#e7e7e799"
+  }
 }
