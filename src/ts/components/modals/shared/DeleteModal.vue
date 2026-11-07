@@ -4,6 +4,7 @@ defineOptions({
 });
 import { AlertTriangle, Trash2, X } from 'lucide-vue-next';
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import { useDeleteViewModel } from './useDeleteViewModel';
 
 const vm = useDeleteViewModel();
@@ -90,7 +91,7 @@ useEscapeClose(onClose);
           type="button"
           @click="onClose"
         >
-          Cancel
+          {{ t('cancel') }}
         </button>
         <button
           :class="vm.permanentDelete.value || !vm.supportsTrash.value ? 'btn btn-error' : 'btn btn-warning'"
@@ -111,7 +112,7 @@ useEscapeClose(onClose);
         type="button"
         @click="onClose"
       >
-        Close
+        {{ t('close') }}
       </button>
     </form>
   </dialog>

@@ -1,14 +1,14 @@
 @extends('storage-manager::layout')
 
 @push('scripts')
-  <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
+  <script @if (!empty($cspNonce)) nonce="{{ $cspNonce }}" @endif>
     window.__STORAGE_MANAGER_CONFIG__ = @json($storageManagerConfig);
   </script>
 @endpush
 
 @php
-  $useDevServer = (bool) config('storage-manager.frontend.dev_server.enabled', false);
-  $devServerUrl = rtrim((string) config('storage-manager.frontend.dev_server.url', 'http://localhost:5173'), '/');
+  $useDevServer = (bool) ($useDevServer ?? false);
+  $devServerUrl = rtrim((string) ($devServerUrl ?? 'http://localhost:5173'), '/');
   $cssFilePublished = file_exists(public_path('vendor/storage-manager/css/main.css'));
   $jsFilePublished = file_exists(public_path('vendor/storage-manager/js/main.js'));
 @endphp

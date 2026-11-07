@@ -4,6 +4,7 @@ defineOptions({
 });
 import { useService } from '@ts/service-container';
 import { isDirectory, TreeNode } from '@ts/types';
+import { t } from '@ts/i18n';
 import { FolderOpen } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -34,10 +35,10 @@ function onClickOpen(): void {
     v-if="!hasMultipleSelection && firstNodeIsDir"
     type="button"
     class="btn btn-ghost btn-xs"
-    title="Open"
+    :title="t('open')"
     @click="onClickOpen"
   >
     <FolderOpen :size="14" />
-    <span class="hidden sm:inline">Open</span>
+    <span class="hidden sm:inline">{{ t('open') }}</span>
   </button>
 </template>

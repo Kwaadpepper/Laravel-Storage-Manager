@@ -1,12 +1,12 @@
 @section('content')
   <div class="missing-assets-warning">
-    Warning: Assets not published. Please run <code>php artisan vendor:publish --tag=storage-manager:assets</code>.
+    {{ __('storage-manager::storage-manager.ui.missing_assets') }}
   </div>
   <div id="file-manager"></div>
 @endsection
 
 @push('styles')
-  <style @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
+  <style @if (!empty($cspNonce)) nonce="{{ $cspNonce }}" @endif>
     .missing-assets-warning {
       background-color: #ffcc00;
       color: #333;

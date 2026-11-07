@@ -4,6 +4,7 @@ defineOptions({
 });
 
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import { useZipViewModel } from './useZipViewModel';
 
 const vm = useZipViewModel();
@@ -17,7 +18,7 @@ useEscapeClose(vm.close);
   >
     <div class="modal-box max-w-md">
       <h3 class="font-bold text-lg mb-2">
-        Create ZIP Archive
+        {{ t('zip_modal_title') }}
       </h3>
       <p class="text-sm text-base-content/70 mb-4">
         Compress {{ vm.itemCount.value }} selected item{{ vm.itemCount.value > 1 ? 's' : '' }} into a zip archive.
@@ -56,7 +57,7 @@ useEscapeClose(vm.close);
           :disabled="vm.isSubmitting.value"
           @click="vm.close"
         >
-          Cancel
+          {{ t('cancel') }}
         </button>
         <button
           type="button"
@@ -68,7 +69,7 @@ useEscapeClose(vm.close);
             v-if="vm.isSubmitting.value"
             class="loading loading-spinner loading-xs"
           />
-          Create Archive
+          {{ t('create') }}
         </button>
       </div>
     </div>
@@ -80,7 +81,7 @@ useEscapeClose(vm.close);
         type="button"
         @click="vm.close"
       >
-        close
+        {{ t('close') }}
       </button>
     </form>
   </div>

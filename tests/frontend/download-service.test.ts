@@ -1,8 +1,24 @@
 import { describe, expect, it } from 'bun:test';
 import { DownloadService } from '../../src/ts/services/download-service';
-import type { DiskStore } from '../../src/ts/stores';
+import type { ConfigStore, DiskStore } from '../../src/ts/stores';
 
 describe('DownloadService', () => {
+  it('uses custom routePrefix from configStore in generated URLs', () => {
+    const fakeDiskStore = {
+      currentDisk: 'local',
+    } as unknown as DiskStore;
+
+    const fakeConfigStore = {
+      routePrefix: '/admin/media',
+    } as unknown as ConfigStore;
+
+    const service = new DownloadService(fakeDiskStore, fakeConfigStore);
+
+    expect(service.getStreamUrl('/videos/sample-1.mp4')).toBe('/admin/media/stream/local/videos/sample-1.mp4');
+    expect(service.getDownloadUrl('/videos/sample-1.mp4')).toBe('/admin/media/download/local/videos/sample-1.mp4');
+    expect(service.getThumbnailUrl('/images/photo.png')).toBe('/admin/media/thumb/local/images/photo.png');
+  });
+
   it('generates correct stream and download URLs for current disk', () => {
     const fakeDiskStore = {
       currentDisk: 'local',
@@ -36,5 +52,57 @@ describe('DownloadService', () => {
     expect(service.getStreamUrl('/dossier test/vidéo (1).mp4')).toBe(
       '/sm/stream/s3/dossier%20test/vid%C3%A9o%20(1).mp4'
     );
+  });
+
+  it('triggers download via anchor element and URL.revokeObjectURL', async () => {
+    const fakeDiskStore = {
+      currentDisk: 'local',
+    } as unknown as DiskStore;
+
+    const service = new DownloadService(fakeDiskStore);
+    const mockBlob = new Blob(['test']);
+    service.downloadFile = async () => mockBlob;
+
+    let clicked = false;
+    let downloadAttr = '';
+    let revokedUrl = '';
+
+    const origCreateObjectURL = globalThis.URL.createObjectURL;
+    const origRevokeObjectURL = globalThis.URL.revokeObjectURL;
+    const origDocument = (globalThis as unknown as { document?: Document }).document;
+
+    globalThis.URL.createObjectURL = () => 'blob:mock-url';
+    globalThis.URL.revokeObjectURL = (url: string) => {
+      revokedUrl = url;
+    };
+
+    const mockAnchor = {
+      href: '',
+      download: '',
+      click() {
+        clicked = true;
+        downloadAttr = this.download;
+      },
+    };
+
+    (globalThis as unknown as { document: unknown }).document = {
+      createElement: (tagName: string) => {
+        if (tagName === 'a') {
+          return mockAnchor;
+        }
+        return {};
+      },
+    };
+
+    try {
+      await service.triggerDownload('/docs/test.txt', 'test.txt');
+      expect(clicked).toBeTrue();
+      expect(downloadAttr).toBe('test.txt');
+      expect(revokedUrl).toBe('blob:mock-url');
+    } finally {
+      (globalThis as unknown as { document?: Document }).document = origDocument;
+      globalThis.URL.createObjectURL = origCreateObjectURL;
+      globalThis.URL.revokeObjectURL = origRevokeObjectURL;
+    }
   });
 });

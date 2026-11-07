@@ -3,9 +3,10 @@ defineOptions({
   name: 'FileButtons',
 });
 import { useService } from '@ts/service-container';
-import { ModalState, useConfigStore, useUiStore } from '@ts/stores';
+import { ModalState, useConfigStore, usePickerStore, useUiStore } from '@ts/stores';
 import { isFile, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
-import { ArchiveRestore, Download, Eye, Info } from 'lucide-vue-next';
+import { t } from '@ts/i18n';
+import { ArchiveRestore, Check, Download, Eye, Info } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -14,6 +15,7 @@ const props = defineProps<{
 
 const configStore = useConfigStore();
 const uiStore = useUiStore();
+const pickerStore = usePickerStore();
 const downloadService = useService('downloadService');
 const toastService = useService('toastService');
 
@@ -24,9 +26,22 @@ const firstSelectedNode = computed<TreeNodeDirectory | TreeNodeFile | null>(
 const firstNodeIsFile = computed(
   () => firstSelectedNode.value !== null && isFile(firstSelectedNode.value)
 );
+const canSelect = computed(
+  () =>
+    firstSelectedNode.value !== null &&
+    isFile(firstSelectedNode.value) &&
+    pickerStore.canSelectFile(firstSelectedNode.value)
+);
 const isZipFile = computed(
   () => firstNodeIsFile.value && (firstSelectedNode.value?.name.toLowerCase().endsWith('.zip') ?? false)
 );
+
+function onClickSelect(): void {
+  const node = firstSelectedNode.value;
+  if (node !== null && isFile(node)) {
+    pickerStore.selectFile(node);
+  }
+}
 
 function onClickExtract(): void {
   if (firstSelectedNode.value) {
@@ -59,15 +74,9 @@ async function onClickDownload(): Promise<void> {
     if (node === null || !isFile(node)) {
       return;
     }
-    const blob = await downloadService.downloadFile(node.path);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = node.name;
-    a.click();
-    URL.revokeObjectURL(url);
+    await downloadService.triggerDownload(node.path, node.name);
   } catch {
-    toastService.pushToast({ message: 'Failed to download file.', type: 'error' });
+    toastService.pushToast({ message: t('download_failed'), type: 'error' });
   }
 }
 </script>
@@ -75,41 +84,51 @@ async function onClickDownload(): Promise<void> {
 <template>
   <template v-if="!hasMultipleSelection && firstNodeIsFile">
     <button
+      v-if="canSelect"
       type="button"
-      class="btn btn-ghost btn-xs"
-      title="View"
-      @click="onClickView"
+      class="btn btn-primary btn-xs"
+      :title="t('select')"
+      @click="onClickSelect"
     >
-      <Eye :size="14" />
-      <span class="hidden sm:inline">View</span>
+      <Check :size="14" />
+      <span class="hidden sm:inline">{{ t('select') }}</span>
     </button>
     <button
       type="button"
       class="btn btn-ghost btn-xs"
-      title="Properties"
+      :title="t('view')"
+      @click="onClickView"
+    >
+      <Eye :size="14" />
+      <span class="hidden sm:inline">{{ t('view') }}</span>
+    </button>
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs"
+      :title="t('properties')"
       @click="onClickProperties"
     >
       <Info :size="14" />
-      <span class="hidden sm:inline">Properties</span>
+      <span class="hidden sm:inline">{{ t('properties') }}</span>
     </button>
     <button
       v-if="configStore.supportsZip && isZipFile"
       type="button"
       class="btn btn-ghost btn-xs"
-      title="Extract Archive"
+      :title="t('extract_archive')"
       @click="onClickExtract"
     >
       <ArchiveRestore :size="14" />
-      <span class="hidden sm:inline">Extract</span>
+      <span class="hidden sm:inline">{{ t('extract') }}</span>
     </button>
     <button
       type="button"
       class="btn btn-ghost btn-xs"
-      title="Download"
+      :title="t('download')"
       @click="onClickDownload"
     >
       <Download :size="14" />
-      <span class="hidden sm:inline">Download</span>
+      <span class="hidden sm:inline">{{ t('download') }}</span>
     </button>
   </template>
 </template>

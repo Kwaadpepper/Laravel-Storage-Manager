@@ -6,6 +6,7 @@ import { nextTick, onMounted, ref } from 'vue';
 import { Pencil, X } from 'lucide-vue-next';
 import FieldError from '@ts/components/shared/FieldError.vue';
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import {
   baseNameMaxLength,
   baseNameMinLength,
@@ -49,7 +50,7 @@ const onFormSubmit = async (): Promise<void> => {
         <X :size="16" />
       </button>
       <h3 class="font-bold text-lg">
-        Rename File
+        {{ t('rename_file_title') }}
       </h3>
 
       <p
@@ -104,7 +105,7 @@ const onFormSubmit = async (): Promise<void> => {
         </div>
 
         <label class="input mx-auto">
-          <span>Rename</span>
+          <span>{{ t('rename') }}</span>
           <input
             class="grow"
             type="text"
@@ -124,7 +125,7 @@ const onFormSubmit = async (): Promise<void> => {
               v-if="vm.isSubmitting.value"
               class="loading loading-spinner loading-xs"
             />
-            Rename
+            {{ t('rename') }}
           </button>
         </span>
       </form>
@@ -139,7 +140,7 @@ const onFormSubmit = async (): Promise<void> => {
         type="button"
         @click="onClose"
       >
-        Close
+        {{ t('close') }}
       </button>
     </form>
   </dialog>

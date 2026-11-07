@@ -1,4 +1,4 @@
-const AUDIO_MIME_MAP: Record<string, string> = {
+export const AUDIO_MIME_MAP: Record<string, string> = {
   mp3: 'audio/mpeg',
   wav: 'audio/wav',
   ogg: 'audio/ogg',
@@ -9,7 +9,7 @@ const AUDIO_MIME_MAP: Record<string, string> = {
   weba: 'audio/webm',
 };
 
-const VIDEO_MIME_MAP: Record<string, string> = {
+export const VIDEO_MIME_MAP: Record<string, string> = {
   mp4: 'video/mp4',
   webm: 'video/webm',
   ogg: 'video/ogg',

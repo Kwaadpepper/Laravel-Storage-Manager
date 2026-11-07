@@ -2,6 +2,10 @@ import { Disk } from '@ts/types';
 import * as z from 'zod/v4';
 
 export const appConfigSchema = z.object({
+  cspNonce: z.string().nullable().optional(),
+  locale: z.string().default('en'),
+  translations: z.record(z.string(), z.string()).default({}),
+  routePrefix: z.string().default('/sm'),
   packageName: z.string().nonempty(),
   packageVersion: z.string().nonempty(),
   packageLogo: z.url(),
@@ -15,6 +19,7 @@ export const appConfigSchema = z.object({
   ),
   disks: z.record(z.string(), z.string()).transform((disksMap) => Object.values(disksMap) as Disk[]),
   readOnlyDisks: z.array(z.string()).transform((arr) => arr as Disk[]),
+  allowedExtensions: z.array(z.string()).default([]),
   chunkMinSize: z.number(),
   chunkMaxSize: z.number(),
   duplicatePolicy: z.enum(['overwrite', 'auto_rename', 'error']),

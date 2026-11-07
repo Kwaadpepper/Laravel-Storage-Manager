@@ -8,6 +8,7 @@ import TreeNodeItem from '@ts/components/layout/tree-view/TreeNodeItem.vue';
 import { useService } from '@ts/service-container';
 import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useTreeStore, useUiStore } from '@ts/stores';
 import { rootPath } from '@ts/types';
+import { t } from '@ts/i18n';
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Trash2 } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 
@@ -63,7 +64,7 @@ watch(
             <button
               type="button"
               class="btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 shrink-0"
-              :aria-label="rootState?.expanded ? 'Collapse root' : 'Expand root'"
+              :aria-label="rootState?.expanded ? t('collapse_root') : t('expand_root')"
               @click="navigationService.loadTreeNode(rootPath())"
             >
               <ChevronDown
@@ -99,7 +100,7 @@ watch(
               v-if="rootState.children.length === 0"
               class="text-base-content/40 text-xs px-4 py-1"
             >
-              Empty
+              {{ t('empty') }}
             </li>
             <template v-else>
               <TreeNodeItem
@@ -131,7 +132,7 @@ watch(
           :size="15"
           class="text-error"
         />
-        <span>Trash</span>
+        <span>{{ t('trash') }}</span>
       </button>
     </div>
     <DiskUsageWidget />

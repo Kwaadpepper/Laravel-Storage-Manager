@@ -5,6 +5,7 @@ defineOptions({
 import { useService } from '@ts/service-container';
 import { useFileManagerStore, useSearchStore } from '@ts/stores';
 import { Path } from '@ts/types';
+import { t } from '@ts/i18n';
 import { Filter, Search, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
@@ -121,14 +122,17 @@ function onResetClick(): void {
       <input
         v-model="localQuery"
         type="text"
-        placeholder="Rechercher..."
+        :placeholder="t('search_placeholder')"
         class="input input-bordered input-sm join-item w-40 md:w-64"
       >
       <details
         ref="dropdownRef"
         class="dropdown dropdown-bottom dropdown-end"
       >
-        <summary class="btn btn-sm join-item border-l-0">
+        <summary
+          class="btn btn-sm join-item border-l-0"
+          :title="t('advanced_filters')"
+        >
           <Filter
             :size="16"
             :class="localExt || localMinSize || localMaxSize ? 'text-primary' : ''"
@@ -136,11 +140,11 @@ function onResetClick(): void {
         </summary>
         <ul class="dropdown-content z-[100] menu p-4 shadow bg-base-100 rounded-box w-[22rem] mt-1">
           <h3 class="font-bold mb-3">
-            Filtres avancés
+            {{ t('advanced_filters') }}
           </h3>
 
           <div class="form-control mb-2">
-            <label class="label py-1"><span class="label-text">Extension</span></label>
+            <label class="label py-1"><span class="label-text">{{ t('extension') }}</span></label>
             <input
               v-model="localExt"
               type="text"
@@ -151,7 +155,7 @@ function onResetClick(): void {
           </div>
 
           <div class="form-control mb-2">
-            <label class="label py-1"><span class="label-text">Taille min</span></label>
+            <label class="label py-1"><span class="label-text">{{ t('min_size') }}</span></label>
             <div class="join w-full">
               <input
                 v-model="localMinSize"
@@ -165,23 +169,23 @@ function onResetClick(): void {
                 class="select select-bordered select-sm join-item"
               >
                 <option :value="1">
-                  Octets
+                  {{ t('bytes') }}
                 </option>
                 <option :value="1024">
-                  Ko
+                  {{ t('kb') }}
                 </option>
                 <option :value="1024 * 1024">
-                  Mo
+                  {{ t('mb') }}
                 </option>
                 <option :value="1024 * 1024 * 1024">
-                  Go
+                  {{ t('gb') }}
                 </option>
               </select>
             </div>
           </div>
 
           <div class="form-control mb-4">
-            <label class="label py-1"><span class="label-text">Taille max</span></label>
+            <label class="label py-1"><span class="label-text">{{ t('max_size') }}</span></label>
             <div class="join w-full">
               <input
                 v-model="localMaxSize"
@@ -195,16 +199,16 @@ function onResetClick(): void {
                 class="select select-bordered select-sm join-item"
               >
                 <option :value="1">
-                  Octets
+                  {{ t('bytes') }}
                 </option>
                 <option :value="1024">
-                  Ko
+                  {{ t('kb') }}
                 </option>
                 <option :value="1024 * 1024">
-                  Mo
+                  {{ t('mb') }}
                 </option>
                 <option :value="1024 * 1024 * 1024">
-                  Go
+                  {{ t('gb') }}
                 </option>
               </select>
             </div>
@@ -215,13 +219,14 @@ function onResetClick(): void {
             class="btn btn-primary btn-sm w-full"
             @click="() => onSearch()"
           >
-            Appliquer
+            {{ t('apply') }}
           </button>
         </ul>
       </details>
       <button
         type="submit"
         class="btn btn-primary btn-sm join-item"
+        :title="t('search')"
       >
         <Search :size="16" />
       </button>
@@ -230,7 +235,7 @@ function onResetClick(): void {
     <button
       v-if="isSearchMode"
       class="btn btn-ghost btn-sm btn-circle ml-1 text-error"
-      title="Fermer la recherche"
+      :title="t('close_search')"
       @click="onResetClick"
     >
       <X :size="16" />

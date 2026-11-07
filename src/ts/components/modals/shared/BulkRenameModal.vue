@@ -4,6 +4,7 @@ defineOptions({
 });
 
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import { useBulkRenameViewModel } from './useBulkRenameViewModel';
 
 const vm = useBulkRenameViewModel();
@@ -17,7 +18,7 @@ useEscapeClose(vm.close);
   >
     <div class="modal-box max-w-2xl flex flex-col max-h-[90vh]">
       <h3 class="font-bold text-lg mb-2">
-        Bulk Rename ({{ vm.itemCount.value }} items)
+        {{ t('bulk_rename_title') }} ({{ vm.itemCount.value }} items)
       </h3>
 
       <div
@@ -187,7 +188,7 @@ useEscapeClose(vm.close);
           :disabled="vm.isSubmitting.value"
           @click="vm.close"
         >
-          Cancel
+          {{ t('cancel') }}
         </button>
         <button
           type="button"
@@ -211,7 +212,7 @@ useEscapeClose(vm.close);
         type="button"
         @click="vm.close"
       >
-        close
+        {{ t('close') }}
       </button>
     </form>
   </div>

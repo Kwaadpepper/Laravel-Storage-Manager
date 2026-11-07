@@ -4,6 +4,7 @@ defineOptions({
 });
 import { ModalState, useConfigStore, useUiStore } from '@ts/stores';
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import { X } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -34,7 +35,7 @@ useEscapeClose(closeModal);
         <X :size="16" />
       </button>
       <h3 class="font-bold text-lg">
-        About
+        {{ t('about_modal_title') }}
       </h3>
       <div class="flex items-center justify-center py-4">
         <img
@@ -84,7 +85,7 @@ useEscapeClose(closeModal);
         type="button"
         @click="closeModal"
       >
-        Close
+        {{ t('close') }}
       </button>
     </form>
   </dialog>

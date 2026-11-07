@@ -3,8 +3,8 @@
 @endsection
 
 @push('scripts')
-  <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif type="module"
+  <script @if (!empty($cspNonce)) nonce="{{ $cspNonce }}" @endif type="module"
     src="{{ $devServerUrl }}/@@vite/client"></script>
-  <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif type="module" src="{{ $devServerUrl }}/src/ts/main.ts">
+  <script @if (!empty($cspNonce)) nonce="{{ $cspNonce }}" @endif type="module" src="{{ $devServerUrl }}/src/ts/main.ts">
   </script>
 @endpush

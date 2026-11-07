@@ -10,3 +10,4 @@ export * from './tree-store';
 export * from './ui-store';
 export * from './upload-store';
 export * from './trash-store';
+export * from './picker-store';

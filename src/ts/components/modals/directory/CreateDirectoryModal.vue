@@ -6,6 +6,7 @@ import { nextTick, onMounted, ref } from 'vue';
 import { FolderPlus, X } from 'lucide-vue-next';
 import FieldError from '@ts/components/shared/FieldError.vue';
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import {
   directoryNameMaxLength,
   directoryNameMinLength,
@@ -47,7 +48,7 @@ const onFormSubmit = async (): Promise<void> => {
         <X :size="16" />
       </button>
       <h3 class="font-bold text-lg">
-        Create New Directory
+        {{ t('create_directory_title') }}
       </h3>
 
       <p
@@ -68,7 +69,7 @@ const onFormSubmit = async (): Promise<void> => {
             v-model="vm.directoryName.value"
             class="grow"
             type="text"
-            placeholder="My New Directory"
+            :placeholder="t('create_directory_placeholder')"
             autofocus
             autocomplete="off"
             :minlength="directoryNameMinLength"
@@ -100,7 +101,7 @@ const onFormSubmit = async (): Promise<void> => {
               v-if="vm.isSubmitting.value"
               class="loading loading-spinner loading-xs"
             />
-            Create
+            {{ t('create') }}
           </button>
         </span>
       </form>
@@ -115,7 +116,7 @@ const onFormSubmit = async (): Promise<void> => {
         type="button"
         @click="onClose"
       >
-        Close
+        {{ t('close') }}
       </button>
     </form>
   </dialog>

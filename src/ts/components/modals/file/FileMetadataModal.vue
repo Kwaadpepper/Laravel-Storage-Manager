@@ -5,6 +5,7 @@ defineOptions({
 
 import { Info, Loader, X } from 'lucide-vue-next';
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import FileMetadataPanel from './FileMetadataPanel.vue';
 import { useFileMetadataViewModel } from './useFileMetadataViewModel';
 
@@ -29,12 +30,12 @@ useEscapeClose(close);
             :size="18"
             class="text-primary"
           />
-          <span>File Properties</span>
+          <span>{{ t('file_metadata_title') }}</span>
         </h3>
         <button
           type="button"
           class="btn btn-sm btn-circle btn-ghost"
-          aria-label="Close"
+          :aria-label="t('close')"
           @click="close"
         >
           <X :size="16" />
@@ -51,7 +52,7 @@ useEscapeClose(close);
             :size="24"
             class="animate-spin text-primary"
           />
-          <span>Loading properties...</span>
+          <span>{{ t('loading') }}</span>
         </div>
 
         <div
@@ -75,7 +76,7 @@ useEscapeClose(close);
           class="btn btn-sm"
           @click="close"
         >
-          Close
+          {{ t('close') }}
         </button>
       </div>
     </div>
@@ -88,7 +89,7 @@ useEscapeClose(close);
         type="button"
         @click="close"
       >
-        Close
+        {{ t('close') }}
       </button>
     </form>
   </dialog>

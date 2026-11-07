@@ -5,11 +5,21 @@ defineOptions({
 import FileSize from '@ts/components/shared/FileSize.vue';
 import { useContextualMenuRegistration } from '@ts/components/shared/use-contextual-menu-registration';
 import { useService } from '@ts/service-container';
-import { ContextualMenuEntry, ModalState, toAnchorName, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
+import {
+  ContextualMenuEntry,
+  ModalState,
+  toAnchorName,
+  useConfigStore,
+  useDiskStore,
+  useFileManagerStore,
+  usePickerStore,
+  useUiStore,
+} from '@ts/stores';
 import { TreeNodeFile } from '@ts/types';
 import FileIcon from '@ts/components/shared/FileIcon.vue';
 import FileThumbnail from '@ts/components/shared/FileThumbnail.vue';
 import { getFileTypeInfo } from '@ts/utils/file-type';
+import { t } from '@ts/i18n';
 import { computed } from 'vue';
 
 const props = withDefaults(
@@ -26,6 +36,7 @@ const configStore = useConfigStore();
 const uiStore = useUiStore();
 const fileManagerStore = useFileManagerStore();
 const diskStore = useDiskStore();
+const pickerStore = usePickerStore();
 const downloadService = useService('downloadService');
 const clipboardService = useService('clipboardService');
 const toastService = useService('toastService');
@@ -38,28 +49,32 @@ const isReadOnly = computed(() =>
 
 async function download(): Promise<void> {
   try {
-    const blob = await downloadService.downloadFile(props.item.path);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = props.item.name;
-    a.click();
-    URL.revokeObjectURL(url);
+    await downloadService.triggerDownload(props.item.path, props.item.name);
   } catch {
-    toastService.pushToast({ message: 'Failed to download file.', type: 'error' });
+    toastService.pushToast({ message: t('download_failed'), type: 'error' });
   }
 }
 
 const entries = computed<ContextualMenuEntry[]>(() => [
+  ...(pickerStore.canSelectFile(props.item)
+    ? [
+        {
+          label: t('select'),
+          onClick: () => {
+            pickerStore.selectFile(props.item);
+          },
+        },
+      ]
+    : []),
   {
-    label: 'View',
+    label: t('view'),
     onClick: () => {
       uiStore.targetFilePath = props.item.path;
       uiStore.viewFileModal = ModalState.Opened;
     },
   },
   {
-    label: 'Properties',
+    label: t('properties'),
     onClick: () => {
       uiStore.targetFilePath = props.item.path;
       uiStore.fileMetadataModal = ModalState.Opened;
@@ -68,7 +83,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
   ...(fileType.value.category === 'image' && !isReadOnly.value
     ? [
         {
-          label: 'Crop Image...',
+          label: t('crop_image'),
           onClick: () => {
             uiStore.targetFilePath = props.item.path;
             uiStore.cropImageModal = ModalState.Opened;
@@ -76,11 +91,11 @@ const entries = computed<ContextualMenuEntry[]>(() => [
         },
       ]
     : []),
-  { label: 'Download', onClick: () => void download() },
+  { label: t('download'), onClick: () => void download() },
   ...(configStore.supportsZip && props.item.name.toLowerCase().endsWith('.zip')
     ? [
         {
-          label: 'Extract Archive...',
+          label: t('extract_archive'),
           onClick: () => {
             uiStore.targetArchiveFilePath = props.item.path;
             uiStore.unzipModal = ModalState.Opened;
@@ -90,58 +105,58 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     : []),
   { separator: true },
   {
-    label: 'Cut',
+    label: t('cut'),
     onClick: () => {
       const paths = Object.values(fileManagerStore.selectedNodes);
       const nodes = paths.length > 0 ? paths : [props.item];
       clipboardService.setConsumingMode(true);
       clipboardService.addEntry(...nodes.map((n) => n.path));
       toastService.pushToast({
-        message: `${nodes.length} item(s) cut to clipboard.`,
+        message: t('items_cut', { count: nodes.length }),
         type: 'info',
       });
     },
   },
   {
-    label: 'Copy',
+    label: t('copy'),
     onClick: () => {
       const paths = Object.values(fileManagerStore.selectedNodes);
       const nodes = paths.length > 0 ? paths : [props.item];
       clipboardService.setConsumingMode(false);
       clipboardService.addEntry(...nodes.map((n) => n.path));
       toastService.pushToast({
-        message: `${nodes.length} item(s) copied to clipboard.`,
+        message: t('items_copied', { count: nodes.length }),
         type: 'info',
       });
     },
   },
   { separator: true },
   {
-    label: 'Copy Path',
+    label: t('copy_path'),
     onClick: () => {
       navigator.clipboard.writeText(props.item.path).catch(() => {});
-      toastService.pushToast({ message: 'Path copied to clipboard.', type: 'success' });
+      toastService.pushToast({ message: t('path_copied'), type: 'success' });
     },
   },
   {
-    label: 'Copy Link',
+    label: t('copy_link'),
     onClick: () => {
       const url = new URL(globalThis.location.href);
       const disk = diskStore.currentDisk;
       const hashPath = `/${disk}${props.item.path}`;
       url.hash = hashPath.split('/').map(encodeURIComponent).join('/');
       navigator.clipboard.writeText(url.toString()).catch(() => {});
-      toastService.pushToast({ message: 'Link copied to clipboard.', type: 'success' });
+      toastService.pushToast({ message: t('link_copied'), type: 'success' });
     },
   },
   ...(props.item.publicUrl
     ? [
         {
-          label: 'Copy Public URL',
+          label: t('copy_public_url'),
           onClick: () => {
             navigator.clipboard.writeText(props.item.publicUrl as string).catch(() => {});
             toastService.pushToast({
-              message: 'Public URL copied to clipboard.',
+              message: t('public_url_copied'),
               type: 'success',
             });
           },
@@ -152,7 +167,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
   ...(configStore.supportsZip
     ? [
         {
-          label: 'Compress to Zip...',
+          label: t('compress_to_zip'),
           onClick: () => {
             if (!fileManagerStore.selectedNodes[props.item.path]) {
               fileManagerStore.selectNodes(props.item);
@@ -163,7 +178,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       ]
     : []),
   {
-    label: 'Rename',
+    label: t('rename'),
     onClick: () => {
       if (!fileManagerStore.selectedNodes[props.item.path]) {
         fileManagerStore.selectNodes(props.item);
@@ -173,7 +188,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     },
   },
   {
-    label: 'Delete',
+    label: t('delete'),
     onClick: () => {
       if (!fileManagerStore.selectedNodes[props.item.path]) {
         fileManagerStore.selectNodes(props.item);

@@ -7,6 +7,7 @@ import CommonButtons from '@ts/components/layout/selection-bar/CommonButtons.vue
 import DirectoryButtons from '@ts/components/layout/selection-bar/DirectoryButtons.vue';
 import FileButtons from '@ts/components/layout/selection-bar/FileButtons.vue';
 import { useFileManagerStore } from '@ts/stores';
+import { t } from '@ts/i18n';
 import { X } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -16,7 +17,7 @@ const selectedNodesList = computed(() => Object.values(fileManagerStore.selected
 
 const selectedNodesLabel = computed(() =>
   selectedNodesList.value.reduce(
-    (label, node) => (label.length ? 'Multiple selections' : node.name),
+    (label, node) => (label.length ? t('multiple_selections') : node.name),
     ''
   )
 );
@@ -64,7 +65,7 @@ function onClickDeselect(): void {
       v-if="selectedNodesList.length > 0"
       type="button"
       class="btn btn-ghost btn-xs ml-auto"
-      title="Deselect"
+      :title="t('deselect')"
       @click="onClickDeselect"
     >
       <X :size="14" />

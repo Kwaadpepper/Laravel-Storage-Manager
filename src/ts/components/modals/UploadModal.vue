@@ -3,9 +3,19 @@ defineOptions({
   name: 'UploadModal',
 });
 import { computed, ref } from 'vue';
-import { ModalState, useDiskStore, useFileManagerStore, useUiStore, useUploadStore, type UploadItem } from '@ts/stores';
+import {
+  ModalState,
+  useConfigStore,
+  useDiskStore,
+  useFileManagerStore,
+  usePickerStore,
+  useUiStore,
+  useUploadStore,
+  type UploadItem,
+} from '@ts/stores';
 import { useService } from '@ts/service-container';
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import FileIcon from '@ts/components/shared/FileIcon.vue';
 import { CheckCircle2, Clock, FileUp, FolderOpen, Loader2, X, XCircle } from 'lucide-vue-next';
 
@@ -13,12 +23,29 @@ const uiStore = useUiStore();
 const diskStore = useDiskStore();
 const fileManagerStore = useFileManagerStore();
 const uploadStore = useUploadStore();
+const configStore = useConfigStore();
+const pickerStore = usePickerStore();
 const uploadService = useService('uploadService');
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const isDraggingOver = ref(false);
 
 const isOpen = computed(() => uiStore.uploadFileModal === ModalState.Opened);
+
+const acceptedExtensionsAttr = computed<string | undefined>(() => {
+  let exts = configStore.allowedExtensions;
+  if (pickerStore.scopedType) {
+    exts = exts.filter((ext) =>
+      pickerStore.isFileAllowed({ name: `file.${ext}`, extension: ext })
+    );
+  }
+  if (exts.length === 0) {
+    return undefined;
+  }
+  return exts
+    .map((ext) => (ext.startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`))
+    .join(',');
+});
 
 const hasActiveUploads = computed(() =>
   uploadStore.uploads.some((u) => ['pending', 'uploading', 'assembling'].includes(u.status))
@@ -93,7 +120,7 @@ const mainList = computed(() => [...activeUploads.value, ...finishedUploads.valu
       </form>
       <h3 class="font-bold text-lg flex items-center gap-2 mb-4">
         <FileUp />
-        Upload Files
+        {{ t('upload_modal_title') }}
       </h3>
 
       <!-- Dropzone -->
@@ -109,6 +136,7 @@ const mainList = computed(() => [...activeUploads.value, ...finishedUploads.valu
           ref="fileInputRef"
           type="file"
           multiple
+          :accept="acceptedExtensionsAttr"
           class="hidden"
           @change="onFileSelect"
         >
@@ -117,7 +145,7 @@ const mainList = computed(() => [...activeUploads.value, ...finishedUploads.valu
           class="mb-2 opacity-70"
         />
         <p class="font-medium text-lg">
-          Click to browse or drop files here
+          {{ t('drag_drop_files') }}
         </p>
         <p class="text-sm opacity-70">
           Uploading to: {{ fileManagerStore.currentPath }}
@@ -275,7 +303,7 @@ const mainList = computed(() => [...activeUploads.value, ...finishedUploads.valu
         type="button"
         @click="onBackdropClose"
       >
-        close
+        {{ t('close') }}
       </button>
     </form>
   </dialog>

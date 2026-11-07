@@ -22,6 +22,7 @@ import {
   useContextualMenuStore,
   useDiskStore,
   useFileManagerStore,
+  usePickerStore,
   useToastStore,
   useTreeStore,
   useUiStore,
@@ -91,9 +92,10 @@ export function buildServiceContainer(): ServiceContainer {
   const toastService = new ToastService(toastStore);
   const errorHandlerService = new ErrorHandlerService(toastService);
   const contextualMenuService = new ContextualMenuService(contextualMenuStore);
-  const downloadService = new DownloadService(diskStore);
+  const downloadService = new DownloadService(diskStore, configStore);
   const themeService = new ThemeService(uiStore);
   const clipboardService = new ClipboardService(clipboardStore);
+  const pickerStore = usePickerStore();
   const eventQueueService = new EventQueueService(navigationService, actionStore, diskService);
   const uploadService = new UploadService(
     apiService,
@@ -101,7 +103,9 @@ export function buildServiceContainer(): ServiceContainer {
     uploadStore,
     configStore,
     fileManagerStore,
-    diskService
+    diskService,
+    pickerStore,
+    toastService
   );
   const trashService = new TrashService(apiService, configStore, diskStore);
 

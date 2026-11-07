@@ -5,6 +5,7 @@ defineOptions({
 import { useService } from '@ts/service-container';
 import { ModalState, useConfigStore, useDiskStore, useUiStore } from '@ts/stores';
 import { isDirectory, TreeNode } from '@ts/types';
+import { t } from '@ts/i18n';
 import { Archive, CopyPlus, FolderOutput, Link, Pencil, SpellCheck, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -32,7 +33,7 @@ const firstNodeIsDirectory = computed(
 function onCopyPathClick(): void {
   const paths = props.selectedNodes.map((n) => n.path).join('\n');
   navigator.clipboard.writeText(paths).catch(() => {});
-  toastService.pushToast({ message: 'Path(s) copied to clipboard.', type: 'success' });
+  toastService.pushToast({ message: t('paths_copied'), type: 'success' });
 }
 
 function onCopyLinkClick(): void {
@@ -46,7 +47,7 @@ function onCopyLinkClick(): void {
     })
     .join('\n');
   navigator.clipboard.writeText(links).catch(() => {});
-  toastService.pushToast({ message: 'Link(s) copied to clipboard.', type: 'success' });
+  toastService.pushToast({ message: t('links_copied'), type: 'success' });
 }
 
 function onCopyPublicUrlClick(): void {
@@ -57,11 +58,11 @@ function onCopyPublicUrlClick(): void {
   if (urls) {
     navigator.clipboard.writeText(urls).catch(() => {});
     toastService.pushToast({
-      message: 'Public URL(s) copied to clipboard.',
+      message: t('public_url_copied'),
       type: 'success',
     });
   } else {
-    toastService.pushToast({ message: 'No public URL found.', type: 'warning' });
+    toastService.pushToast({ message: t('no_public_url'), type: 'warning' });
   }
 }
 
@@ -88,70 +89,70 @@ function onClickDelete(): void {
     <button
       type="button"
       class="btn btn-ghost btn-xs"
-      title="Copy To"
+      :title="t('copy_to')"
       :disabled="isReadOnly"
       @click="uiStore.copyModal = ModalState.Opened"
     >
       <CopyPlus :size="14" />
-      <span class="hidden sm:inline">Copy To</span>
+      <span class="hidden sm:inline">{{ t('copy_to') }}</span>
     </button>
 
     <button
       type="button"
       class="btn btn-ghost btn-xs"
-      title="Move To"
+      :title="t('move_to')"
       :disabled="isReadOnly"
       @click="uiStore.moveModal = ModalState.Opened"
     >
       <FolderOutput :size="14" />
-      <span class="hidden sm:inline">Move To</span>
+      <span class="hidden sm:inline">{{ t('move_to') }}</span>
     </button>
 
     <button
       v-if="!hasMultipleSelection"
       type="button"
       class="btn btn-ghost btn-xs"
-      title="Rename"
+      :title="t('rename')"
       :disabled="isReadOnly"
       @click="onClickRename"
     >
       <Pencil :size="14" />
-      <span class="hidden sm:inline">Rename</span>
+      <span class="hidden sm:inline">{{ t('rename') }}</span>
     </button>
 
     <button
       v-else
       type="button"
       class="btn btn-ghost btn-xs"
-      title="Bulk Rename"
+      :title="t('bulk_rename')"
       :disabled="isReadOnly"
       @click="uiStore.bulkRenameModal = ModalState.Opened"
     >
       <SpellCheck :size="14" />
-      <span class="hidden sm:inline">Bulk Rename</span>
+      <span class="hidden sm:inline">{{ t('bulk_rename') }}</span>
     </button>
 
     <button
       v-if="configStore.supportsZip"
       type="button"
       class="btn btn-ghost btn-xs"
-      title="Compress to Zip"
+      :title="t('compress_to_zip')"
       :disabled="isReadOnly"
       @click="uiStore.zipModal = ModalState.Opened"
     >
       <Archive :size="14" />
-      <span class="hidden sm:inline">Zip</span>
+      <span class="hidden sm:inline">{{ t('zip') }}</span>
     </button>
 
     <button
       type="button"
       class="btn btn-ghost btn-xs text-error"
-      title="Delete"
+      :title="t('delete')"
       :disabled="isReadOnly"
       @click="onClickDelete"
     >
       <Trash2 :size="14" />
-      <span class="hidden sm:inline">Delete</span>
+      <span class="hidden sm:inline">{{ t('delete') }}</span>
     </button>
 
     <div class="dropdown dropdown-bottom">
@@ -159,19 +160,19 @@ function onClickDelete(): void {
         tabindex="0"
         role="button"
         class="btn btn-ghost btn-xs"
-        title="Copy Links"
+        :title="t('url')"
       >
         <Link :size="14" />
-        <span class="hidden sm:inline">URL</span>
+        <span class="hidden sm:inline">{{ t('url') }}</span>
       </div>
       <ul
         tabindex="0"
         class="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52"
       >
-        <li><a @click="onCopyPathClick">Copy Path</a></li>
-        <li><a @click="onCopyLinkClick">Copy Link</a></li>
+        <li><a @click="onCopyPathClick">{{ t('copy_path') }}</a></li>
+        <li><a @click="onCopyLinkClick">{{ t('copy_link') }}</a></li>
         <li v-if="selectedNodes.some((n) => (n as TreeNode & { publicUrl?: string }).publicUrl)">
-          <a @click="onCopyPublicUrlClick">Copy Public URL</a>
+          <a @click="onCopyPublicUrlClick">{{ t('copy_public_url') }}</a>
         </li>
       </ul>
     </div>

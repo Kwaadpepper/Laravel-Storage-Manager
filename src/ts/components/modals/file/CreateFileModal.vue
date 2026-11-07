@@ -6,6 +6,7 @@ import { computed, defineAsyncComponent, ref } from 'vue';
 import { X } from 'lucide-vue-next';
 import { SUPPORTED_LANGUAGES } from '@ts/utils/supported-languages';
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import CreateFileAskName from './CreateFileAskName.vue';
 import { useCreateFileViewModel, type ValidationError } from './useCreateFileViewModel';
 
@@ -87,7 +88,7 @@ const fileName = computed(() => {
     >
       <div class="flex items-center justify-between mb-2 shrink-0">
         <h3 class="font-bold text-lg">
-          {{ fileName ? `Create - ${fileName}` : 'Create File' }}
+          {{ fileName ? `${t('create')} - ${fileName}` : t('create_file_title') }}
         </h3>
         <button
           class="btn btn-sm btn-circle btn-ghost"
@@ -121,7 +122,7 @@ const fileName = computed(() => {
             </template>
             <template #fallback>
               <div class="flex items-center justify-center h-full text-base-content/50">
-                Loading editor...
+                {{ t('loading') }}
               </div>
             </template>
           </Suspense>
@@ -133,14 +134,14 @@ const fileName = computed(() => {
             type="button"
             @click="void onCreate()"
           >
-            Create File
+            {{ t('create') }}
           </button>
           <button
             class="btn"
             type="button"
             @click="onClose"
           >
-            Cancel
+            {{ t('cancel') }}
           </button>
         </div>
       </template>
@@ -154,7 +155,7 @@ const fileName = computed(() => {
         type="button"
         @click="onClose"
       >
-        Close
+        {{ t('close') }}
       </button>
     </form>
   </dialog>

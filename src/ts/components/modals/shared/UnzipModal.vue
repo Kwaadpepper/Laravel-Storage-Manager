@@ -4,6 +4,7 @@ defineOptions({
 });
 
 import { useEscapeClose } from '@ts/tools';
+import { t } from '@ts/i18n';
 import { useUnzipViewModel } from './useUnzipViewModel';
 
 const vm = useUnzipViewModel();
@@ -17,7 +18,7 @@ useEscapeClose(vm.close);
   >
     <div class="modal-box max-w-md">
       <h3 class="font-bold text-lg mb-2">
-        Extract ZIP Archive
+        {{ t('unzip_modal_title') }}
       </h3>
       <p class="text-sm text-base-content/70 mb-4">
         Extract <span class="font-mono font-semibold">{{ vm.archiveName.value }}</span>
@@ -71,7 +72,7 @@ useEscapeClose(vm.close);
           :disabled="vm.isSubmitting.value"
           @click="vm.close"
         >
-          Cancel
+          {{ t('cancel') }}
         </button>
         <button
           type="button"
@@ -83,7 +84,7 @@ useEscapeClose(vm.close);
             v-if="vm.isSubmitting.value"
             class="loading loading-spinner loading-xs"
           />
-          Extract Archive
+          {{ t('extract') }}
         </button>
       </div>
     </div>
@@ -95,7 +96,7 @@ useEscapeClose(vm.close);
         type="button"
         @click="vm.close"
       >
-        close
+        {{ t('close') }}
       </button>
     </form>
   </div>

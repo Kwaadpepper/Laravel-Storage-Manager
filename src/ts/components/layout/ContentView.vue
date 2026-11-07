@@ -13,10 +13,12 @@ import {
   useClipboardStore,
   useDiskStore,
   useFileManagerStore,
+  usePickerStore,
   useSearchStore,
   useUiStore,
 } from '@ts/stores';
 import { isDirectory, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
+import { t } from '@ts/i18n';
 import SelectionArea from '@viselect/vanilla';
 import { FolderOpen } from 'lucide-vue-next';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
@@ -28,6 +30,7 @@ const uiStore = useUiStore();
 const searchStore = useSearchStore();
 const clipboardStore = useClipboardStore();
 const diskStore = useDiskStore();
+const pickerStore = usePickerStore();
 
 const navigationService = useService('navigationService');
 const clipboardService = useService('clipboardService');
@@ -40,9 +43,15 @@ const isSearchMode = computed(() => fileManagerStore.currentPath === '/:search')
 const directoryNodes = computed(() =>
   isSearchMode.value ? searchStore.directories : fileManagerStore.directoryNodes
 );
-const fileNodes = computed(() =>
+const rawFileNodes = computed(() =>
   isSearchMode.value ? searchStore.files : fileManagerStore.fileNodes
 );
+const fileNodes = computed(() => {
+  if (!pickerStore.scopedType) {
+    return rawFileNodes.value;
+  }
+  return rawFileNodes.value.filter((file) => pickerStore.isFileAllowed(file));
+});
 
 const sortColumn = ref<SortColumn | null>(null);
 const sortDirection = ref<'asc' | 'desc' | null>(null);
@@ -115,12 +124,12 @@ const bgEntries = computed<ContextualMenuEntry[]>(() => [
   ...(clipboardStore.hasEntries
     ? [
         {
-          label: 'Paste',
+          label: t('paste'),
           onClick: async () => {
             const isCut = clipboardService.getIsConsumingMode();
             const entry = clipboardService.getLastEntry();
             if (!entry || entry.length === 0) {
-              toastService.pushToast({ message: 'Clipboard is empty.', type: 'info' });
+              toastService.pushToast({ message: t('clipboard_empty'), type: 'info' });
               return;
             }
 
@@ -207,6 +216,8 @@ function onListKeyDown(e: KeyboardEvent): void {
 
       if (isDirectory(selectedFile.value)) {
         navigationService.navigateTo(selectedFile.value.path);
+      } else if (pickerStore.isPickerMode) {
+        pickerStore.selectFile(selectedFile.value);
       } else {
         uiStore.targetFilePath = selectedFile.value.path;
         requestAnimationFrame(() => {
@@ -280,6 +291,8 @@ function handleItemClick(
 function handleItemDoubleClick(item: TreeNodeDirectory | TreeNodeFile): void {
   if (isDirectory(item)) {
     navigationService.navigateTo(item.path);
+  } else if (pickerStore.isPickerMode) {
+    pickerStore.selectFile(item);
   } else {
     uiStore.targetFilePath = item.path;
     uiStore.viewFileModal = ModalState.Opened;
@@ -452,27 +465,27 @@ onUnmounted(() => {
           <div class="table-header-group">
             <div class="table-row">
               <SortHeader
-                label="Name"
+                :label="t('name')"
                 :direction="sortColumn === 'name' ? sortDirection : null"
                 @click="handleSort('name')"
               />
               <SortHeader
-                label="Type"
+                :label="t('type')"
                 :direction="sortColumn === 'type' ? sortDirection : null"
                 @click="handleSort('type')"
               />
               <SortHeader
-                label="Size"
+                :label="t('size')"
                 :direction="sortColumn === 'size' ? sortDirection : null"
                 @click="handleSort('size')"
               />
               <SortHeader
-                label="Extension"
+                :label="t('extension')"
                 :direction="sortColumn === 'extension' ? sortDirection : null"
                 @click="handleSort('extension')"
               />
               <SortHeader
-                label="Visibility"
+                :label="t('visibility')"
                 :direction="sortColumn === 'visibility' ? sortDirection : null"
                 @click="handleSort('visibility')"
               />
@@ -501,13 +514,13 @@ onUnmounted(() => {
             class="mb-2"
           />
           <template v-if="isSearchMode">
-            <p>{{ searchStore.isSearching ? 'Searching...' : 'No results' }}</p>
+            <p>{{ searchStore.isSearching ? t('searching') : t('no_results') }}</p>
             <p class="text-sm mt-1">
-              {{ searchStore.scannedPathsCount }} folders scanned
+              {{ t('folders_scanned', { count: searchStore.scannedPathsCount }) }}
             </p>
           </template>
           <p v-else>
-            This folder is empty
+            {{ t('empty_folder') }}
           </p>
         </div>
       </div>
@@ -538,13 +551,13 @@ onUnmounted(() => {
             class="mb-2"
           />
           <template v-if="isSearchMode">
-            <p>{{ searchStore.isSearching ? 'Searching...' : 'No results' }}</p>
+            <p>{{ searchStore.isSearching ? t('searching') : t('no_results') }}</p>
             <p class="text-sm mt-1">
-              {{ searchStore.scannedPathsCount }} folders scanned
+              {{ t('folders_scanned', { count: searchStore.scannedPathsCount }) }}
             </p>
           </template>
           <p v-else>
-            This folder is empty
+            {{ t('empty_folder') }}
           </p>
         </div>
         <div

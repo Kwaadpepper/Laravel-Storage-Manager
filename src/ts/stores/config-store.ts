@@ -17,6 +17,10 @@ export interface RoutesConfig {
 }
 
 export const useConfigStore = defineStore('config', () => {
+  const cspNonce = ref<string | null>(null);
+  const locale = ref('en');
+  const translations = ref<Record<string, string>>({});
+  const routePrefix = ref('/sm');
   const packageName = ref('');
   const packageVersion = ref('');
   const packageLogo = ref('');
@@ -25,6 +29,7 @@ export const useConfigStore = defineStore('config', () => {
   const appAuthors = ref<AppAuthor[]>([]);
   const disks = ref<Disk[]>([]);
   const readOnlyDisks = ref<Disk[]>([]);
+  const allowedExtensions = ref<string[]>([]);
   const routes = ref<RoutesConfig>({
     disksSelect: '',
     disksStats: '',
@@ -42,6 +47,10 @@ export const useConfigStore = defineStore('config', () => {
   const supportsTrash = ref(true);
 
   function initialize(config: AppConfig): void {
+    cspNonce.value = config.cspNonce ?? null;
+    locale.value = config.locale ?? 'en';
+    translations.value = config.translations ?? {};
+    routePrefix.value = config.routePrefix ?? '/sm';
     packageName.value = config.packageName;
     packageVersion.value = config.packageVersion;
     packageLogo.value = config.packageLogo;
@@ -50,6 +59,7 @@ export const useConfigStore = defineStore('config', () => {
     appAuthors.value = config.appAuthors;
     disks.value = config.disks;
     readOnlyDisks.value = config.readOnlyDisks;
+    allowedExtensions.value = config.allowedExtensions ?? [];
     routes.value = config.routes;
     chunkMinSize.value = config.chunkMinSize;
     chunkMaxSize.value = config.chunkMaxSize;
@@ -62,6 +72,10 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   return {
+    cspNonce,
+    locale,
+    translations,
+    routePrefix,
     packageName,
     packageVersion,
     packageLogo,
@@ -70,6 +84,7 @@ export const useConfigStore = defineStore('config', () => {
     appAuthors,
     disks,
     readOnlyDisks,
+    allowedExtensions,
     routes,
     chunkMinSize,
     chunkMaxSize,

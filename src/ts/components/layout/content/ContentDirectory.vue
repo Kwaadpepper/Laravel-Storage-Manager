@@ -6,6 +6,7 @@ import { useContextualMenuRegistration } from '@ts/components/shared/use-context
 import { useService } from '@ts/service-container';
 import { ContextualMenuEntry, ModalState, toAnchorName, useClipboardStore, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
 import { rootPath, TreeNodeDirectory } from '@ts/types';
+import { t } from '@ts/i18n';
 import { Folder, FolderOpen } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -35,30 +36,30 @@ const anchorName = computed(() => toAnchorName(props.item.path));
 const isRoot = computed(() => props.item.path === rootPath());
 
 const entries = computed<ContextualMenuEntry[]>(() => [
-  { label: 'Open', onClick: () => navigationService.navigateTo(props.item.path) },
+  { label: t('open'), onClick: () => navigationService.navigateTo(props.item.path) },
   { separator: true },
   {
-    label: 'Cut',
+    label: t('cut'),
     onClick: () => {
       const paths = Object.values(fileManagerStore.selectedNodes);
       const nodes = paths.length > 0 ? paths : [props.item];
       clipboardService.setConsumingMode(true);
       clipboardService.addEntry(...nodes.map((n) => n.path));
       toastService.pushToast({
-        message: `${nodes.length} item(s) cut to clipboard.`,
+        message: t('items_cut', { count: nodes.length }),
         type: 'info',
       });
     },
   },
   {
-    label: 'Copy',
+    label: t('copy'),
     onClick: () => {
       const paths = Object.values(fileManagerStore.selectedNodes);
       const nodes = paths.length > 0 ? paths : [props.item];
       clipboardService.setConsumingMode(false);
       clipboardService.addEntry(...nodes.map((n) => n.path));
       toastService.pushToast({
-        message: `${nodes.length} item(s) copied to clipboard.`,
+        message: t('items_copied', { count: nodes.length }),
         type: 'info',
       });
     },
@@ -66,12 +67,12 @@ const entries = computed<ContextualMenuEntry[]>(() => [
   ...(clipboardStore.hasEntries
     ? [
         {
-          label: 'Paste',
+          label: t('paste'),
           onClick: async () => {
             const isCut = clipboardService.getIsConsumingMode();
             const entry = clipboardService.getLastEntry();
             if (!entry || entry.length === 0) {
-              toastService.pushToast({ message: 'Clipboard is empty.', type: 'info' });
+              toastService.pushToast({ message: t('clipboard_empty'), type: 'info' });
               return;
             }
 
@@ -97,28 +98,28 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     : []),
   { separator: true },
   {
-    label: 'Copy Path',
+    label: t('copy_path'),
     onClick: () => {
       navigator.clipboard.writeText(props.item.path).catch(() => {});
-      toastService.pushToast({ message: 'Path copied to clipboard.', type: 'success' });
+      toastService.pushToast({ message: t('path_copied'), type: 'success' });
     },
   },
   {
-    label: 'Copy Link',
+    label: t('copy_link'),
     onClick: () => {
       const url = new URL(globalThis.location.href);
       const disk = diskStore.currentDisk;
       const hashPath = `/${disk}${props.item.path}`;
       url.hash = hashPath.split('/').map(encodeURIComponent).join('/');
       navigator.clipboard.writeText(url.toString()).catch(() => {});
-      toastService.pushToast({ message: 'Link copied to clipboard.', type: 'success' });
+      toastService.pushToast({ message: t('link_copied'), type: 'success' });
     },
   },
   { separator: true },
   ...(configStore.supportsZip
     ? [
         {
-          label: 'Compress to Zip...',
+          label: t('compress_to_zip'),
           onClick: () => {
             if (!fileManagerStore.selectedNodes[props.item.path]) {
               fileManagerStore.selectNodes(props.item);
@@ -129,7 +130,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       ]
     : []),
   {
-    label: 'Rename',
+    label: t('rename'),
     onClick: () => {
       if (!fileManagerStore.selectedNodes[props.item.path]) {
         fileManagerStore.selectNodes(props.item);
@@ -139,7 +140,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     },
   },
   {
-    label: 'Delete',
+    label: t('delete'),
     onClick: () => {
       if (!fileManagerStore.selectedNodes[props.item.path]) {
         fileManagerStore.selectNodes(props.item);

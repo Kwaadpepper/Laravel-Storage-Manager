@@ -1,12 +1,14 @@
 import { uploadInitSchema, uploadSuccessSchema } from '@ts/schemas/file-manager';
 import { ConfigStore } from '@ts/stores/config-store';
 import { FileManagerStore } from '@ts/stores/file-manager-store';
+import { PickerStore } from '@ts/stores/picker-store';
 import { UploadItem, UploadStore } from '@ts/stores/upload-store';
 import { uniqueId } from '@ts/tools';
 import SparkMD5 from 'spark-md5';
 import { ApiService } from './api-service';
 import { DiskService } from './disk-service';
 import { NavigationService } from './navigation-service';
+import { ToastService } from './toast-service';
 
 const MAX_CONCURRENT_UPLOADS = 2;
 
@@ -21,6 +23,8 @@ export class UploadService {
     private readonly configStore: ConfigStore,
     private readonly fileManagerStore: FileManagerStore,
     private readonly diskService?: DiskService,
+    private readonly pickerStore?: PickerStore,
+    private readonly toastService?: ToastService,
   ) {
     window.addEventListener('beforeunload', (e) => {
       if (this.activeUploads.size > 0) {
@@ -36,7 +40,34 @@ export class UploadService {
     disk: string,
     duplicatePolicy?: 'overwrite' | 'auto_rename' | 'error'
   ): void {
+    const allowed = this.configStore.allowedExtensions.map((ext) =>
+      ext.toLowerCase().replace(/^\./, '').trim()
+    );
+
     files.forEach((file) => {
+      const ext = file.name.includes('.')
+        ? (file.name.split('.').pop()?.toLowerCase().trim() ?? '')
+        : '';
+
+      if (allowed.length > 0 && (!ext || !allowed.includes(ext))) {
+        this.toastService?.pushToast({
+          message: `File "${file.name}" has an unsupported extension.`,
+          type: 'error',
+        });
+        return;
+      }
+
+      if (
+        this.pickerStore?.scopedType &&
+        !this.pickerStore.isFileAllowed({ name: file.name, extension: ext })
+      ) {
+        this.toastService?.pushToast({
+          message: `File "${file.name}" does not match the required type (${this.pickerStore.scopedType}).`,
+          type: 'error',
+        });
+        return;
+      }
+
       this.uploadStore.addUpload({
         id: uniqueId(),
         file,
