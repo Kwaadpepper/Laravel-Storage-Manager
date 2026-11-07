@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Str;
+
 return [
     'enabled'      => filter_var(env('STORAGE_MANAGER_ENABLED', true), FILTER_VALIDATE_BOOL),
 
@@ -12,7 +14,7 @@ return [
 
     'route' => [
         'prefix'     => env('STORAGE_MANAGER_ROUTE_PREFIX', 'sm'),
-        'middleware' => str(env('STORAGE_MANAGER_ROUTE_MIDDLEWARE', ''))
+        'middleware' => Str::of(env('STORAGE_MANAGER_ROUTE_MIDDLEWARE', ''))
             ->explode(',')->map(
                 fn (string $middleware) => mb_trim($middleware)
             )->filter()->values()->all(),
@@ -26,9 +28,14 @@ return [
         'temp_path'           => env('STORAGE_MANAGER_UPLOAD_TEMP_PATH', null),
         'duplicate_policy'    => env('STORAGE_MANAGER_UPLOAD_DUPLICATE_POLICY', 'auto_rename'),
         'sanitize_filenames'  => filter_var(env('STORAGE_MANAGER_UPLOAD_SANITIZE_FILENAMES', true), FILTER_VALIDATE_BOOL),
+        'allowed_extensions'  => Str::of(env(
+            'STORAGE_MANAGER_ALLOWED_EXTENSIONS',
+            'jpg,jpeg,png,gif,webp,avif,pdf,mp4,webm,mp3,wav,ogg,txt,csv,doc,docx,xls,xlsx,zip'
+        ))->explode(',')->map(fn (string $ext): string => strtolower(mb_trim($ext)))->filter()->values()->all(),
     ],
 
     'frontend' => [
+        'csp_nonce'  => env('STORAGE_MANAGER_CSP_NONCE', null),
         'dev_server' => [
             'enabled' => filter_var(env('STORAGE_MANAGER_USE_DEV_SERVER', false), FILTER_VALIDATE_BOOL),
             'url'     => env('STORAGE_MANAGER_DEV_SERVER_URL', 'http://localhost:5173'),
@@ -37,7 +44,7 @@ return [
 
     'disks'      => [
         'default'       => env('STORAGE_MANAGER_DEFAULT_DISK', 'local'),
-        'available'     => str(env('STORAGE_MANAGER_DISKS', ''))
+        'available'     => Str::of(env('STORAGE_MANAGER_DISKS', ''))
             ->explode(',')->map(
                 fn (string $diskName) => mb_trim($diskName)
             )->filter()->values()->all(),
