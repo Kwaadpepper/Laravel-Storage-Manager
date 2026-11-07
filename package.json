@@ -6,7 +6,9 @@
     "dev": "NODE_OPTIONS=--max-old-space-size=6144 vite",
     "build": "vue-tsc -b && vite build",
     "lint": "eslint .",
+    "lint:ts": "eslint .",
     "test": "bun test",
+    "test:run": "bun test",
     "preview": "vite preview"
   },
   "dependencies": {

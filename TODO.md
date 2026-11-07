@@ -66,7 +66,7 @@
 
 - [x] Events (upload, delete, rename, move...)
 - [ ] WYSIWYG integration (CKEditor 4 - 5, Tiptap, Tinymce 3 - 4 - 5, Standalone - provide plugins)
-- [ ] File type scoping when opening via integration (`type=image|audio|video|archive`)
+- [x] File type scoping when opening via integration (`type=image|audio|video|archive`)
 - [ ] Multi-panel view (side by side)
 
 ## Help & documentation
@@ -76,10 +76,10 @@
 
 ## Technical
 
-- [ ] i18n
-- [ ] Refactor
-- [ ] Tests
-- [ ] CSP nonce support on embedded assets
+- [x] i18n
+- [x] Refactor
+- [x] Tests
+- [x] CSP nonce support on embedded assets
 
 ## Community & documentation
 

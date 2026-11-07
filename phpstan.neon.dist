@@ -1,13 +1,13 @@
 includes:
     - vendor/pestphp/pest/extension.neon
     - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan/conf/bleedingEdge.neon
 
 parameters:
     paths:
         - src
 
-    # Level 9 is the highest level
-    level: 9
+    level: 10
 
     excludePaths:
         - src/config
