@@ -8,27 +8,27 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 
 describe('PathTreeDirectory', function (): void {
     it('stores path and hasSubDirectories when path starts with a slash', function (): void {
-        // Given
+        // GIVEN
         $pathString        = '/documents/reports';
         $path              = new Path($pathString);
         $hasSubDirectories = true;
 
-        // When
+        // WHEN
         $dir = new PathTreeDirectory($path, $hasSubDirectories, PathVisibility::PUBLIC);
 
-        // Then
+        // THEN
         expect($dir->path)->toBe($path);
         expect($dir->hasSubDirectories)->toBeTrue();
     });
 
     it('accepts a path with no sub-directories', function (): void {
-        // Given
+        // GIVEN
         $path = new Path('/images');
 
-        // When
+        // WHEN
         $dir = new PathTreeDirectory($path, false, PathVisibility::PUBLIC);
 
-        // Then
+        // THEN
         expect($dir->hasSubDirectories)->toBeFalse();
     });
 });

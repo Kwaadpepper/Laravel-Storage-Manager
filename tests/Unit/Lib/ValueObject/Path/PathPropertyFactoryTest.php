@@ -10,7 +10,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathVisibility;
 describe('PathPropertyFactory', function (): void {
     describe('fromArray() - type file', function (): void {
         it('returns a FilePathProperties for type file with all explicit fields', function (): void {
-            // Given
+            // GIVEN
             $metadata = [
                 'type'       => 'file',
                 'path'       => '/uploads/photo.jpg',
@@ -23,10 +23,10 @@ describe('PathPropertyFactory', function (): void {
                 'visibility' => 'public',
             ];
 
-            // When
+            // WHEN
             $result = PathPropertyFactory::fromArray($metadata);
 
-            // Then
+            // THEN
             expect($result)->toBeInstanceOf(FilePathProperties::class);
             expect($result->path->value)->toBe('/uploads/photo.jpg');
             expect($result->basename)->toBe('photo.jpg');
@@ -38,17 +38,17 @@ describe('PathPropertyFactory', function (): void {
         });
 
         it('falls back to defaults when optional file fields are absent', function (): void {
-            // Given
+            // GIVEN
             $metadata = [
                 'type'      => 'file',
                 'path'      => '/uploads/photo.jpg',
                 'timestamp' => 0,
             ];
 
-            // When
+            // WHEN
             $result = PathPropertyFactory::fromArray($metadata);
 
-            // Then
+            // THEN
             expect($result)->toBeInstanceOf(FilePathProperties::class);
             expect($result->extension)->toBe('');
             expect($result->filename)->toBe('');
@@ -57,32 +57,32 @@ describe('PathPropertyFactory', function (): void {
         });
 
         it('parses a Unix timestamp integer', function (): void {
-            // Given
+            // GIVEN
             $timestamp = 1_700_000_000;
             $metadata  = ['type' => 'file', 'path' => '/file.txt', 'timestamp' => $timestamp];
 
-            // When
+            // WHEN
             $result = PathPropertyFactory::fromArray($metadata);
 
-            // Then
+            // THEN
             expect($result->timestamp->getTimestamp())->toBe($timestamp);
         });
 
         it('parses a datetime string as timestamp', function (): void {
-            // Given
+            // GIVEN
             $metadata = ['type' => 'file', 'path' => '/file.txt', 'timestamp' => '2024-01-15 10:00:00'];
 
-            // When
+            // WHEN
             $result = PathPropertyFactory::fromArray($metadata);
 
-            // Then
+            // THEN
             expect($result->timestamp)->toBeInstanceOf(\DateTimeImmutable::class);
         });
     });
 
     describe('fromArray() - type dir', function (): void {
         it('returns a DirectoryPathProperties for type dir with all explicit fields', function (): void {
-            // Given
+            // GIVEN
             $metadata = [
                 'type'       => 'dir',
                 'path'       => '/documents',
@@ -92,10 +92,10 @@ describe('PathPropertyFactory', function (): void {
                 'visibility' => 'private',
             ];
 
-            // When
+            // WHEN
             $result = PathPropertyFactory::fromArray($metadata);
 
-            // Then
+            // THEN
             expect($result)->toBeInstanceOf(DirectoryPathProperties::class);
             expect($result->path->value)->toBe('/documents');
             expect($result->basename)->toBe('documents');
@@ -104,13 +104,13 @@ describe('PathPropertyFactory', function (): void {
         });
 
         it('falls back to defaults when optional directory fields are absent', function (): void {
-            // Given
+            // GIVEN
             $metadata = ['type' => 'dir', 'path' => '/documents', 'timestamp' => 0];
 
-            // When
+            // WHEN
             $result = PathPropertyFactory::fromArray($metadata);
 
-            // Then
+            // THEN
             expect($result)->toBeInstanceOf(DirectoryPathProperties::class);
             expect($result->visibility)->toBeNull();
         });
@@ -118,38 +118,50 @@ describe('PathPropertyFactory', function (): void {
 
     describe('fromArray() - error cases', function (): void {
         it('throws InvalidArgumentException when type field is missing', function (): void {
-            // Given
+            // GIVEN
             $metadata = ['path' => '/file.txt'];
 
-            // When / Then
-            expect(fn () => PathPropertyFactory::fromArray($metadata))
+            // WHEN
+            $action = fn () => PathPropertyFactory::fromArray($metadata);
+
+            // THEN
+            expect($action)
                 ->toThrow(\InvalidArgumentException::class, "Le champ 'type' est obligatoire.");
         });
 
         it('throws InvalidArgumentException for an unknown type', function (): void {
-            // Given
+            // GIVEN
             $metadata = ['type' => 'symlink', 'path' => '/link', 'timestamp' => 0];
 
-            // When / Then
-            expect(fn () => PathPropertyFactory::fromArray($metadata))
+            // WHEN
+            $action = fn () => PathPropertyFactory::fromArray($metadata);
+
+            // THEN
+            expect($action)
                 ->toThrow(\InvalidArgumentException::class, 'Type de chemin invalide : symlink');
         });
 
         it('throws InvalidArgumentException for an invalid visibility', function (): void {
-            // Given
+            // GIVEN
             $metadata = ['type' => 'file', 'path' => '/file.txt', 'timestamp' => 0, 'visibility' => 'world'];
 
-            // When / Then
-            expect(fn () => PathPropertyFactory::fromArray($metadata))
+            // WHEN
+            $action = fn () => PathPropertyFactory::fromArray($metadata);
+
+            // THEN
+            expect($action)
                 ->toThrow(\InvalidArgumentException::class, 'Visibilité invalide : world');
         });
 
         it('throws InvalidArgumentException for an unparseable timestamp string', function (): void {
-            // Given
+            // GIVEN
             $metadata = ['type' => 'file', 'path' => '/file.txt', 'timestamp' => 'not-a-date-xyz!!!'];
 
-            // When / Then
-            expect(fn () => PathPropertyFactory::fromArray($metadata))
+            // WHEN
+            $action = fn () => PathPropertyFactory::fromArray($metadata);
+
+            // THEN
+            expect($action)
                 ->toThrow(\InvalidArgumentException::class);
         });
     });

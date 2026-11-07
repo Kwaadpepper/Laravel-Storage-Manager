@@ -8,7 +8,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathVisibility;
 
 describe('FilePathProperties', function (): void {
     it('stores all constructor arguments as readonly properties', function (): void {
-        // Given
+        // GIVEN
         $path       = new Path('/uploads/photo.jpg');
         $basename   = 'photo.jpg';
         $dirname    = '/uploads';
@@ -18,10 +18,10 @@ describe('FilePathProperties', function (): void {
         $timestamp  = new \DateTimeImmutable('2024-06-01 08:30:00');
         $visibility = PathVisibility::PUBLIC;
 
-        // When
+        // WHEN
         $props = new FilePathProperties($path, $basename, $dirname, $extension, $filename, $size, $timestamp, $visibility);
 
-        // Then
+        // THEN
         expect($props->path)->toBe($path);
         expect($props->basename)->toBe($basename);
         expect($props->dirname)->toBe($dirname);
@@ -33,36 +33,38 @@ describe('FilePathProperties', function (): void {
     });
 
     it('accepts a zero-byte file size', function (): void {
-        // Given / When
-        $props = new FilePathProperties(
-            new Path('/empty.txt'),
-            'empty.txt',
-            '/',
-            'txt',
-            'empty',
-            0,
-            new \DateTimeImmutable(),
-            PathVisibility::PRIVATE
-        );
+        // GIVEN
+        $path       = new Path('/empty.txt');
+        $basename   = 'empty.txt';
+        $dirname    = '/';
+        $extension  = 'txt';
+        $filename   = 'empty';
+        $size       = 0;
+        $timestamp  = new \DateTimeImmutable();
+        $visibility = PathVisibility::PRIVATE;
 
-        // Then
+        // WHEN
+        $props = new FilePathProperties($path, $basename, $dirname, $extension, $filename, $size, $timestamp, $visibility);
+
+        // THEN
         expect($props->size)->toBe(0);
     });
 
     it('accepts private visibility', function (): void {
-        // Given / When
-        $props = new FilePathProperties(
-            new Path('/secret.pdf'),
-            'secret.pdf',
-            '/',
-            'pdf',
-            'secret',
-            1024,
-            new \DateTimeImmutable(),
-            PathVisibility::PRIVATE
-        );
+        // GIVEN
+        $path       = new Path('/secret.pdf');
+        $basename   = 'secret.pdf';
+        $dirname    = '/';
+        $extension  = 'pdf';
+        $filename   = 'secret';
+        $size       = 1024;
+        $timestamp  = new \DateTimeImmutable();
+        $visibility = PathVisibility::PRIVATE;
 
-        // Then
+        // WHEN
+        $props = new FilePathProperties($path, $basename, $dirname, $extension, $filename, $size, $timestamp, $visibility);
+
+        // THEN
         expect($props->visibility)->toBe(PathVisibility::PRIVATE);
     });
 });

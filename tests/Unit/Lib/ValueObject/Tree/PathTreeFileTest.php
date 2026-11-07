@@ -8,17 +8,17 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeFile;
 
 describe('PathTreeFile Value Object', function (): void {
     it('creates a valid PathTreeFile with visibility and url', function (): void {
-        // Given
+        // GIVEN
         $path       = new Path('/docs/readme.txt');
         $size       = 1024;
         $extension  = 'txt';
         $visibility = PathVisibility::PUBLIC;
         $publicUrl  = 'https://example.com/docs/readme.txt';
 
-        // When
+        // WHEN
         $file = new PathTreeFile($path, $size, $extension, $visibility, $publicUrl);
 
-        // Then
+        // THEN
         expect($file->path->value)->toBe('/docs/readme.txt');
         expect($file->size)->toBe(1024);
         expect($file->extension)->toBe('txt');
@@ -27,15 +27,15 @@ describe('PathTreeFile Value Object', function (): void {
     });
 
     it('creates a valid PathTreeFile with null visibility and url', function (): void {
-        // Given
+        // GIVEN
         $path      = new Path('/secret/data.bin');
         $size      = 2048;
         $extension = 'bin';
 
-        // When
+        // WHEN
         $file = new PathTreeFile($path, $size, $extension, null, null);
 
-        // Then
+        // THEN
         expect($file->path->value)->toBe('/secret/data.bin');
         expect($file->size)->toBe(2048);
         expect($file->extension)->toBe('bin');

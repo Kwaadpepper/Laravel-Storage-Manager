@@ -10,15 +10,26 @@ readonly class FilePathProperties implements PathProperties
 
     public bool $isFile;
 
+    /**
+     * @param  array{width: int, height: int, aspectRatio: string}|null  $dimensions
+     * @param  array<string, mixed>|null  $exif
+     * @param  array<string, string|int|float|bool>|null  $rawExif
+     */
     public function __construct(
-        public readonly Path $path,
-        public readonly string $basename,
-        public readonly string $dirname,
-        public readonly string $extension,
-        public readonly string $filename,
-        public readonly int $size,
-        public readonly \DateTimeInterface $timestamp,
-        public readonly ?PathVisibility $visibility
+        public Path $path,
+        public string $basename,
+        public string $dirname,
+        public string $extension,
+        public string $filename,
+        public int $size,
+        public \DateTimeInterface $timestamp,
+        public ?PathVisibility $visibility,
+        public ?string $mimeType = null,
+        public ?string $publicUrl = null,
+        public ?string $checksum = null,
+        public ?array $dimensions = null,
+        public ?array $exif = null,
+        public ?array $rawExif = null,
     ) {
         $this->isFile      = true;
         $this->isDirectory = false;

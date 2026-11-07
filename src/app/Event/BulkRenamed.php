@@ -17,6 +17,14 @@ class BulkRenamed implements SmEvent
         public readonly array $renamed,
         public readonly ?Authenticatable $user = null,
     ) {
+        foreach ($this->renamed as $item) {
+            if (! isset($item['from'], $item['to'])) {
+                throw new \InvalidArgumentException('Each renamed item must have "from" and "to" keys.');
+            }
+            if (! is_string($item['from']) || ! is_string($item['to'])) {
+                throw new \InvalidArgumentException('Each renamed item must have "from" and "to" as strings.');
+            }
+        }
     }
 
     /**

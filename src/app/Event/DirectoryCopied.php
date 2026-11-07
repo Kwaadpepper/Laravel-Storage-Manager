@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Event;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Arr;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 
 /** @implements SmEvent<array{'source_path': string, 'target_path': string}> */
@@ -21,8 +22,8 @@ class DirectoryCopied implements SmEvent
     {
         return new self(
             user: $user,
-            sourcePath: $parameters['source_path'],
-            targetPath: $parameters['target_path']
+            sourcePath: Arr::string($parameters, 'source_path'),
+            targetPath: Arr::string($parameters, 'target_path')
         );
     }
 }

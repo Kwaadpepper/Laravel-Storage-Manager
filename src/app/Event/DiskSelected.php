@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Event;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Arr;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 
 /** @implements SmEvent<array{disk: string}> */
@@ -20,7 +21,7 @@ final class DiskSelected implements SmEvent
     {
         return new self(
             user: $user,
-            disk: $parameters['disk'],
+            disk: Arr::string($parameters, 'disk'),
         );
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Enum;
 
+use Illuminate\Support\Facades\Lang;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainErrorCode;
 
 enum FileOperationError: int implements DomainErrorCode
@@ -23,6 +24,8 @@ enum FileOperationError: int implements DomainErrorCode
     case TRASH_ITEM_NOT_FOUND          = 1013;
     case TRASH_DISABLED                = 1014;
     case TRASH_ITEM_LOCKED             = 1015;
+    case FORBIDDEN_FILE_EXTENSION      = 1016;
+    case FORBIDDEN_FILE_MIME           = 1017;
 
     /** @var array<int, string> */
     private const array MESSAGES = [
@@ -41,10 +44,22 @@ enum FileOperationError: int implements DomainErrorCode
         1013 => 'The trashed item was not found.',
         1014 => 'Trash is disabled.',
         1015 => 'The trashed item is currently being processed.',
+        1016 => 'The file extension is not allowed.',
+        1017 => 'The file content does not match its extension or is forbidden.',
     ];
 
     public function message(): string
     {
+        $key = "storage-manager::storage-manager.domain_error.{$this->value}";
+
+        try {
+            if (Lang::has($key)) {
+                return (string) Lang::get($key);
+            }
+        } catch (\Throwable) {
+            return self::MESSAGES[$this->value] ?? '';
+        }
+
         return self::MESSAGES[$this->value] ?? '';
     }
 

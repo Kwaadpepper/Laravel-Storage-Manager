@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Event;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Arr;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 
 /** @implements SmEvent<array{'path': string, 'destination': string}> */
@@ -23,8 +24,8 @@ class ArchiveExtracted implements SmEvent
     public static function make(?Authenticatable $user, array $parameters): self
     {
         return new self(
-            path: $parameters['path'],
-            destination: $parameters['destination'],
+            path: Arr::string($parameters, 'path'),
+            destination: Arr::string($parameters, 'destination'),
             user: $user
         );
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Event;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Arr;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 
 /** @implements SmEvent<array{'old_path': string, 'new_path': string}> */
@@ -21,8 +22,8 @@ class FileRenamed implements SmEvent
     {
         return new self(
             user: $user,
-            oldPath: $parameters['old_path'],
-            newPath: $parameters['new_path']
+            oldPath: Arr::string($parameters, 'old_path'),
+            newPath: Arr::string($parameters, 'new_path')
         );
     }
 }

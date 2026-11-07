@@ -11,7 +11,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
 
 describe('PathTreeLevel', function (): void {
     it('stores a list of PathTreeDirectory instances', function (): void {
-        // Given
+        // GIVEN
         $directories = [
             new PathTreeDirectory(new Path('/images'), false, PathVisibility::PUBLIC),
             new PathTreeDirectory(new Path('/documents'), true, PathVisibility::PRIVATE),
@@ -20,32 +20,35 @@ describe('PathTreeLevel', function (): void {
             new PathTreeFile(new Path('/documents/report.pdf'), 1024, 'pdf', PathVisibility::PUBLIC),
         ];
 
-        // When
+        // WHEN
         $level = new PathTreeLevel($directories, $files);
 
-        // Then
+        // THEN
         expect($level->directories)->toBe($directories);
     });
 
     it('accepts an empty directories list', function (): void {
-        // Given
+        // GIVEN
         $directories = [];
         $files       = [];
 
-        // When
+        // WHEN
         $level = new PathTreeLevel($directories, $files);
 
-        // Then
+        // THEN
         expect($level->directories)->toBeEmpty();
     });
 
     it('throws a DomainException when the list contains a non-PathTreeDirectory item', function (): void {
-        // Given
+        // GIVEN
         $invalidList = [new PathTreeDirectory(new Path('/valid'), false, PathVisibility::PUBLIC), 'not-a-directory'];
         $files       = [];
 
-        // When / Then
-        expect(fn () => new PathTreeLevel($invalidList, $files))
+        // WHEN
+        $action = fn (): PathTreeLevel => new PathTreeLevel($invalidList, $files);
+
+        // THEN
+        expect($action)
             ->toThrow(IllegalDomainStateException::class, 'All items in directories must be instances of PathTreeDirectory.');
     });
 });

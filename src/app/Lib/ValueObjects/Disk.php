@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects;
 
-use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
+use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 
 final class Disk
@@ -25,8 +25,13 @@ final class Disk
         }
     }
 
-    public function getStorageDisk(): Filesystem
+    /**
+     * @throws FileOperationException
+     */
+    public function assertWritable(): void
     {
-        return Storage::disk($this->name);
+        if ($this->readOnly) {
+            throw new FileOperationException(FileOperationError::READ_ONLY_DISK);
+        }
     }
 }

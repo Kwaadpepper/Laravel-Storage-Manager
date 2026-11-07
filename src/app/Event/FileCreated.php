@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Event;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Arr;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 
 /** @implements SmEvent<array{'path': string}> */
@@ -20,7 +21,7 @@ class FileCreated implements SmEvent
     {
         return new self(
             user: $user,
-            path: $parameters['path']
+            path: Arr::string($parameters, 'path')
         );
     }
 }

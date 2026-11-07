@@ -8,17 +8,17 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathVisibility;
 
 describe('DirectoryPathProperties', function (): void {
     it('stores all constructor arguments as readonly properties', function (): void {
-        // Given
+        // GIVEN
         $path       = new Path('/documents');
         $basename   = 'documents';
         $dirname    = '/';
         $timestamp  = new \DateTimeImmutable('2024-01-15 10:00:00');
         $visibility = PathVisibility::PUBLIC;
 
-        // When
+        // WHEN
         $props = new DirectoryPathProperties($path, $basename, $dirname, $timestamp, $visibility);
 
-        // Then
+        // THEN
         expect($props->path)->toBe($path);
         expect($props->basename)->toBe($basename);
         expect($props->dirname)->toBe($dirname);
@@ -27,16 +27,17 @@ describe('DirectoryPathProperties', function (): void {
     });
 
     it('accepts private visibility', function (): void {
-        // Given
-        $props = new DirectoryPathProperties(
-            new Path('/private'),
-            'private',
-            '/',
-            new \DateTimeImmutable(),
-            PathVisibility::PRIVATE
-        );
+        // GIVEN
+        $path       = new Path('/private');
+        $basename   = 'private';
+        $dirname    = '/';
+        $timestamp  = new \DateTimeImmutable();
+        $visibility = PathVisibility::PRIVATE;
 
-        // When / Then
+        // WHEN
+        $props = new DirectoryPathProperties($path, $basename, $dirname, $timestamp, $visibility);
+
+        // THEN
         expect($props->visibility)->toBe(PathVisibility::PRIVATE);
     });
 });

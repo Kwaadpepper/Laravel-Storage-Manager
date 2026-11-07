@@ -5,9 +5,32 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Dto\BasicOperations;
 
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathProperties;
 
 final readonly class PropertiesDto implements Dto
 {
+    public static function fromPathProperties(PathProperties $properties): self
+    {
+        return new self(
+            path: (string) $properties->path,
+            basename: $properties->basename,
+            dirname: $properties->dirname,
+            timestamp: $properties->timestamp,
+            visibility: $properties->visibility?->value,
+            isFile: $properties->isFile,
+            isDirectory: $properties->isDirectory,
+            extension: $properties instanceof FilePathProperties ? $properties->extension : null,
+            size: $properties instanceof FilePathProperties ? $properties->size : null,
+            mimeType: $properties instanceof FilePathProperties ? $properties->mimeType : null,
+            publicUrl: $properties instanceof FilePathProperties ? $properties->publicUrl : null,
+            checksum: $properties instanceof FilePathProperties ? $properties->checksum : null,
+            dimensions: $properties instanceof FilePathProperties ? $properties->dimensions : null,
+            exif: $properties instanceof FilePathProperties ? $properties->exif : null,
+            rawExif: $properties instanceof FilePathProperties ? $properties->rawExif : null,
+        );
+    }
+
     /**
      * @param  array{width: int, height: int, aspectRatio: string}|null  $dimensions
      * @param  array<string, mixed>|null  $exif
