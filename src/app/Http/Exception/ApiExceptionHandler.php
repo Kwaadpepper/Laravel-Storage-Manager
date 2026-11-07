@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Exception;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\DomainErrorDto;
@@ -16,6 +17,13 @@ final class ApiExceptionHandler
 {
     public function toApiResponse(\Throwable $exception): ApiResponse
     {
+        if ($exception instanceof AuthorizationException) {
+            return ApiResponse::json(
+                new ErrorDto($exception->getMessage() ?: 'This action is unauthorized.'),
+                ApiResponse::HTTP_FORBIDDEN
+            );
+        }
+
         if ($exception instanceof ValidationException) {
             return ApiResponse::json(
                 new FieldErrorsDto($this->normalizeValidationErrors($exception)),
@@ -51,6 +59,15 @@ final class ApiExceptionHandler
         /** @var array<string, mixed> $content */
         $exceptionClass = $content['exception'] ?? null;
         $apiResponse    = null;
+
+        if (is_string($exceptionClass) && is_a($exceptionClass, AuthorizationException::class, true)) {
+            $message = $content['message'] ?? 'This action is unauthorized.';
+
+            return ApiResponse::json(
+                new ErrorDto(is_string($message) ? $message : 'This action is unauthorized.'),
+                ApiResponse::HTTP_FORBIDDEN
+            );
+        }
 
         if (is_string($exceptionClass) && is_a($exceptionClass, DomainException::class, true)) {
             $apiResponse = ApiResponse::json(

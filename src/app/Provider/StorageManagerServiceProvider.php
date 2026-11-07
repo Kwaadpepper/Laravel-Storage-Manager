@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Provider;
 
 use Composer\InstalledVersions;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
@@ -18,13 +19,15 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Kwaadpepper\LaravelStorageManager\Acl\AclManager;
+use Kwaadpepper\LaravelStorageManager\ActivityLog\ActivityLogger;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanOrphanedUploads;
 use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanTrash;
+use Kwaadpepper\LaravelStorageManager\Contract\Executor;
 use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 use Kwaadpepper\LaravelStorageManager\Factory\StorageManagerConfigFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher as LSMEventDispatcher;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileMetadataExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileSearchService;
@@ -41,8 +44,10 @@ use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadPathResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
+use Kwaadpepper\LaravelStorageManager\Service\ActionExecutorService;
 use Kwaadpepper\LaravelStorageManager\Service\ArchiveService;
 use Kwaadpepper\LaravelStorageManager\Service\AuthService;
+use Kwaadpepper\LaravelStorageManager\Service\DirectoryListingService;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 use Kwaadpepper\LaravelStorageManager\Service\ThumbnailService;
 use Kwaadpepper\LaravelStorageManager\Service\TrashService;
@@ -63,6 +68,8 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->loadViews();
         $this->loadRoutes();
         $this->publishAssets();
+
+        $this->app->make(AclManager::class)->registerDefaultGates($this->app->make(Gate::class));
 
         Route::bind('uploadId', function (string $value): UploadId {
             try {
@@ -250,21 +257,36 @@ class StorageManagerServiceProvider extends ServiceProvider
             )
         );
         $this->app->singleton(
-            FileManager::class,
-            fn (Application $app): FileManager => new FileManager(
-                $app->make(PathNormalizer::class),
-                $app->make(FilePropertyExtractor::class),
-                $app->make(FileMetadataExtractor::class),
-                $app->make(StorageManagerConfig::class),
-                $app->make(StorageGateway::class),
-                $app->make(MimeTypeChecker::class),
-                $app->make(TrashService::class),
+            AclManager::class,
+            fn (Application $app): AclManager => new AclManager(
+                $app->make(StorageManagerConfig::class)
+            )
+        );
+        $this->app->singleton(
+            ActivityLogger::class,
+            fn (Application $app): ActivityLogger => new ActivityLogger(
                 $app->make(LSMEventDispatcher::class),
-                $app->make(FileSearchService::class),
-                $app->make(FileTransferService::class),
                 $app->make(LoggerInterface::class)
             )
         );
+        $this->app->singleton(
+            DirectoryListingService::class,
+            fn (Application $app): DirectoryListingService => new DirectoryListingService(
+                $app->make(PathNormalizer::class),
+                $app->make(StorageGateway::class),
+                $app->make(StorageManagerConfig::class)
+            )
+        );
+        $this->app->singleton(
+            ActionExecutorService::class,
+            fn (Application $app): ActionExecutorService => new ActionExecutorService(
+                $app->make(Gate::class),
+                $app->make(ActivityLogger::class),
+                $app->make(AuthService::class),
+                $app->make(LoggerInterface::class)
+            )
+        );
+        $this->app->bind(Executor::class, ActionExecutorService::class);
         $this->app->singleton(
             UploadPathResolver::class,
             fn (Application $app): UploadPathResolver => new UploadPathResolver(

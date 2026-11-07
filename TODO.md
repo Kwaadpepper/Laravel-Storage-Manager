@@ -57,10 +57,10 @@
 
 ## Access control
 
-- [ ] ACL (read-only mode, per-disk permissions)
+- [x] ACL (read-only mode, per-disk permissions)
 - [ ] Per-disk configuration (allowed extensions, max upload size...)
-- [ ] Multi-user mode: private folder per user + shared folder (configurable)
-- [ ] Activity log (who uploaded, deleted, renamed and when)
+- [x] Multi-user mode: private folder per user + shared folder (configurable)
+- [x] Activity log (who uploaded, deleted, renamed and when)
 
 ## Events & integrations
 

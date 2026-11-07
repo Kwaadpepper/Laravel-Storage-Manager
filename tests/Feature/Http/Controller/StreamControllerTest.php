@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Acl\SmAbility;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
 describe('StreamController', function (): void {
     it('streams an existing file completely with 200 OK and inline disposition', function (): void {
@@ -213,5 +217,41 @@ describe('StreamController', function (): void {
 
         // THEN
         $response->assertStatus(404);
+    });
+
+    it('returns 403 Forbidden when VIEW ability is denied for stream', function (): void {
+        // GIVEN
+        Storage::fake('local');
+        Storage::disk('local')->put('videos/sample.mp4', 'content');
+        Gate::define(SmAbility::VIEW, function (?object $user, Disk $disk, ?Path $path): bool {
+            return false;
+        });
+
+        // WHEN
+        $response = $this->get(route('storage-manager.stream', [
+            'disk' => 'local',
+            'path' => 'videos/sample.mp4',
+        ]));
+
+        // THEN
+        $response->assertStatus(403);
+    });
+
+    it('returns 403 Forbidden when VIEW ability is denied for download', function (): void {
+        // GIVEN
+        Storage::fake('local');
+        Storage::disk('local')->put('docs/sample.txt', 'content');
+        Gate::define(SmAbility::VIEW, function (?object $user, Disk $disk, ?Path $path): bool {
+            return false;
+        });
+
+        // WHEN
+        $response = $this->get(route('storage-manager.download', [
+            'disk' => 'local',
+            'path' => 'docs/sample.txt',
+        ]));
+
+        // THEN
+        $response->assertStatus(403);
     });
 });

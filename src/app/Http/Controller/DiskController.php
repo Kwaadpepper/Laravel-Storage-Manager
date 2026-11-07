@@ -5,31 +5,45 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Http\Controller;
 
 use Illuminate\Routing\Controller;
+use Kwaadpepper\LaravelStorageManager\Contract\Executor;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskListDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\SelectedDiskDto;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Disk\DiskStatsRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Disk\SelectDiskRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
-use Kwaadpepper\LaravelStorageManager\Service\DiskService;
+use Kwaadpepper\LaravelStorageManager\Query\Disk\GetConfiguredDisksInput;
+use Kwaadpepper\LaravelStorageManager\Query\Disk\GetConfiguredDisksQuery;
+use Kwaadpepper\LaravelStorageManager\Query\Disk\GetDiskStatsInput;
+use Kwaadpepper\LaravelStorageManager\Query\Disk\GetDiskStatsQuery;
+use Kwaadpepper\LaravelStorageManager\Query\Disk\SelectDiskInput;
+use Kwaadpepper\LaravelStorageManager\Query\Disk\SelectDiskQuery;
 
 final class DiskController extends Controller
 {
     public function __construct(
-        private readonly DiskService $diskService,
+        private readonly Executor $executor,
+        private readonly GetConfiguredDisksQuery $listQuery,
+        private readonly SelectDiskQuery $selectQuery,
+        private readonly GetDiskStatsQuery $statsQuery,
     ) {
     }
 
     public function list(): ApiResponse
     {
+        $disks = $this->executor->execute($this->listQuery, new GetConfiguredDisksInput());
+
         return ApiResponse::json(
-            new DiskListDto($this->diskService->getDiskNamesList()),
+            new DiskListDto($disks),
             ApiResponse::HTTP_OK
         );
     }
 
     public function select(SelectDiskRequest $request): ApiResponse
     {
-        $disk = $this->diskService->selectDisk($request->getDisk());
+        $disk = $this->executor->execute(
+            $this->selectQuery,
+            new SelectDiskInput($request->getDisk())
+        );
 
         return ApiResponse::json(
             new SelectedDiskDto(
@@ -44,14 +58,13 @@ final class DiskController extends Controller
 
     public function stats(DiskStatsRequest $request): ApiResponse
     {
-        $disk = $request->getDisk();
-
-        if ($request->boolean('fresh')) {
-            $this->diskService->clearDiskStatsCache($disk);
-        }
+        $stats = $this->executor->execute(
+            $this->statsQuery,
+            new GetDiskStatsInput($request->getDisk(), $request->boolean('fresh'))
+        );
 
         return ApiResponse::json(
-            $this->diskService->getDiskStats($disk),
+            $stats,
             ApiResponse::HTTP_OK
         );
     }

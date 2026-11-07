@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controller;
 
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Acl\SmAbility;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
 describe('ThumbnailController', function (): void {
     it('generates a webp thumbnail for a png image', function (): void {
@@ -165,5 +169,28 @@ describe('ThumbnailController', function (): void {
 
         // THEN
         $response->assertStatus(404);
+    });
+
+    it('returns 403 Forbidden when VIEW ability is denied for thumbnail', function (): void {
+        // GIVEN
+        Storage::fake('local');
+        $img = imagecreatetruecolor(20, 20);
+        ob_start();
+        imagepng($img);
+        $pngData = (string) ob_get_clean();
+        Storage::disk('local')->put('images/sample.png', $pngData);
+
+        Gate::define(SmAbility::VIEW, function (?object $user, Disk $disk, ?Path $path): bool {
+            return false;
+        });
+
+        // WHEN
+        $response = $this->get(route('storage-manager.thumb', [
+            'disk' => 'local',
+            'path' => 'images/sample.png',
+        ]));
+
+        // THEN
+        $response->assertStatus(403);
     });
 });

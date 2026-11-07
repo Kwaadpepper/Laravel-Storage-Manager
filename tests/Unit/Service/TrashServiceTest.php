@@ -413,4 +413,4 @@ describe('TrashService', function (): void {
         // THEN
         expect($action)->toThrow(FileOperationException::class);
     });
-});
+})->covers(TrashService::class);

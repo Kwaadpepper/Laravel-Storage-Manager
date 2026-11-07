@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
+use Kwaadpepper\LaravelStorageManager\Contract\Executor;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Dto;
 use Kwaadpepper\LaravelStorageManager\Http\Response\ApiResponse;
@@ -212,9 +213,12 @@ describe('layer boundaries', function () use ($libraryNamespace): void {
         ->expect("{$libraryNamespace}\Lib")
         ->not->toUse("{$libraryNamespace}\Service")
         ->ignoring([
-            "{$libraryNamespace}\Lib\FileManager\FileManager",
             "{$libraryNamespace}\Lib\Event\EventDispatcher",
         ]);
+
+    arch('ActionExecutorService implements Executor')
+        ->expect("{$libraryNamespace}\Service\ActionExecutorService")
+        ->toImplement(Executor::class);
 
     arch('ValueObjects do not use Storage facade')
         ->expect("{$libraryNamespace}\Lib\ValueObjects")

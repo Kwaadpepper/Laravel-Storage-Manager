@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
-use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
+use Kwaadpepper\LaravelStorageManager\Contract\Executor;
 use Kwaadpepper\LaravelStorageManager\Provider\StorageManagerServiceProvider;
+use Kwaadpepper\LaravelStorageManager\Service\ActionExecutorService;
 
 describe('StorageManagerServiceProvider', function (): void {
     it('boots the service provider', function (): void {
@@ -29,14 +30,14 @@ describe('StorageManagerServiceProvider', function (): void {
         expect($instance)->toBeInstanceOf(StorageManagerConfig::class);
     });
 
-    it('resolves the file manager from the container', function (): void {
+    it('resolves the executor from the container', function (): void {
         // GIVEN
-        $abstract = FileManager::class;
+        $abstract = Executor::class;
 
         // WHEN
         $instance = $this->app->make($abstract);
 
         // THEN
-        expect($instance)->toBeInstanceOf(FileManager::class);
+        expect($instance)->toBeInstanceOf(ActionExecutorService::class);
     });
-});
+})->covers(StorageManagerServiceProvider::class);

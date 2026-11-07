@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\Upload;
 
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Validation\Validator;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
@@ -69,5 +70,13 @@ class UploadChunkRequest extends ApiRequest
                 );
             }
         });
+    }
+
+    public function getUploadedFile(): UploadedFile
+    {
+        $file = $this->file('file');
+        assert($file instanceof UploadedFile);
+
+        return $file;
     }
 }

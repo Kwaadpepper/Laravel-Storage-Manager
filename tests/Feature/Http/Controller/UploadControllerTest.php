@@ -5,7 +5,9 @@ declare(strict_types=1);
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Kwaadpepper\LaravelStorageManager\Acl\SmAbility;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\UploadStatus;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
@@ -214,6 +216,34 @@ describe('UploadController', function (): void {
 
         expect(Storage::disk('local')->exists('test.txt'))->toBeTrue();
         expect(Storage::disk('local')->get('test.txt'))->toBe($file1Content . $file2Content);
+    });
+
+    it('emits error event via SSE when authorization fails on complete', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        $uploadId       = UploadId::generate();
+        $sessionService = resolve(UploadSessionService::class);
+        $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 1, 10, CarbonImmutable::now()));
+
+        Gate::define(SmAbility::UPLOAD_COMPLETE, function (): bool {
+            return false;
+        });
+
+        $payload = [
+            'upload_id'   => $uploadId->value,
+            'fileName'    => 'test.txt',
+            'totalChunks' => 1,
+            'disk'        => 'local',
+            'path'        => '/',
+        ];
+
+        // WHEN
+        $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+
+        // THEN
+        $response->assertOk();
+        $content = $response->streamedContent();
+        expect($content)->toContain('"status":"error"');
     });
 
     it('sanitizes filename on complete', function (): void {
