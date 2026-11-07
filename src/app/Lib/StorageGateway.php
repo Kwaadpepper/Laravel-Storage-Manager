@@ -459,37 +459,6 @@ readonly class StorageGateway
         $this->logger->info('File copied successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
     }
 
-    public function resolveAvailablePath(Disk $disk, Path $desiredDestination, string $format = '%s (%d)%s'): Path
-    {
-        $normalized = $this->pathNormalizer->normalizePath($desiredDestination->value);
-        $candidate  = new Path($normalized);
-
-        if (! $this->exists($disk, $candidate)) {
-            return $candidate;
-        }
-
-        $pathInfo = pathinfo($normalized);
-        $dirname  = $pathInfo['dirname'] ?? '';
-        $parent   = $dirname === '.' || $dirname === '/' ? '' : $dirname;
-        $filename = $pathInfo['filename'];
-        $ext      = isset($pathInfo['extension']) && $pathInfo['extension'] !== '' ? '.' . $pathInfo['extension'] : '';
-
-        $counter = 1;
-        while ($this->exists($disk, $candidate)) {
-            if (str_contains($format, '%d')) {
-                $newName = sprintf($format, $filename, $counter, $ext);
-            } else {
-                $suffix  = $counter > 1 ? ' ' . $counter : '';
-                $newName = sprintf($format, $filename, $suffix, $ext);
-            }
-            $candidateStr = $this->pathNormalizer->normalizePath($parent . '/' . $newName);
-            $candidate    = new Path($candidateStr);
-            $counter++;
-        }
-
-        return $candidate;
-    }
-
     /**
      * @throws FileOperationException
      */

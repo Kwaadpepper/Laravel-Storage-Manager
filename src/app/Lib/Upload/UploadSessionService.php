@@ -17,6 +17,7 @@ use Kwaadpepper\LaravelStorageManager\Exception\Upload\MissingChunkException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\MissingMetadataException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\TransferFailedException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathConflictResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
 use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
@@ -38,6 +39,7 @@ class UploadSessionService
         private readonly MimeTypeChecker $mimeTypeChecker,
         private readonly StorageGateway $storageGateway,
         private readonly PathSanitizer $pathSanitizer,
+        private readonly PathConflictResolver $pathConflictResolver,
         private readonly EventDispatcher $eventDispatcher,
         private readonly LoggerInterface $logger,
     ) {
@@ -195,7 +197,7 @@ class UploadSessionService
             }
             $finalDestination = match ($policy) {
                 DuplicatePolicy::OVERWRITE   => $desiredDestination,
-                DuplicatePolicy::AUTO_RENAME => $this->storageGateway->resolveAvailablePath($disk, $desiredDestination),
+                DuplicatePolicy::AUTO_RENAME => $this->pathConflictResolver->resolveAvailablePath($disk, $desiredDestination),
             };
             if ($finalDestination->value !== $desiredDestination->value) {
                 $this->logger->warning('Duplicate collision on upload completion, resolved to new path', [

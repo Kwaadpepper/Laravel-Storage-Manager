@@ -28,6 +28,8 @@ use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileMetadataExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileSearchService;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileTransferService;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathConflictResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
 use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
@@ -181,12 +183,21 @@ class StorageManagerServiceProvider extends ServiceProvider
             )
         );
         $this->app->singleton(
+            PathConflictResolver::class,
+            fn (Application $app): PathConflictResolver => new PathConflictResolver(
+                $app->make(PathNormalizer::class),
+                $app->make(StorageGateway::class),
+                $app->make(LoggerInterface::class)
+            )
+        );
+        $this->app->singleton(
             TrashService::class,
             fn (Application $app): TrashService => new TrashService(
                 $app->make(StorageManagerConfig::class),
                 $app->make(PathNormalizer::class),
                 $app->make(LSMEventDispatcher::class),
                 $app->make(StorageGateway::class),
+                $app->make(PathConflictResolver::class),
                 $app->make(LoggerInterface::class)
             )
         );
@@ -214,7 +225,20 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(StorageGateway::class),
                 $app->make(StorageManagerConfig::class),
                 $app->make(MimeTypeChecker::class),
-                $app->make(LSMEventDispatcher::class)
+                $app->make(LSMEventDispatcher::class),
+                $app->make(LoggerInterface::class)
+            )
+        );
+        $this->app->singleton(
+            FileTransferService::class,
+            fn (Application $app): FileTransferService => new FileTransferService(
+                $app->make(PathNormalizer::class),
+                $app->make(StorageGateway::class),
+                $app->make(PathConflictResolver::class),
+                $app->make(MimeTypeChecker::class),
+                $app->make(StorageManagerConfig::class),
+                $app->make(LSMEventDispatcher::class),
+                $app->make(LoggerInterface::class)
             )
         );
         $this->app->singleton(
@@ -229,6 +253,7 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(TrashService::class),
                 $app->make(LSMEventDispatcher::class),
                 $app->make(FileSearchService::class),
+                $app->make(FileTransferService::class),
                 $app->make(LoggerInterface::class)
             )
         );
@@ -247,6 +272,7 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(MimeTypeChecker::class),
                 $app->make(StorageGateway::class),
                 $app->make(PathSanitizer::class),
+                $app->make(PathConflictResolver::class),
                 $app->make(LSMEventDispatcher::class),
                 $app->make(LoggerInterface::class)
             )

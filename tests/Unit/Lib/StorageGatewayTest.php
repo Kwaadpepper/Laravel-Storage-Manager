@@ -267,31 +267,6 @@ describe('StorageGateway', function (): void {
         expect($storage->exists('keep.txt'))->toBeTrue();
     });
 
-    it('resolves available path with counter suffix on collision', function (): void {
-        // GIVEN
-        $storage = Storage::disk('local');
-        $gateway = resolve(StorageGateway::class);
-        $disk    = new Disk('local', 'local');
-
-        // WHEN
-        $freePath = $gateway->resolveAvailablePath($disk, new Path('/documents/report.pdf'));
-
-        $storage->put('documents/report.pdf', 'First report');
-        $firstCollision = $gateway->resolveAvailablePath($disk, new Path('/documents/report.pdf'));
-
-        $storage->put('documents/report (1).pdf', 'Second report');
-        $secondCollision = $gateway->resolveAvailablePath($disk, new Path('/documents/report.pdf'));
-
-        $storage->makeDirectory('projects');
-        $dirCollision = $gateway->resolveAvailablePath($disk, new Path('/projects'));
-
-        // THEN
-        expect($freePath->value)->toBe('/documents/report.pdf');
-        expect($firstCollision->value)->toBe('/documents/report (1).pdf');
-        expect($secondCollision->value)->toBe('/documents/report (2).pdf');
-        expect($dirCollision->value)->toBe('/projects (1)');
-    });
-
     it('resolves existing file and its properties', function (): void {
         // GIVEN
         $storage = Storage::disk('local');

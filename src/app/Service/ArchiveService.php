@@ -16,6 +16,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\FileStream;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Psr\Log\LoggerInterface;
 
 readonly class ArchiveService
 {
@@ -27,6 +28,7 @@ readonly class ArchiveService
         private StorageManagerConfig $config,
         private MimeTypeChecker $mimeTypeChecker,
         private EventDispatcher $eventDispatcher,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -42,10 +44,16 @@ readonly class ArchiveService
      */
     public function zip(Disk $disk, array $paths, Path $destinationZip): Path
     {
+        $this->logger->info('Creating zip archive', [
+            'disk'        => $disk->name,
+            'pathsCount'  => count($paths),
+            'destination' => $destinationZip->value,
+        ]);
         $this->assertCanZip($disk, $paths, $destinationZip);
 
         $tempZip = tempnam(sys_get_temp_dir(), 'sm_zip_');
         if ($tempZip === false) {
+            $this->logger->error('Failed to create temporary file for zip', ['disk' => $disk->name]);
             FileOperationException::throwWith(FileOperationError::ARCHIVE_OPERATION_FAILED);
         }
 
@@ -53,6 +61,7 @@ readonly class ArchiveService
             $zip = new \ZipArchive();
             $res = $zip->open($tempZip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
             if ($res !== true) {
+                $this->logger->error('Failed to open temporary zip file for writing', ['disk' => $disk->name]);
                 FileOperationException::throwWith(FileOperationError::ARCHIVE_OPERATION_FAILED);
             }
 
@@ -69,6 +78,11 @@ readonly class ArchiveService
             }
         }
 
+        $this->logger->info('Zip archive created successfully', [
+            'disk'        => $disk->name,
+            'destination' => $destinationZip->value,
+        ]);
+
         $this->eventDispatcher->dispatch(
             ZipCreated::class,
             ['path' => $destinationZip->value]
@@ -82,6 +96,11 @@ readonly class ArchiveService
      */
     public function unzip(Disk $disk, Path $archivePath, Path $destinationDir): void
     {
+        $this->logger->info('Extracting zip archive', [
+            'disk'        => $disk->name,
+            'archive'     => $archivePath->value,
+            'destination' => $destinationDir->value,
+        ]);
         $this->assertCanUnzip($disk, $archivePath);
 
         $tempZip = $this->copyArchiveToTemp($disk, $archivePath);
@@ -91,6 +110,7 @@ readonly class ArchiveService
 
         try {
             if ($zip->open($tempZip) !== true) {
+                $this->logger->error('Failed to open zip archive for extraction', ['disk' => $disk->name, 'archive' => $archivePath->value]);
                 FileOperationException::throwWith(FileOperationError::INVALID_ARCHIVE);
             }
             $zipOpened = true;
@@ -105,6 +125,11 @@ readonly class ArchiveService
                 unlink($tempZip);
             }
         }
+
+        $this->logger->info('Zip archive extracted successfully', [
+            'disk'    => $disk->name,
+            'archive' => $archivePath->value,
+        ]);
 
         $this->eventDispatcher->dispatch(
             ArchiveExtracted::class,

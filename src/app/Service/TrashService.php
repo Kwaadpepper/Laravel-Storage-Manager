@@ -15,6 +15,7 @@ use Kwaadpepper\LaravelStorageManager\Event\FileTrashed;
 use Kwaadpepper\LaravelStorageManager\Event\TrashEmptied;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathConflictResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
@@ -29,6 +30,7 @@ class TrashService
         private readonly PathNormalizer $pathNormalizer,
         private readonly EventDispatcher $eventDispatcher,
         private readonly StorageGateway $storageGateway,
+        private readonly PathConflictResolver $pathConflictResolver,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -228,7 +230,7 @@ class TrashService
                 $this->storageGateway->makeDirectory($disk, $parentDir);
             }
 
-            $targetPath = $this->storageGateway->resolveAvailablePath(
+            $targetPath = $this->pathConflictResolver->resolveAvailablePath(
                 $disk,
                 $this->toPath($originalPath),
                 '%s (restored%s)%s'
