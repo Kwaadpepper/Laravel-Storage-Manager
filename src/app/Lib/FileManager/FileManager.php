@@ -375,7 +375,9 @@ readonly class FileManager
             FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
         }
 
-        $this->storageGateway->put($disk, $normalizedPath, $content);
+        if ($this->storageGateway->put($disk, $normalizedPath, $content) === false) {
+            FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
+        }
 
         $this->eventDispatcher->dispatch(
             FileCreated::class,
@@ -476,7 +478,7 @@ readonly class FileManager
     /**
      * @throws FileOperationException
      */
-    public function move(Disk $disk, Path $source, Path $destinationDir): void
+    public function move(Disk $disk, Path $source, Path $destinationDir): Path
     {
         $disk->assertWritable();
 
@@ -493,9 +495,11 @@ readonly class FileManager
             $sourceIsDir ? DirectoryMoved::class : FileMoved::class,
             [
                 'source_path' => $source->value,
-                'target_path' => $destinationDir->value,
+                'target_path' => $destination->value,
             ]
         );
+
+        return $destination;
     }
 
     public function exists(Disk $disk, Path $path): bool
