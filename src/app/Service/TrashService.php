@@ -20,6 +20,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Trash\TrashedItem;
+use Psr\Log\LoggerInterface;
 
 class TrashService
 {
@@ -28,12 +29,14 @@ class TrashService
         private readonly PathNormalizer $pathNormalizer,
         private readonly EventDispatcher $eventDispatcher,
         private readonly StorageGateway $storageGateway,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
     public function moveToTrash(Disk $disk, Path $path): TrashedItem
     {
         if (! $this->config->trash->enabled) {
+            $this->logger->warning('Rejected moveToTrash: trash is disabled', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::TRASH_DISABLED);
         }
 
@@ -41,6 +44,7 @@ class TrashService
 
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
         if ($normalizedPath === '/') {
+            $this->logger->warning('Rejected moveToTrash: cannot trash root path', ['disk' => $disk->name]);
             FileOperationException::throwWith(FileOperationError::INVALID_PATH);
         }
 
@@ -69,6 +73,13 @@ class TrashService
         $metaRel = $dirs['meta'] . '/' . $trashId . '.json';
         $this->storageGateway->put($disk, $metaRel, (string) json_encode($trashedItem->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
+        $this->logger->info('Item moved to trash successfully', [
+            'disk'     => $disk->name,
+            'path'     => $path->value,
+            'trashId'  => $trashId,
+            'type'     => $isDir ? 'directory' : 'file',
+        ]);
+
         $this->eventDispatcher->dispatch(
             $isDir ? DirectoryTrashed::class : FileTrashed::class,
             ['path' => $path->value, 'trashId' => $trashId]
@@ -83,6 +94,7 @@ class TrashService
     public function list(Disk $disk): array
     {
         $metaDir = $this->getTrashMetaDir();
+        $this->logger->debug('Scanning trash items', ['disk' => $disk->name, 'metaDir' => $metaDir]);
 
         if (! $this->storageGateway->exists($disk, $this->toPath($metaDir))) {
             return [];
@@ -99,18 +111,23 @@ class TrashService
 
             $content = $this->storageGateway->get($disk, $metaFile);
             if (! is_string($content)) {
+                $this->logger->warning('Failed to read trash metadata file', ['disk' => $disk->name, 'metaFile' => $metaFile]);
+
                 continue;
             }
 
             /** @var mixed $data */
             $data = json_decode($content, true);
             if (! is_array($data)) {
+                $this->logger->warning('Corrupted trash metadata JSON', ['disk' => $disk->name, 'metaFile' => $metaFile]);
+
                 continue;
             }
 
             $trashId = basename($metaFile, '.json');
             $lockRel = $this->getTrashLockPath($trashId);
             if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
+                $this->logger->debug('Trash item is locked', ['disk' => $disk->name, 'trashId' => $trashId]);
                 $lockContent    = $this->storageGateway->get($disk, $lockRel);
                 $data['status'] = is_string($lockContent) && $lockContent !== '' ? $lockContent : 'restoring';
             } else {
@@ -135,6 +152,7 @@ class TrashService
 
     public function getItem(Disk $disk, string $trashId): ?TrashedItem
     {
+        $this->logger->debug('Getting trash item', ['disk' => $disk->name, 'trashId' => $trashId]);
         $metaPath = $this->getTrashMetaDir() . '/' . $trashId . '.json';
 
         if (! $this->storageGateway->exists($disk, $this->toPath($metaPath))) {
@@ -143,17 +161,22 @@ class TrashService
 
         $content = $this->storageGateway->get($disk, $metaPath);
         if (! is_string($content)) {
+            $this->logger->warning('Failed to read trash item metadata', ['disk' => $disk->name, 'trashId' => $trashId]);
+
             return null;
         }
 
         /** @var mixed $data */
         $data = json_decode($content, true);
         if (! is_array($data)) {
+            $this->logger->warning('Corrupted metadata JSON for trash item', ['disk' => $disk->name, 'trashId' => $trashId]);
+
             return null;
         }
 
         $lockRel = $this->getTrashLockPath($trashId);
         if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
+            $this->logger->debug('Trash item is locked', ['disk' => $disk->name, 'trashId' => $trashId]);
             $lockContent    = $this->storageGateway->get($disk, $lockRel);
             $data['status'] = is_string($lockContent) && $lockContent !== '' ? $lockContent : 'restoring';
         } else {
@@ -167,15 +190,18 @@ class TrashService
     public function restore(Disk $disk, string $trashId): Path
     {
         $disk->assertWritable();
+        $this->logger->info('Starting restore for trash item', ['disk' => $disk->name, 'trashId' => $trashId]);
 
         $lockRel = $this->getTrashLockPath($trashId);
 
         if ($this->isItemLocked($disk, $trashId)) {
+            $this->logger->warning('Cannot restore: trash item is locked', ['disk' => $disk->name, 'trashId' => $trashId]);
             FileOperationException::throwWith(FileOperationError::TRASH_ITEM_LOCKED);
         }
 
         $item = $this->getItem($disk, $trashId);
         if ($item === null) {
+            $this->logger->warning('Cannot restore: trash item metadata not found', ['disk' => $disk->name, 'trashId' => $trashId]);
             FileOperationException::throwWith(FileOperationError::TRASH_ITEM_NOT_FOUND);
         }
 
@@ -184,6 +210,11 @@ class TrashService
 
         $exists = $this->storageGateway->exists($disk, $this->toPath($storedRel));
         if (! $exists) {
+            $this->logger->warning('Cannot restore: stored trash payload not found', [
+                'disk'      => $disk->name,
+                'trashId'   => $trashId,
+                'storedRel' => $storedRel,
+            ]);
             FileOperationException::throwWith(FileOperationError::TRASH_ITEM_NOT_FOUND);
         }
 
@@ -203,10 +234,25 @@ class TrashService
                 '%s (restored%s)%s'
             );
 
+            if ($targetPath->value !== $originalPath) {
+                $this->logger->warning('Restore target conflict, auto-renamed target path', [
+                    'disk'         => $disk->name,
+                    'trashId'      => $trashId,
+                    'originalPath' => $originalPath,
+                    'targetPath'   => $targetPath->value,
+                ]);
+            }
+
             $this->storageGateway->move($disk, $storedRel, $targetPath->value, $isDir);
 
             $metaRel = $this->getTrashMetaDir() . '/' . $trashId . '.json';
             $this->storageGateway->delete($disk, $metaRel);
+
+            $this->logger->info('Trash item restored successfully', [
+                'disk'       => $disk->name,
+                'trashId'    => $trashId,
+                'targetPath' => $targetPath->value,
+            ]);
 
             $this->eventDispatcher->dispatch(
                 $isDir ? DirectoryRestored::class : FileRestored::class,
@@ -224,15 +270,19 @@ class TrashService
     public function purge(Disk $disk, string $trashId): void
     {
         $disk->assertWritable();
+        $this->logger->info('Starting purge for trash item', ['disk' => $disk->name, 'trashId' => $trashId]);
 
         $lockRel = $this->getTrashLockPath($trashId);
 
         if ($this->isItemLocked($disk, $trashId)) {
+            $this->logger->warning('Cannot purge: trash item is locked', ['disk' => $disk->name, 'trashId' => $trashId]);
             FileOperationException::throwWith(FileOperationError::TRASH_ITEM_LOCKED);
         }
 
         $item = $this->getItem($disk, $trashId);
         if ($item === null) {
+            $this->logger->warning('Cannot purge: trash item metadata not found', ['disk' => $disk->name, 'trashId' => $trashId]);
+
             return;
         }
 
@@ -254,6 +304,8 @@ class TrashService
             if ($this->storageGateway->exists($disk, $this->toPath($metaRel))) {
                 $this->storageGateway->delete($disk, $metaRel);
             }
+
+            $this->logger->info('Trash item purged successfully', ['disk' => $disk->name, 'trashId' => $trashId]);
         } finally {
             if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
                 $this->storageGateway->delete($disk, $lockRel);
@@ -264,6 +316,7 @@ class TrashService
     public function emptyTrash(Disk $disk): int
     {
         $disk->assertWritable();
+        $this->logger->info('Starting emptyTrash for disk', ['disk' => $disk->name]);
 
         $metaDir = $this->getTrashMetaDir();
 
@@ -272,6 +325,7 @@ class TrashService
             $metaFiles = $this->storageGateway->files($disk, $metaDir);
             foreach ($metaFiles as $file) {
                 if (str_ends_with($file, '.lock')) {
+                    $this->logger->warning('Cannot emptyTrash: active trash lock found', ['disk' => $disk->name, 'file' => $file]);
                     FileOperationException::throwWith(FileOperationError::TRASH_ITEM_LOCKED);
                 }
             }
@@ -293,6 +347,7 @@ class TrashService
         $this->storageGateway->makeDirectory($disk, $filesDir);
         $this->storageGateway->makeDirectory($disk, $metaDir);
 
+        $this->logger->info('Trash emptied successfully', ['disk' => $disk->name, 'itemsCount' => $count]);
         $this->eventDispatcher->dispatch(
             TrashEmptied::class,
             ['disk' => $disk->name, 'count' => $count]

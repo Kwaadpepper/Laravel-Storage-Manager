@@ -34,6 +34,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeFile;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeLevel;
 use Kwaadpepper\LaravelStorageManager\Service\TrashService;
+use Psr\Log\LoggerInterface;
 
 readonly class FileManager
 {
@@ -48,6 +49,8 @@ readonly class FileManager
         private MimeTypeChecker $mimeTypeChecker,
         private TrashService $trashService,
         private EventDispatcher $eventDispatcher,
+        private FileSearchService $fileSearchService,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -56,6 +59,7 @@ readonly class FileManager
      */
     public function init(): array
     {
+        $this->logger->info('Initializing file manager');
         $this->eventDispatcher->dispatch(FileManagerShowed::class);
 
         return [
@@ -69,6 +73,7 @@ readonly class FileManager
      */
     public function getProperties(Disk $disk, Path $path): PathProperties
     {
+        $this->logger->debug('Getting properties for path', ['disk' => $disk->name, 'path' => $path->value]);
         $normalizedPath    = $this->pathNormalizer->normalizePath($path->value);
         $sourceIsDir       = $this->storageGateway->resolveIsDirectory($disk, $path);
         $normalizedPathObj = new Path($normalizedPath);
@@ -81,6 +86,7 @@ readonly class FileManager
     public function getContent(Disk $disk, ?Path $path = null): PathContent
     {
         $directory = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
+        $this->logger->debug('Getting directory content', ['disk' => $disk->name, 'directory' => $directory]);
 
         if ($this->isTrashPath($directory)) {
             return new PathContent([], []);
@@ -100,6 +106,7 @@ readonly class FileManager
     public function getPathTree(Disk $disk, ?Path $path = null): PathTreeLevel
     {
         $directory = $this->pathNormalizer->normalizePath($path ? $path->value : '/');
+        $this->logger->debug('Getting path tree', ['disk' => $disk->name, 'directory' => $directory]);
 
         if ($this->isTrashPath($directory)) {
             return new PathTreeLevel([], []);
@@ -162,112 +169,16 @@ readonly class FileManager
         ?int $minSize,
         ?int $maxSize,
     ): SearchResult {
-        $directoriesToScan  = [];
-        $matchedDirectories = [];
-        $matchedFiles       = [];
+        $this->logger->debug('Delegating searchContent to FileSearchService', [
+            'disk'      => $disk->name,
+            'paths'     => array_map(fn (Path $p): string => $p->value, $paths),
+            'query'     => $query,
+            'extension' => $extension,
+            'minSize'   => $minSize,
+            'maxSize'   => $maxSize,
+        ]);
 
-        foreach ($paths as $pathObj) {
-            $directory = $this->pathNormalizer->normalizePath($pathObj->value);
-
-            if ($this->isTrashPath($directory)) {
-                continue;
-            }
-
-            $entries = $this->listCleanDirectoryEntries($disk, $directory);
-
-            foreach ($entries['directories'] as $dir) {
-                $path                = new Path($dir);
-                $directoriesToScan[] = $path;
-
-                $properties = $this->filePropertyExtractor->directoryProperties($disk, $path);
-
-                if ($properties instanceof DirectoryPathProperties) {
-                    if ($this->isDirectoryMatchingFilters($path, $query, $extension, $minSize, $maxSize)) {
-                        $matchedDirectories[] = new PathTreeDirectory(
-                            $path,
-                            $this->hasSubdirectories((string) $path, $disk),
-                            $properties->visibility
-                        );
-                    }
-                }
-            }
-
-            foreach ($entries['files'] as $file) {
-                $path       = new Path($file);
-                $properties = $this->filePropertyExtractor->fileProperties($disk, $path);
-
-                if (! ($properties instanceof FilePathProperties)) {
-                    continue;
-                }
-
-                if (! $this->isFileMatchingFilters($path, $properties, $query, $extension, $minSize, $maxSize)) {
-                    continue;
-                }
-
-                $publicUrl = $this->storageGateway->publicUrl($disk, $path);
-
-                $matchedFiles[] = new PathTreeFile(
-                    $path,
-                    $properties->size,
-                    $properties->extension,
-                    $properties->visibility,
-                    $publicUrl
-                );
-            }
-        }
-
-        return new SearchResult($directoriesToScan, $matchedDirectories, $matchedFiles);
-    }
-
-    private function isDirectoryMatchingFilters(
-        Path $path,
-        ?string $query,
-        ?string $extension,
-        ?int $minSize,
-        ?int $maxSize,
-    ): bool {
-        if ($extension !== null || $minSize !== null || $maxSize !== null) {
-            return false;
-        }
-
-        if ($query !== null) {
-            $dirname = basename($path->value);
-            if (stripos($dirname, $query) === false) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private function isFileMatchingFilters(
-        Path $path,
-        FilePathProperties $properties,
-        ?string $query,
-        ?string $extension,
-        ?int $minSize,
-        ?int $maxSize,
-    ): bool {
-        if ($extension !== null && strtolower($properties->extension) !== strtolower($extension)) {
-            return false;
-        }
-
-        if ($minSize !== null && $properties->size < $minSize) {
-            return false;
-        }
-
-        if ($maxSize !== null && $properties->size > $maxSize) {
-            return false;
-        }
-
-        if ($query !== null) {
-            $filename = basename($path->value);
-            if (stripos($filename, $query) === false) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->fileSearchService->search($disk, $paths, $query, $extension, $minSize, $maxSize);
     }
 
     /**
@@ -280,13 +191,16 @@ readonly class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if ($this->storageGateway->exists($disk, $path)) {
+            $this->logger->warning('Rejected createDirectory: directory already exists', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::DIRECTORY_ALREADY_EXISTS);
         }
 
         if ($this->storageGateway->makeDirectory($disk, $normalizedPath) === false) {
+            $this->logger->error('Failed to create directory', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
 
+        $this->logger->info('Directory created successfully', ['disk' => $disk->name, 'path' => $path->value]);
         $this->eventDispatcher->dispatch(
             DirectoryCreated::class,
             ['path' => $path->value]
@@ -299,6 +213,7 @@ readonly class FileManager
     public function delete(Disk $disk, Path $path, bool $force = false): ?TrashedItem
     {
         $disk->assertWritable();
+        $this->logger->info('Deleting item', ['disk' => $disk->name, 'path' => $path->value, 'force' => $force]);
 
         if ($this->config->trash->enabled && ! $force) {
             return $this->trashService->moveToTrash($disk, $path);
@@ -325,10 +240,12 @@ readonly class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if ($this->pathNormalizer->isRootPath($normalizedPath)) {
+            $this->logger->warning('Rejected deleteDirectory: cannot delete root path', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::INVALID_PATH);
         }
 
         if (! $this->storageGateway->isDirectory($disk, $path)) {
+            $this->logger->warning('Rejected deleteDirectory: directory not found', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::DIRECTORY_NOT_FOUND);
         }
 
@@ -336,14 +253,17 @@ readonly class FileManager
             $files       = $this->storageGateway->files($disk, $normalizedPath);
             $directories = $this->storageGateway->directories($disk, $normalizedPath);
             if (count($files) > 0 || count($directories) > 0) {
+                $this->logger->warning('Rejected deleteDirectory: directory not empty', ['disk' => $disk->name, 'path' => $path->value]);
                 FileOperationException::throwWith(FileOperationError::DIRECTORY_NOT_EMPTY);
             }
         }
 
         if ($this->storageGateway->deleteDirectory($disk, $normalizedPath) === false) {
+            $this->logger->error('Failed to delete directory', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
 
+        $this->logger->info('Directory deleted successfully', ['disk' => $disk->name, 'path' => $path->value]);
         $this->eventDispatcher->dispatch(
             DirectoryDeleted::class,
             ['path' => $path->value]
@@ -361,24 +281,38 @@ readonly class FileManager
         $extension      = strtolower(pathinfo($normalizedPath, PATHINFO_EXTENSION));
 
         if (! $this->config->upload->isExtensionAllowed($extension)) {
+            $this->logger->warning('Rejected createFile: forbidden extension', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'extension' => $extension,
+            ]);
             FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_EXTENSION);
         }
 
         if ($content !== '') {
             $detectedMime = $this->mimeTypeChecker->detectBufferMimeType($content);
             if (! $this->mimeTypeChecker->isMimeAllowedForExtension($extension, $detectedMime)) {
+                $this->logger->warning('Rejected createFile: forbidden mime type for extension', [
+                    'disk'      => $disk->name,
+                    'path'      => $path->value,
+                    'extension' => $extension,
+                    'mime'      => $detectedMime,
+                ]);
                 FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_MIME);
             }
         }
 
         if ($this->storageGateway->exists($disk, $path)) {
+            $this->logger->warning('Rejected createFile: file already exists', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
         }
 
         if ($this->storageGateway->put($disk, $normalizedPath, $content) === false) {
+            $this->logger->error('Failed to create file', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
 
+        $this->logger->info('File created successfully', ['disk' => $disk->name, 'path' => $path->value]);
         $this->eventDispatcher->dispatch(
             FileCreated::class,
             ['path' => $path->value]
@@ -395,13 +329,16 @@ readonly class FileManager
         $normalizedPath = $this->pathNormalizer->normalizePath($path->value);
 
         if (! $this->storageGateway->isFile($disk, $path)) {
+            $this->logger->warning('Rejected deleteFile: file not found', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
         }
 
         if ($this->storageGateway->delete($disk, $normalizedPath) === false) {
+            $this->logger->error('Failed to delete file', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
 
+        $this->logger->info('File deleted successfully', ['disk' => $disk->name, 'path' => $path->value]);
         $this->eventDispatcher->dispatch(
             FileDeleted::class,
             ['path' => $path->value]
@@ -428,6 +365,11 @@ readonly class FileManager
         }
 
         if ($this->storageGateway->exists($disk, $destination)) {
+            $this->logger->warning('Rejected rename: destination already exists', [
+                'disk'        => $disk->name,
+                'source'      => $source->value,
+                'destination' => $destination->value,
+            ]);
             FileOperationException::throwWith(
                 $sourceIsDir
                     ? FileOperationError::DIRECTORY_ALREADY_EXISTS
@@ -436,6 +378,13 @@ readonly class FileManager
         }
 
         $this->storageGateway->move($disk, $normalizedSource, $destination->value, $sourceIsDir);
+
+        $this->logger->info('Item renamed successfully', [
+            'disk'        => $disk->name,
+            'source'      => $source->value,
+            'destination' => $destination->value,
+            'isDir'       => $sourceIsDir,
+        ]);
 
         $this->eventDispatcher->dispatch(
             $sourceIsDir ? DirectoryRenamed::class : FileRenamed::class,
@@ -462,7 +411,22 @@ readonly class FileManager
         $desired     = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
         $destination = $this->storageGateway->resolveAvailablePath($disk, $desired, '%s (copy%s)%s');
 
+        if ($destination->value !== $desired->value) {
+            $this->logger->warning('Duplicate collision on copy, resolved to new path', [
+                'disk'        => $disk->name,
+                'desired'     => $desired->value,
+                'destination' => $destination->value,
+            ]);
+        }
+
         $this->storageGateway->copy($disk, $source, $destination, $sourceIsDir);
+
+        $this->logger->info('Item copied successfully', [
+            'disk'        => $disk->name,
+            'source'      => $source->value,
+            'destination' => $destination->value,
+            'isDir'       => $sourceIsDir,
+        ]);
 
         $this->eventDispatcher->dispatch(
             $sourceIsDir ? DirectoryCopied::class : FileCopied::class,
@@ -489,7 +453,22 @@ readonly class FileManager
         $desired     = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
         $destination = $this->storageGateway->resolveAvailablePath($disk, $desired, '%s (copy%s)%s');
 
+        if ($destination->value !== $desired->value) {
+            $this->logger->warning('Duplicate collision on move, resolved to new path', [
+                'disk'        => $disk->name,
+                'desired'     => $desired->value,
+                'destination' => $destination->value,
+            ]);
+        }
+
         $this->storageGateway->move($disk, $normalizedSource, $destination->value, $sourceIsDir);
+
+        $this->logger->info('Item moved successfully', [
+            'disk'        => $disk->name,
+            'source'      => $source->value,
+            'destination' => $destination->value,
+            'isDir'       => $sourceIsDir,
+        ]);
 
         $this->eventDispatcher->dispatch(
             $sourceIsDir ? DirectoryMoved::class : FileMoved::class,
@@ -551,6 +530,12 @@ readonly class FileManager
         $newExt = strtolower(pathinfo($destination->value, PATHINFO_EXTENSION));
 
         if (! $this->config->upload->isExtensionAllowed($newExt)) {
+            $this->logger->warning('Rejected validateFileRenameTarget: forbidden extension', [
+                'disk'        => $disk->name,
+                'source'      => $source->value,
+                'destination' => $destination->value,
+                'extension'   => $newExt,
+            ]);
             FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_EXTENSION);
         }
 
@@ -563,6 +548,13 @@ readonly class FileManager
         if ($sample !== '') {
             $detectedMime = $this->mimeTypeChecker->detectBufferMimeType($sample);
             if (! $this->mimeTypeChecker->isMimeAllowedForExtension($newExt, $detectedMime)) {
+                $this->logger->warning('Rejected validateFileRenameTarget: forbidden mime type for extension', [
+                    'disk'        => $disk->name,
+                    'source'      => $source->value,
+                    'destination' => $destination->value,
+                    'extension'   => $newExt,
+                    'mime'        => $detectedMime,
+                ]);
                 FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_MIME);
             }
         }
@@ -577,6 +569,7 @@ readonly class FileManager
     public function bulkRename(Disk $disk, array $renames): array
     {
         $disk->assertWritable();
+        $this->logger->info('Starting bulk rename', ['disk' => $disk->name, 'count' => count($renames)]);
 
         $plan = $this->buildBulkRenamePlan($disk, $renames);
 
@@ -595,6 +588,7 @@ readonly class FileManager
 
         $result = $this->executeBulkRename($disk, $plan, $hasOverlap);
 
+        $this->logger->info('Bulk rename completed successfully', ['disk' => $disk->name, 'count' => count($result)]);
         $this->eventDispatcher->dispatch(
             BulkRenamed::class,
             ['renamed' => $result]
@@ -638,6 +632,7 @@ readonly class FileManager
 
         $targetPaths = array_map(fn (array $p): string => (string) $p['target'], $plan);
         if (count($targetPaths) !== count(array_unique($targetPaths))) {
+            $this->logger->warning('Rejected buildBulkRenamePlan: duplicate target path in batch', ['disk' => $disk->name]);
             FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
         }
 
@@ -648,6 +643,10 @@ readonly class FileManager
         foreach ($plan as $p) {
             $normTarget = $this->pathNormalizer->normalizePath($p['target']->value);
             if (! in_array($normTarget, $sourcePaths, true) && $this->storageGateway->exists($disk, $p['target'])) {
+                $this->logger->warning('Rejected buildBulkRenamePlan: target already exists on disk', [
+                    'disk'   => $disk->name,
+                    'target' => $p['target']->value,
+                ]);
                 FileOperationException::throwWith(
                     $p['isDir']
                         ? FileOperationError::DIRECTORY_ALREADY_EXISTS

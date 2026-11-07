@@ -27,6 +27,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher as LSMEventDispa
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileManager;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileMetadataExtractor;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileSearchService;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
 use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
@@ -175,7 +176,8 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(StorageManagerConfig::class),
                 $app->make(LocalStorageStrategy::class),
                 $app->make(S3StorageStrategy::class),
-                $app->make(RemoteStorageStrategy::class)
+                $app->make(RemoteStorageStrategy::class),
+                $app->make(LoggerInterface::class)
             )
         );
         $this->app->singleton(
@@ -184,7 +186,18 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(StorageManagerConfig::class),
                 $app->make(PathNormalizer::class),
                 $app->make(LSMEventDispatcher::class),
-                $app->make(StorageGateway::class)
+                $app->make(StorageGateway::class),
+                $app->make(LoggerInterface::class)
+            )
+        );
+        $this->app->singleton(
+            FileSearchService::class,
+            fn (Application $app): FileSearchService => new FileSearchService(
+                $app->make(PathNormalizer::class),
+                $app->make(FilePropertyExtractor::class),
+                $app->make(StorageGateway::class),
+                $app->make(StorageManagerConfig::class),
+                $app->make(LoggerInterface::class)
             )
         );
         $this->app->singleton(
@@ -214,7 +227,9 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(StorageGateway::class),
                 $app->make(MimeTypeChecker::class),
                 $app->make(TrashService::class),
-                $app->make(LSMEventDispatcher::class)
+                $app->make(LSMEventDispatcher::class),
+                $app->make(FileSearchService::class),
+                $app->make(LoggerInterface::class)
             )
         );
         $this->app->singleton(
@@ -232,7 +247,8 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(MimeTypeChecker::class),
                 $app->make(StorageGateway::class),
                 $app->make(PathSanitizer::class),
-                $app->make(LSMEventDispatcher::class)
+                $app->make(LSMEventDispatcher::class),
+                $app->make(LoggerInterface::class)
             )
         );
         $this->app->singleton(

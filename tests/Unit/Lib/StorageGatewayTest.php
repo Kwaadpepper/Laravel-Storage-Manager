@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
@@ -460,5 +461,28 @@ describe('StorageGateway', function (): void {
         // THEN
         expect(is_string($localPath) || $localPath === null)->toBeTrue();
         expect(is_string($publicUrl) || $publicUrl === null)->toBeTrue();
+    });
+
+    it('falls back to parent scanning when directoryExists throws an exception on FilesystemAdapter', function (): void {
+        // GIVEN
+        Storage::disk('local')->makeDirectory('fallback_dir');
+        $adapter = \Mockery::mock(FilesystemAdapter::class);
+        $adapter->shouldReceive('directoryExists')
+            ->with('fallback_dir')
+            ->andThrow(new \RuntimeException('Connection timeout'));
+        $adapter->shouldReceive('directories')
+            ->with('')
+            ->andReturn(['fallback_dir']);
+        Storage::set('local', $adapter);
+
+        $gateway = resolve(StorageGateway::class);
+        $disk    = new Disk('local', 'local');
+        $path    = new Path('/fallback_dir');
+
+        // WHEN
+        $result = $gateway->isDirectory($disk, $path);
+
+        // THEN
+        expect($result)->toBeTrue();
     });
 })->covers(StorageGateway::class);

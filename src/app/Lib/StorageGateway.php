@@ -21,6 +21,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathPropertyFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\ResolvedFile;
+use Psr\Log\LoggerInterface;
 
 readonly class StorageGateway
 {
@@ -31,6 +32,7 @@ readonly class StorageGateway
         private LocalStorageStrategy $localStorageStrategy,
         private S3StorageStrategy $s3StorageStrategy,
         private RemoteStorageStrategy $remoteStorageStrategy,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -42,11 +44,18 @@ readonly class StorageGateway
     public function get(Disk $disk, string $path): ?string
     {
         $relPath = ltrim($this->pathNormalizer->normalizePath($path), '/');
+        $this->logger->debug('Reading file contents from disk', ['disk' => $disk->name, 'path' => $relPath]);
         try {
             $content = $this->disk($disk)->get($relPath);
 
             return is_string($content) ? $content : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to read file from disk', [
+                'disk'      => $disk->name,
+                'path'      => $relPath,
+                'exception' => $e,
+            ]);
+
             return null;
         }
     }
@@ -59,7 +68,14 @@ readonly class StorageGateway
         $disk->assertWritable();
         $relPath = ltrim($this->pathNormalizer->normalizePath($path), '/');
 
-        return (bool) $this->disk($disk)->put($relPath, $contents);
+        $result = (bool) $this->disk($disk)->put($relPath, $contents);
+        if ($result) {
+            $this->logger->info('File written successfully', ['disk' => $disk->name, 'path' => $relPath]);
+        } else {
+            $this->logger->error('Failed to write file to disk', ['disk' => $disk->name, 'path' => $relPath]);
+        }
+
+        return $result;
     }
 
     /**
@@ -70,7 +86,14 @@ readonly class StorageGateway
         $disk->assertWritable();
         $relPath = ltrim($this->pathNormalizer->normalizePath($path), '/');
 
-        return (bool) $this->disk($disk)->delete($relPath);
+        $result = (bool) $this->disk($disk)->delete($relPath);
+        if ($result) {
+            $this->logger->info('File deleted successfully', ['disk' => $disk->name, 'path' => $relPath]);
+        } else {
+            $this->logger->error('Failed to delete file from disk', ['disk' => $disk->name, 'path' => $relPath]);
+        }
+
+        return $result;
     }
 
     /**
@@ -81,7 +104,14 @@ readonly class StorageGateway
         $disk->assertWritable();
         $relPath = ltrim($this->pathNormalizer->normalizePath($path), '/');
 
-        return (bool) $this->disk($disk)->deleteDirectory($relPath);
+        $result = (bool) $this->disk($disk)->deleteDirectory($relPath);
+        if ($result) {
+            $this->logger->info('Directory deleted successfully', ['disk' => $disk->name, 'path' => $relPath]);
+        } else {
+            $this->logger->error('Failed to delete directory from disk', ['disk' => $disk->name, 'path' => $relPath]);
+        }
+
+        return $result;
     }
 
     /**
@@ -92,7 +122,14 @@ readonly class StorageGateway
         $disk->assertWritable();
         $relPath = ltrim($this->pathNormalizer->normalizePath($path), '/');
 
-        return (bool) $this->disk($disk)->makeDirectory($relPath);
+        $result = (bool) $this->disk($disk)->makeDirectory($relPath);
+        if ($result) {
+            $this->logger->info('Directory created successfully', ['disk' => $disk->name, 'path' => $relPath]);
+        } else {
+            $this->logger->error('Failed to create directory on disk', ['disk' => $disk->name, 'path' => $relPath]);
+        }
+
+        return $result;
     }
 
     /**
@@ -101,6 +138,7 @@ readonly class StorageGateway
     public function files(Disk $disk, string $directory = ''): array
     {
         $relDir = $directory === '' ? '' : ltrim($this->pathNormalizer->normalizePath($directory), '/');
+        $this->logger->debug('Listing files in directory', ['disk' => $disk->name, 'directory' => $relDir]);
         /** @var list<string> $files */
         $files = $this->disk($disk)->files($relDir);
 
@@ -113,6 +151,7 @@ readonly class StorageGateway
     public function directories(Disk $disk, string $directory = ''): array
     {
         $relDir = $directory === '' ? '' : ltrim($this->pathNormalizer->normalizePath($directory), '/');
+        $this->logger->debug('Listing directories', ['disk' => $disk->name, 'directory' => $relDir]);
         /** @var list<string> $directories */
         $directories = $this->disk($disk)->directories($relDir);
 
@@ -121,9 +160,16 @@ readonly class StorageGateway
 
     public function publicUrl(Disk $disk, Path $path): ?string
     {
+        $this->logger->debug('Getting public URL for path', ['disk' => $disk->name, 'path' => $path->value]);
         try {
             return $this->disk($disk)->url($path->toRelative());
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to get public URL for path', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'exception' => $e,
+            ]);
+
             return null;
         }
     }
@@ -143,37 +189,59 @@ readonly class StorageGateway
     public function size(Disk $disk, string $path): int
     {
         $relPath = ltrim($this->pathNormalizer->normalizePath($path), '/');
+        $this->logger->debug('Getting size for path', ['disk' => $disk->name, 'path' => $relPath]);
 
         return (int) $this->disk($disk)->size($relPath);
     }
 
     public function lastModified(Disk $disk, Path $path): ?int
     {
+        $this->logger->debug('Getting last modified for path', ['disk' => $disk->name, 'path' => $path->value]);
         try {
             return $this->disk($disk)->lastModified($path->toRelative());
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to get last modified timestamp', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'exception' => $e,
+            ]);
+
             return null;
         }
     }
 
     public function visibility(Disk $disk, Path $path): ?string
     {
+        $this->logger->debug('Getting visibility for path', ['disk' => $disk->name, 'path' => $path->value]);
         try {
             $v = $this->disk($disk)->getVisibility($path->toRelative());
 
             return is_string($v) ? $v : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to get visibility', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'exception' => $e,
+            ]);
+
             return null;
         }
     }
 
     public function mimeType(Disk $disk, Path $path): ?string
     {
+        $this->logger->debug('Getting mime type for path', ['disk' => $disk->name, 'path' => $path->value]);
         try {
             $m = $this->disk($disk)->mimeType($path->toRelative());
 
             return is_string($m) ? $m : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to get mime type', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'exception' => $e,
+            ]);
+
             return null;
         }
     }
@@ -184,6 +252,7 @@ readonly class StorageGateway
     public function allFiles(Disk $disk, string $directory = ''): array
     {
         $relDir = $directory === '' ? '' : ltrim($this->pathNormalizer->normalizePath($directory), '/');
+        $this->logger->debug('Listing all files recursively', ['disk' => $disk->name, 'directory' => $relDir]);
         /** @var list<string> $allFiles */
         $allFiles = $this->disk($disk)->allFiles($relDir);
 
@@ -196,6 +265,7 @@ readonly class StorageGateway
     public function allDirectories(Disk $disk, string $directory = ''): array
     {
         $relDir = $directory === '' ? '' : ltrim($this->pathNormalizer->normalizePath($directory), '/');
+        $this->logger->debug('Listing all directories recursively', ['disk' => $disk->name, 'directory' => $relDir]);
         /** @var list<string> $allDirectories */
         $allDirectories = $this->disk($disk)->allDirectories($relDir);
 
@@ -224,7 +294,21 @@ readonly class StorageGateway
             return true;
         }
 
-        $storage   = $this->disk($disk);
+        $storage = $this->disk($disk);
+        $relPath = ltrim($normalizedPath, '/');
+
+        if ($storage instanceof FilesystemAdapter) {
+            try {
+                return $storage->directoryExists($relPath);
+            } catch (\Throwable $e) {
+                $this->logger->warning('Failed to check directoryExists via FilesystemAdapter, falling back to parent scanning', [
+                    'disk'      => $disk->name,
+                    'path'      => $path->value,
+                    'exception' => $e,
+                ]);
+            }
+        }
+
         $parentDir = dirname($normalizedPath);
         $parentRel = $parentDir === '/' || $parentDir === '.' ? '' : ltrim($parentDir, '/');
 
@@ -277,6 +361,8 @@ readonly class StorageGateway
         $storage = $this->disk($disk);
         $relPath = $path->toRelative();
 
+        $this->logger->debug('Opening read stream', ['disk' => $disk->name, 'path' => $relPath]);
+
         if (! $skipExistenceCheck) {
             if (! $storage->exists($relPath)) {
                 FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
@@ -290,6 +376,7 @@ readonly class StorageGateway
         $stream = $storage->readStream($relPath);
 
         if ($stream === null || $stream === false) {
+            $this->logger->error('Failed to open read stream', ['disk' => $disk->name, 'path' => $relPath]);
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
 
@@ -302,13 +389,18 @@ readonly class StorageGateway
     public function writeStream(Disk $disk, Path $path, FileStream $stream): void
     {
         $disk->assertWritable();
+        $relPath = $path->toRelative();
+        $this->logger->debug('Writing stream to disk', ['disk' => $disk->name, 'path' => $relPath]);
 
         try {
-            $result = $this->disk($disk)->writeStream($path->toRelative(), $stream->stream());
+            $result = $this->disk($disk)->writeStream($relPath, $stream->stream());
             if ($result === false) {
+                $this->logger->error('Failed to write stream to disk', ['disk' => $disk->name, 'path' => $relPath]);
                 FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
             }
+            $this->logger->info('Stream written successfully', ['disk' => $disk->name, 'path' => $relPath]);
         } finally {
+            $this->logger->debug('Closing stream after write', ['disk' => $disk->name, 'path' => $relPath]);
             $stream->close();
         }
     }
@@ -331,11 +423,13 @@ readonly class StorageGateway
 
         if ($isDirectory) {
             $strategy->moveDirectory($disk, $srcRel, $destRel);
+            $this->logger->info('Directory moved successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
 
             return;
         }
 
         $strategy->moveFile($disk, $srcRel, $destRel);
+        $this->logger->info('File moved successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
     }
 
     /**
@@ -356,11 +450,13 @@ readonly class StorageGateway
 
         if ($isDirectory) {
             $strategy->copyDirectory($disk, $srcRel, $destRel);
+            $this->logger->info('Directory copied successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
 
             return;
         }
 
         $strategy->copyFile($disk, $srcRel, $destRel);
+        $this->logger->info('File copied successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
     }
 
     public function resolveAvailablePath(Disk $disk, Path $desiredDestination, string $format = '%s (%d)%s'): Path

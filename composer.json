@@ -59,7 +59,7 @@
         "test:feature": "vendor/bin/pest tests/Feature",
         "test:arch": "vendor/bin/pest tests/Architecture",
         "test:coverage": "vendor/bin/pest --coverage --coverage-html=coverage",
-        "test:type-coverage": "php -d auto_prepend_file=.type-coverage-bootstrap.php -d memory_limit=512M vendor/bin/pest --type-coverage --min=100",
+        "test:type-coverage": "php -d xdebug.mode=off -d opcache.enable_cli=0 -d auto_prepend_file=.type-coverage-bootstrap.php -d memory_limit=512M vendor/bin/pest --type-coverage --min=100",
         "analyse": "vendor/bin/phpstan analyse",
         "lint": "vendor/bin/phpcs",
         "format": "vendor/bin/pint"

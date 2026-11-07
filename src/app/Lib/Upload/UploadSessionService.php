@@ -26,6 +26,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadMetadata;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadSessionStatus;
+use Psr\Log\LoggerInterface;
 
 class UploadSessionService
 {
@@ -38,11 +39,18 @@ class UploadSessionService
         private readonly StorageGateway $storageGateway,
         private readonly PathSanitizer $pathSanitizer,
         private readonly EventDispatcher $eventDispatcher,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
     public function createSession(UploadId $uploadId, UploadMetadata $metadata): void
     {
+        $this->logger->info('Creating upload session', [
+            'uploadId'    => $uploadId->value,
+            'fileName'    => $metadata->fileName,
+            'totalChunks' => $metadata->totalChunks,
+            'totalSize'   => $metadata->totalSize,
+        ]);
         $disk = $this->pathResolver->getDisk();
         $disk->makeDirectory($this->pathResolver->getUploadDir($uploadId));
         $this->writeMetadata($uploadId, $metadata);
@@ -66,6 +74,14 @@ class UploadSessionService
 
     public function storeChunk(UploadId $uploadId, int $chunkIndex, UploadedFile | File | string $file): void
     {
+        $metadata = $this->readMetadata($uploadId);
+        $total    = $metadata instanceof UploadMetadata ? $metadata->totalChunks : 0;
+        $this->logger->info('Chunk saved with progress', [
+            'uploadId'    => $uploadId->value,
+            'chunkIndex'  => $chunkIndex,
+            'totalChunks' => $total,
+        ]);
+
         $this->pathResolver->getDisk()->putFileAs(
             $this->pathResolver->getUploadDir($uploadId),
             $file,
@@ -82,6 +98,7 @@ class UploadSessionService
 
     public function readStatus(UploadId $uploadId): ?UploadSessionStatus
     {
+        $this->logger->debug('Reading upload status', ['uploadId' => $uploadId->value]);
         $disk = $this->pathResolver->getDisk();
         $path = $this->pathResolver->getStatusPath($uploadId);
         if (! $disk->exists($path)) {
@@ -168,6 +185,11 @@ class UploadSessionService
             $finalDestination = $desiredDestination;
         } else {
             if ($policy === DuplicatePolicy::ERROR) {
+                $this->logger->warning('Rejected completeUpload: file already exists with ERROR duplicate policy', [
+                    'uploadId'    => $uploadId->value,
+                    'disk'        => $disk->name,
+                    'destination' => $desiredDestination->value,
+                ]);
                 $this->deleteSession($uploadId);
                 FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
             }
@@ -175,6 +197,14 @@ class UploadSessionService
                 DuplicatePolicy::OVERWRITE   => $desiredDestination,
                 DuplicatePolicy::AUTO_RENAME => $this->storageGateway->resolveAvailablePath($disk, $desiredDestination),
             };
+            if ($finalDestination->value !== $desiredDestination->value) {
+                $this->logger->warning('Duplicate collision on upload completion, resolved to new path', [
+                    'uploadId'    => $uploadId->value,
+                    'disk'        => $disk->name,
+                    'desired'     => $desiredDestination->value,
+                    'destination' => $finalDestination->value,
+                ]);
+            }
             $fileName = basename($finalDestination->value);
         }
 
@@ -184,6 +214,12 @@ class UploadSessionService
             $disk->name,
             $onProgress
         );
+
+        $this->logger->info('Completed upload successfully', [
+            'uploadId'    => $uploadId->value,
+            'disk'        => $disk->name,
+            'destination' => $finalDestination->value,
+        ]);
 
         $this->eventDispatcher->dispatch(
             FileCreated::class,
@@ -226,12 +262,23 @@ class UploadSessionService
 
         $extension = strtolower(pathinfo($finalDestination->value, PATHINFO_EXTENSION));
         if (! $this->config->upload->isExtensionAllowed($extension)) {
+            $this->logger->error('Forbidden extension on upload assembly', [
+                'uploadId'    => $uploadId->value,
+                'destination' => $finalDestination->value,
+                'extension'   => $extension,
+            ]);
             $this->deleteSession($uploadId);
             FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_EXTENSION);
         }
 
         $detectedMime = $this->mimeTypeChecker->detectMimeType($assembledFilePath);
         if (! $this->mimeTypeChecker->isMimeAllowedForExtension($extension, $detectedMime)) {
+            $this->logger->error('Forbidden MIME type on upload assembly', [
+                'uploadId'    => $uploadId->value,
+                'destination' => $finalDestination->value,
+                'extension'   => $extension,
+                'mime'        => $detectedMime,
+            ]);
             $this->deleteSession($uploadId);
             FileOperationException::throwWith(FileOperationError::FORBIDDEN_FILE_MIME);
         }
@@ -257,6 +304,7 @@ class UploadSessionService
     ): void {
         $outputHandle = fopen($assembledFilePath, 'wb');
         if ($outputHandle === false) {
+            $this->logger->error('Assembly failure: could not open output file', ['uploadId' => $uploadId->value]);
             throw new AssembleFailedException('Failed to open output assembled file.');
         }
 
@@ -269,6 +317,7 @@ class UploadSessionService
             );
             if ($chunkHandle === false) {
                 fclose($outputHandle);
+                $this->logger->error('Assembly failure: could not open chunk file', ['uploadId' => $uploadId->value, 'chunk' => $i]);
                 throw new AssembleFailedException("Failed to open chunk {$i}");
             }
 
@@ -305,6 +354,7 @@ class UploadSessionService
 
         $stream = fopen($assembledFilePath, 'r');
         if ($stream === false) {
+            $this->logger->error('Transfer failure: could not open assembled file', ['uploadId' => $uploadId->value]);
             throw new TransferFailedException('Failed to open assembled file for transfer.');
         }
 

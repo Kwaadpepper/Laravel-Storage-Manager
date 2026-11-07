@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadPathResolver;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
+use Psr\Log\LoggerInterface;
 
 class CleanOrphanedUploads extends Command
 {
@@ -40,6 +41,10 @@ class CleanOrphanedUploads extends Command
             }
 
             if ($timestamp->lessThan($retainDatetime)) {
+                resolve(LoggerInterface::class)->warning('Cleaned expired orphaned upload session', [
+                    'directory' => $dir,
+                    'timestamp' => $timestamp->toIso8601String(),
+                ]);
                 $disk->deleteDirectory($dir);
                 $deletedCount++;
             }

@@ -9,6 +9,7 @@ use Illuminate\Validation\Validator;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Http\Request\ApiRequest;
 use Kwaadpepper\LaravelStorageManager\Http\Request\Upload\Traits\ValidatesUploadId;
+use Psr\Log\LoggerInterface;
 
 class UploadChunkRequest extends ApiRequest
 {
@@ -56,6 +57,12 @@ class UploadChunkRequest extends ApiRequest
             $chunkChecksum  = $this->string('chunk_checksum')->value();
             $actualChecksum = md5_file($file->getRealPath());
             if ($actualChecksum !== $chunkChecksum) {
+                resolve(LoggerInterface::class)->warning('Upload chunk checksum mismatch', [
+                    'uploadId'       => $this->string('upload_id')->value(),
+                    'chunkIndex'     => $this->integer('chunk_index'),
+                    'expected'       => $chunkChecksum,
+                    'actual'         => $actualChecksum,
+                ]);
                 $validator->errors()->add(
                     'chunk_checksum',
                     (string) Lang::get('storage-manager::storage-manager.validation.chunk_checksum_mismatch')
