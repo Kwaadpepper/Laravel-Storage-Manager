@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import { useService } from '@ts/service-container';
+import { useFileManager } from '@ts/composables';
 import { ModalState, useUiStore } from '@ts/stores';
 import { FileMetadata } from '@ts/types';
 
@@ -15,7 +15,7 @@ export interface FileMetadataViewModel {
 
 export function useFileMetadataViewModel(): FileMetadataViewModel {
   const uiStore = useUiStore();
-  const fileManagerService = useService('fileManagerService');
+  const fileManager = useFileManager();
 
   const isOpen = computed(() => uiStore.fileMetadataModal === ModalState.Opened);
   const targetFilePath = computed(() => uiStore.targetFilePath);
@@ -29,7 +29,7 @@ export function useFileMetadataViewModel(): FileMetadataViewModel {
     error.value = null;
 
     try {
-      metadata.value = await fileManagerService.getFileProperties(path as import('@ts/types').Path);
+      metadata.value = await fileManager.getFileProperties(path as import('@ts/types').Path);
     } catch (err: unknown) {
       metadata.value = null;
       error.value = err instanceof Error ? err.message : 'Failed to load file metadata.';

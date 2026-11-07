@@ -2,7 +2,7 @@
 defineOptions({
   name: 'DiskSelector',
 });
-import { useService } from '@ts/service-container';
+import { useNavigation } from '@ts/composables';
 import { useConfigStore, useDiskStore } from '@ts/stores';
 import { Disk } from '@ts/types';
 import { HardDrive } from 'lucide-vue-next';
@@ -11,16 +11,15 @@ defineProps<{
   className?: string;
 }>();
 
-const diskService = useService('diskService');
-const navigationService = useService('navigationService');
+const navigation = useNavigation();
 const configStore = useConfigStore();
 const diskStore = useDiskStore();
 
 async function onDiskChange(e: Event) {
   const target = e.target as HTMLSelectElement;
   const disk = target.value as Disk;
-  await diskService.selectDisk(disk);
-  navigationService.switchDisk();
+  await diskStore.selectDisk(disk);
+  navigation.switchDisk();
 }
 </script>
 

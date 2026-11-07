@@ -1,10 +1,10 @@
-import { useService } from '@ts/service-container';
+import { useContextualMenuStore } from '@ts/stores';
 import { isContextMenuKeyboardShortcut, resolveContextualMenuAnchor } from '@ts/tools';
 import type { Ref } from 'vue';
 import { onMounted, onUnmounted } from 'vue';
 
 export function useContextMenuTrigger(containerRef: Ref<HTMLElement | null>): void {
-  const contextualMenuService = useService('contextualMenuService');
+  const contextualMenuStore = useContextualMenuStore();
 
   function onContextMenu(event: MouseEvent): void {
     if (!(event.target instanceof HTMLElement)) {
@@ -17,7 +17,7 @@ export function useContextMenuTrigger(containerRef: Ref<HTMLElement | null>): vo
     }
 
     event.preventDefault();
-    contextualMenuService.open(menuAnchor);
+    contextualMenuStore.open(menuAnchor);
   }
 
   function onKeyDown(event: KeyboardEvent): void {
@@ -36,7 +36,7 @@ export function useContextMenuTrigger(containerRef: Ref<HTMLElement | null>): vo
     }
 
     event.preventDefault();
-    contextualMenuService.open(menuAnchor);
+    contextualMenuStore.open(menuAnchor);
   }
 
   onMounted(() => {

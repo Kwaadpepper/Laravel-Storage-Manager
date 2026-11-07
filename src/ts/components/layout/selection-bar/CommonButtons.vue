@@ -2,8 +2,7 @@
 defineOptions({
   name: 'CommonButtons',
 });
-import { useService } from '@ts/service-container';
-import { ModalState, useConfigStore, useDiskStore, useUiStore } from '@ts/stores';
+import { ModalState, useConfigStore, useDiskStore, useToastStore, useUiStore } from '@ts/stores';
 import { isDirectory, TreeNode } from '@ts/types';
 import { t } from '@ts/i18n';
 import { Archive, CopyPlus, FolderOutput, Link, Pencil, SpellCheck, Trash2 } from 'lucide-vue-next';
@@ -16,7 +15,7 @@ const props = defineProps<{
 const configStore = useConfigStore();
 const diskStore = useDiskStore();
 const uiStore = useUiStore();
-const toastService = useService('toastService');
+const toastStore = useToastStore();
 
 const isReadOnly = computed(() =>
   diskStore.currentDisk ? configStore.readOnlyDisks.includes(diskStore.currentDisk) : false
@@ -33,7 +32,7 @@ const firstNodeIsDirectory = computed(
 function onCopyPathClick(): void {
   const paths = props.selectedNodes.map((n) => n.path).join('\n');
   navigator.clipboard.writeText(paths).catch(() => {});
-  toastService.pushToast({ message: t('paths_copied'), type: 'success' });
+  toastStore.pushToast({ message: t('paths_copied'), type: 'success' });
 }
 
 function onCopyLinkClick(): void {
@@ -47,7 +46,7 @@ function onCopyLinkClick(): void {
     })
     .join('\n');
   navigator.clipboard.writeText(links).catch(() => {});
-  toastService.pushToast({ message: t('links_copied'), type: 'success' });
+  toastStore.pushToast({ message: t('links_copied'), type: 'success' });
 }
 
 function onCopyPublicUrlClick(): void {
@@ -57,12 +56,12 @@ function onCopyPublicUrlClick(): void {
     .join('\n');
   if (urls) {
     navigator.clipboard.writeText(urls).catch(() => {});
-    toastService.pushToast({
+    toastStore.pushToast({
       message: t('public_url_copied'),
       type: 'success',
     });
   } else {
-    toastService.pushToast({ message: t('no_public_url'), type: 'warning' });
+    toastStore.pushToast({ message: t('no_public_url'), type: 'warning' });
   }
 }
 

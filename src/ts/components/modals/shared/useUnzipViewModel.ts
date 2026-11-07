@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import { useService } from '@ts/service-container';
+import { useFileManager, useEventQueue } from '@ts/composables';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
 import { handleFormSubmission } from '@ts/tools';
 import type { Path } from '@ts/types';
@@ -19,8 +19,8 @@ export interface UnzipViewModel {
 export function useUnzipViewModel(): UnzipViewModel {
   const uiStore = useUiStore();
   const fileManagerStore = useFileManagerStore();
-  const fileManagerService = useService('fileManagerService');
-  const eventQueueService = useService('eventQueueService');
+  const fileManager = useFileManager();
+  const { pushAndWait } = useEventQueue();
 
   const isOpen = computed(() => uiStore.unzipModal === ModalState.Opened);
 
@@ -74,13 +74,13 @@ export function useUnzipViewModel(): UnzipViewModel {
 
     return handleFormSubmission({
       execute: async () => {
-        await eventQueueService.pushAndWait({
+        await pushAndWait({
           id: `unzip-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: 'UNZIP',
           sourcePath: source,
           destinationPath: destinationDir,
           execute: async (): Promise<void> => {
-            await fileManagerService.unzip(source, destinationDir);
+            await fileManager.unzip(source, destinationDir);
           },
         });
       },

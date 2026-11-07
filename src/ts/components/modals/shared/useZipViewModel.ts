@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import { useService } from '@ts/service-container';
+import { useFileManager, useEventQueue } from '@ts/composables';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
 import { handleFormSubmission } from '@ts/tools';
 import type { Path } from '@ts/types';
@@ -18,8 +18,8 @@ export interface ZipViewModel {
 export function useZipViewModel(): ZipViewModel {
   const uiStore = useUiStore();
   const fileManagerStore = useFileManagerStore();
-  const fileManagerService = useService('fileManagerService');
-  const eventQueueService = useService('eventQueueService');
+  const fileManager = useFileManager();
+  const { pushAndWait } = useEventQueue();
 
   const isOpen = computed(() => uiStore.zipModal === ModalState.Opened);
   const selectedPaths = computed(() => Object.keys(fileManagerStore.selectedNodes) as Path[]);
@@ -69,13 +69,13 @@ export function useZipViewModel(): ZipViewModel {
 
     return handleFormSubmission({
       execute: async () => {
-        await eventQueueService.pushAndWait({
+        await pushAndWait({
           id: `zip-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: 'ZIP',
           sourcePath: currentDir,
           destinationPath: destPath,
           execute: async (): Promise<void> => {
-            await fileManagerService.zip(paths, destPath);
+            await fileManager.zip(paths, destPath);
           },
         });
       },

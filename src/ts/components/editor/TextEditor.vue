@@ -2,7 +2,6 @@
 defineOptions({
   name: 'TextEditor',
 });
-import { useService } from '@ts/service-container';
 import { Theme, useUiStore } from '@ts/stores';
 import { SUPPORTED_LANGUAGES } from '@ts/utils/supported-languages';
 import { createEditor, PrismEditor } from 'prism-code-editor';
@@ -45,10 +44,9 @@ const emit = defineEmits<{
 }>();
 
 const uiStore = useUiStore();
-const themeService = useService('themeService');
 
 const currentLanguage = ref<keyof typeof SUPPORTED_LANGUAGES>(props.language);
-const editorTheme = ref<Theme>(themeService.getSystemTheme());
+const editorTheme = ref<Theme>(uiStore.getSystemTheme());
 const editorContainer = ref<HTMLDivElement | null>(null);
 let editor: PrismEditor | null = null;
 
@@ -63,7 +61,7 @@ watch(
     if (theme !== 'auto') {
       editorTheme.value = theme;
     } else {
-      editorTheme.value = themeService.getSystemTheme();
+      editorTheme.value = uiStore.getSystemTheme();
     }
   },
   { immediate: true }
@@ -71,7 +69,7 @@ watch(
 
 let cleanupThemeListener: (() => void) | undefined;
 onMounted(() => {
-  cleanupThemeListener = themeService.listenToSystemThemeChanges((prefersDark) => {
+  cleanupThemeListener = uiStore.listenToSystemThemeChanges((prefersDark) => {
     if (uiStore.theme === 'auto') {
       editorTheme.value = prefersDark ? 'dark' : 'light';
     }

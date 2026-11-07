@@ -2,13 +2,11 @@
 defineOptions({
   name: 'ThemeSelector',
 });
-import { useService } from '@ts/service-container';
 import { useUiStore } from '@ts/stores';
 import { Moon, Sun, SunMoon } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 
 const uiStore = useUiStore();
-const themeService = useService('themeService');
 
 const themeChangeInputRef = ref<HTMLInputElement | null>(null);
 
@@ -29,13 +27,13 @@ onMounted(() => {
 function rotateTheme() {
   switch (uiStore.theme) {
     case 'auto':
-      themeService.setTheme('light');
+      uiStore.setTheme('light');
       break;
     case 'light':
-      themeService.setTheme('dark');
+      uiStore.setTheme('dark');
       break;
     case 'dark':
-      themeService.setTheme('auto');
+      uiStore.setTheme('auto');
       break;
   }
 }

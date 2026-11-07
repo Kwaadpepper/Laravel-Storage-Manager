@@ -1,5 +1,4 @@
-import { useService } from '@ts/service-container';
-import { AnchorName, ContextualMenuEntry } from '@ts/stores';
+import { AnchorName, ContextualMenuEntry, useContextualMenuStore } from '@ts/stores';
 import type { MaybeRefOrGetter } from 'vue';
 import { onMounted, onUnmounted, toValue, watch } from 'vue';
 
@@ -7,17 +6,17 @@ export function useContextualMenuRegistration(
   anchorName: MaybeRefOrGetter<AnchorName>,
   entries: MaybeRefOrGetter<ContextualMenuEntry[]>
 ): void {
-  const contextualMenuService = useService('contextualMenuService');
+  const contextualMenuStore = useContextualMenuStore();
 
   let currentAnchor: AnchorName | null = null;
 
   function updateRegistration(): void {
     if (currentAnchor) {
-      contextualMenuService.unregister(currentAnchor);
+      contextualMenuStore.unregister(currentAnchor);
     }
     const anchor = toValue(anchorName);
     const list = toValue(entries);
-    contextualMenuService.register(anchor, list);
+    contextualMenuStore.register(anchor, list);
     currentAnchor = anchor;
   }
 
@@ -35,7 +34,7 @@ export function useContextualMenuRegistration(
 
   onUnmounted(() => {
     if (currentAnchor) {
-      contextualMenuService.unregister(currentAnchor);
+      contextualMenuStore.unregister(currentAnchor);
       currentAnchor = null;
     }
   });

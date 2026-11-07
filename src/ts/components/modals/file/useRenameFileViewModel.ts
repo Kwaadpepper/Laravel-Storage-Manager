@@ -1,6 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import type { RenameFileValidationField } from '@ts/services';
-import { useService } from '@ts/service-container';
+import { useFileManager, useEventQueue, type RenameFileValidationField } from '@ts/composables';
 import { ModalState, useUiStore } from '@ts/stores';
 import { handleFormSubmission } from '@ts/tools';
 import { z } from 'zod/v4';
@@ -40,8 +39,8 @@ export interface RenameFileViewModel {
 
 export function useRenameFileViewModel(): RenameFileViewModel {
   const uiStore = useUiStore();
-  const fileManagerService = useService('fileManagerService');
-  const eventQueueService = useService('eventQueueService');
+  const fileManager = useFileManager();
+  const { pushAndWait } = useEventQueue();
 
   const isOpen = computed(() => uiStore.renameFileModal === ModalState.Opened);
   const targetFilePath = computed(() => uiStore.targetFilePath);
@@ -113,13 +112,13 @@ export function useRenameFileViewModel(): RenameFileViewModel {
 
     return handleFormSubmission<RenameFileValidationField>({
       execute: async () => {
-        await eventQueueService.pushAndWait({
+        await pushAndWait({
           id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: 'RENAME',
           sourcePath: curPath,
           destinationPath: curPath.substring(0, curPath.lastIndexOf('/')) + '/' + newName,
           execute: async (): Promise<void> => {
-            await fileManagerService.renameFile(curPath, newName);
+            await fileManager.renameFile(curPath, newName);
           },
         });
       },

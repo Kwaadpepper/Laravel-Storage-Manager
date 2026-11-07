@@ -1,6 +1,6 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
-import { useService } from '@ts/service-container';
-import { ModalState, useConfigStore, useFileManagerStore, useUiStore } from '@ts/stores';
+import { useFileManager, useEventQueue, useTrash, useNavigation } from '@ts/composables';
+import { ModalState, useConfigStore, useFileManagerStore, useToastStore, useUiStore } from '@ts/stores';
 import type { Path } from '@ts/types';
 
 export interface DeleteViewModel {
@@ -14,11 +14,11 @@ export interface DeleteViewModel {
 }
 
 export function useDeleteViewModel(): DeleteViewModel {
-  const fileManagerService = useService('fileManagerService');
-  const eventQueueService = useService('eventQueueService');
-  const toastService = useService('toastService');
-  const trashService = useService('trashService');
-  const navigationService = useService('navigationService');
+  const fileManager = useFileManager();
+  const { pushBatch } = useEventQueue();
+  const toastStore = useToastStore();
+  const { restore } = useTrash();
+  const { refreshCurrentPath } = useNavigation();
   const uiStore = useUiStore();
   const configStore = useConfigStore();
   const fileManagerStore = useFileManagerStore();
@@ -53,14 +53,14 @@ export function useDeleteViewModel(): DeleteViewModel {
       type: 'DELETE' as const,
       sourcePath: path,
       execute: async (): Promise<void> => {
-        const res = await fileManagerService.deleteItem(path, force);
+        const res = await fileManager.deleteItem(path, force);
         if (!force && res && typeof res === 'object' && res.trashed && res.trashId) {
           trashedIds.push(res.trashId);
         }
         completedCount++;
 
         if (completedCount === count && trashedIds.length > 0) {
-          toastService.pushToast(
+          toastStore.pushToast(
             {
               type: 'info',
               title: 'Moved to Trash',
@@ -70,9 +70,9 @@ export function useDeleteViewModel(): DeleteViewModel {
               action: {
                 label: 'Undo',
                 onClick: async (): Promise<void> => {
-                  await trashService.restore(trashedIds);
-                  await navigationService.refreshCurrentPath();
-                  toastService.pushToast({
+                  await restore(trashedIds);
+                  await refreshCurrentPath();
+                  toastStore.pushToast({
                     type: 'success',
                     message: 'Restored successfully.',
                   });
@@ -85,7 +85,7 @@ export function useDeleteViewModel(): DeleteViewModel {
       },
     }));
 
-    eventQueueService.pushBatch(events);
+    pushBatch(events);
 
     // Clear selection since items are being deleted
     fileManagerStore.selectNodes();

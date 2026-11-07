@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef } from 'vue';
-import { useService } from '@ts/service-container';
+import { useDownload } from '@ts/composables';
 import { ModalState, useUiStore } from '@ts/stores';
 import {
   SUPPORTED_AUDIO_EXTENSIONS,
@@ -26,7 +26,7 @@ export interface ViewFileViewModel {
 
 export function useViewFileViewModel(): ViewFileViewModel {
   const uiStore = useUiStore();
-  const downloadService = useService('downloadService');
+  const { getStreamUrl, getDownloadUrl, downloadFile } = useDownload();
 
   const fetchState = ref<FetchState>({ status: 'pending' });
 
@@ -54,8 +54,8 @@ export function useViewFileViewModel(): ViewFileViewModel {
       if (!open || !path) return;
 
       const ext = getExtension(path);
-      const streamUrl = downloadService.getStreamUrl(path);
-      const downloadUrl = downloadService.getDownloadUrl(path);
+      const streamUrl = getStreamUrl(path);
+      const downloadUrl = getDownloadUrl(path);
 
       // If the media can be streamed directly via URL (video, audio, image, pdf),
       // we do not download the entire file into a JS Blob, enabling instant playback & HTTP Range seeking.
@@ -73,8 +73,7 @@ export function useViewFileViewModel(): ViewFileViewModel {
       let cancelled = false;
       fetchState.value = { status: 'pending' };
 
-      downloadService
-        .downloadFile(path)
+      downloadFile(path)
         .then((blob) => {
           if (!cancelled) {
             fetchState.value = {

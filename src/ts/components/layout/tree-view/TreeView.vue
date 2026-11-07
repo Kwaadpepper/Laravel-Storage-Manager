@@ -5,15 +5,14 @@ defineOptions({
 import DiskSelector from '@ts/components/shared/DiskSelector.vue';
 import DiskUsageWidget from './DiskUsageWidget.vue';
 import TreeNodeItem from '@ts/components/layout/tree-view/TreeNodeItem.vue';
-import { useService } from '@ts/service-container';
+import { useNavigation } from '@ts/composables';
 import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useTreeStore, useUiStore } from '@ts/stores';
 import { rootPath } from '@ts/types';
 import { t } from '@ts/i18n';
 import { ChevronDown, ChevronRight, Folder, FolderOpen, Trash2 } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 
-const navigationService = useService('navigationService');
-const diskService = useService('diskService');
+const navigation = useNavigation();
 const fileManagerStore = useFileManagerStore();
 const diskStore = useDiskStore();
 const treeStore = useTreeStore();
@@ -39,7 +38,7 @@ watch(
   () => diskStore.currentDisk,
   (disk) => {
     if (disk) {
-      void diskService.fetchDiskStats(disk);
+      void diskStore.fetchDiskStats(disk);
     }
   },
   { immediate: true }
@@ -65,7 +64,7 @@ watch(
               type="button"
               class="btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 shrink-0"
               :aria-label="rootState?.expanded ? t('collapse_root') : t('expand_root')"
-              @click="navigationService.loadTreeNode(rootPath())"
+              @click="navigation.loadTreeNode(rootPath())"
             >
               <ChevronDown
                 v-if="rootState?.expanded"
@@ -79,7 +78,7 @@ watch(
             <button
               type="button"
               class="flex items-center gap-1 flex-1 min-w-0 py-1 pr-2 text-left"
-              @click="navigationService.navigateTo(rootPath())"
+              @click="navigation.navigateTo(rootPath())"
             >
               <FolderOpen
                 v-if="rootState?.expanded"
@@ -111,8 +110,8 @@ watch(
                 :node-state="treeStore.nodes[dir.path]"
                 :current-path="fileManagerStore.currentPath"
                 :nodes="treeStore.nodes"
-                @toggle="(path) => navigationService.loadTreeNode(path)"
-                @navigate="(path) => navigationService.navigateTo(path)"
+                @toggle="(path) => navigation.loadTreeNode(path)"
+                @navigate="(path) => navigation.navigateTo(path)"
               />
             </template>
           </ul>

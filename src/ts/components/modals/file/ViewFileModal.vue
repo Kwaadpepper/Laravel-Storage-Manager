@@ -7,7 +7,7 @@ import FileIcon from '@ts/components/shared/FileIcon.vue';
 import { Crop, Info, Loader, X } from 'lucide-vue-next';
 import { useEscapeClose } from '@ts/tools';
 import { ModalState, useConfigStore, useDiskStore, useUiStore } from '@ts/stores';
-import { useService } from '@ts/service-container';
+import { useFileManager } from '@ts/composables';
 import { FileMetadata, Path } from '@ts/types';
 import {
   SUPPORTED_AUDIO_EXTENSIONS as AUDIO_EXTENSIONS,
@@ -42,7 +42,7 @@ const { isOpen, close, targetFilePath, blob, streamUrl, downloadUrl, loading, er
 const uiStore = useUiStore();
 const diskStore = useDiskStore();
 const configStore = useConfigStore();
-const fileManagerService = useService('fileManagerService');
+const fileManager = useFileManager();
 
 const isInfoOpen = ref<boolean>(false);
 const metadata = ref<FileMetadata | null>(null);
@@ -64,7 +64,7 @@ async function loadMetadata(): Promise<void> {
   metadataLoading.value = true;
   metadataError.value = null;
   try {
-    metadata.value = await fileManagerService.getFileProperties(targetFilePath.value as Path);
+    metadata.value = await fileManager.getFileProperties(targetFilePath.value as Path);
   } catch (err: unknown) {
     metadata.value = null;
     metadataError.value = err instanceof Error ? err.message : 'Failed to load file metadata.';

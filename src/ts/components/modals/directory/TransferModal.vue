@@ -5,7 +5,7 @@ defineOptions({
 import { computed, ref } from 'vue';
 import { FolderPlus, X } from 'lucide-vue-next';
 import DirectoryPicker from '@ts/components/shared/DirectoryPicker.vue';
-import { useService } from '@ts/service-container';
+import { useFileManager, useEventQueue } from '@ts/composables';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
 import { useEscapeClose } from '@ts/tools';
 import { rootPath, type Path } from '@ts/types';
@@ -14,8 +14,8 @@ const props = defineProps<{
   mode: 'move' | 'copy';
 }>();
 
-const fileManagerService = useService('fileManagerService');
-const eventQueueService = useService('eventQueueService');
+const fileManager = useFileManager();
+const { pushBatch } = useEventQueue();
 
 const uiStore = useUiStore();
 const fileManagerStore = useFileManagerStore();
@@ -68,14 +68,14 @@ async function onSubmit(): Promise<void> {
     destinationPath: dest,
     execute: async (): Promise<void> => {
       if (mode === 'move') {
-        await fileManagerService.move(node.path, dest);
+        await fileManager.move(node.path, dest);
       } else {
-        await fileManagerService.copy(node.path, dest);
+        await fileManager.copy(node.path, dest);
       }
     },
   }));
 
-  eventQueueService.pushBatch(events);
+  pushBatch(events);
   fileManagerStore.selectNodes(); // Clear selection
 
   isSubmitting.value = false;

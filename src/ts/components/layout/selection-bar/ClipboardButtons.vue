@@ -2,8 +2,8 @@
 defineOptions({
   name: 'ClipboardButtons',
 });
-import { useService } from '@ts/service-container';
-import { useClipboardStore, useFileManagerStore } from '@ts/stores';
+import { useEventQueue, useFileManager } from '@ts/composables';
+import { useClipboardStore, useFileManagerStore, useToastStore } from '@ts/stores';
 import { TreeNode } from '@ts/types';
 import { ClipboardCopy, ClipboardPaste, Scissors } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -12,11 +12,9 @@ const props = defineProps<{
   selectedNodes: TreeNode[];
 }>();
 
-const toastService = useService('toastService');
-const clipboardService = useService('clipboardService');
-const fileManagerService = useService('fileManagerService');
-const eventQueueService = useService('eventQueueService');
-
+const toastStore = useToastStore();
+const fileManager = useFileManager();
+const eventQueue = useEventQueue();
 const fileManagerStore = useFileManagerStore();
 const clipboardStore = useClipboardStore();
 
@@ -24,9 +22,9 @@ const hasSelection = computed(() => props.selectedNodes.length > 0);
 
 function onClickCopy(): void {
   if (props.selectedNodes.length === 0) return;
-  clipboardService.setConsumingMode(false);
-  clipboardService.addEntry(...props.selectedNodes.map((node) => node.path));
-  toastService.pushToast({
+  clipboardStore.setConsumingMode(false);
+  clipboardStore.addEntry(...props.selectedNodes.map((node) => node.path));
+  toastStore.pushToast({
     message: `${props.selectedNodes.length} item(s) copied to clipboard.`,
     type: 'success',
   });
@@ -34,19 +32,19 @@ function onClickCopy(): void {
 
 function onClickCut(): void {
   if (props.selectedNodes.length === 0) return;
-  clipboardService.setConsumingMode(true);
-  clipboardService.addEntry(...props.selectedNodes.map((node) => node.path));
-  toastService.pushToast({
+  clipboardStore.setConsumingMode(true);
+  clipboardStore.addEntry(...props.selectedNodes.map((node) => node.path));
+  toastStore.pushToast({
     message: `${props.selectedNodes.length} item(s) cut to clipboard.`,
     type: 'success',
   });
 }
 
 async function onClickPaste(): Promise<void> {
-  const isCut = clipboardService.getIsConsumingMode();
-  const entry = clipboardService.getLastEntry();
+  const isCut = clipboardStore.getIsConsumingMode();
+  const entry = clipboardStore.getLastEntry();
   if (!entry || entry.length === 0) {
-    toastService.pushToast({ message: 'Clipboard is empty.', type: 'info' });
+    toastStore.pushToast({ message: 'Clipboard is empty.', type: 'info' });
     return;
   }
 
@@ -57,15 +55,15 @@ async function onClickPaste(): Promise<void> {
     destinationPath: fileManagerStore.currentPath,
     execute: async () => {
       if (isCut) {
-        await fileManagerService.move(path, fileManagerStore.currentPath);
+        await fileManager.move(path, fileManagerStore.currentPath);
       } else {
-        await fileManagerService.copy(path, fileManagerStore.currentPath);
+        await fileManager.copy(path, fileManagerStore.currentPath);
       }
     },
   }));
 
-  eventQueueService.pushBatch(events);
-  clipboardService.clearEntries();
+  eventQueue.pushBatch(events);
+  clipboardStore.clearEntries();
 }
 </script>
 

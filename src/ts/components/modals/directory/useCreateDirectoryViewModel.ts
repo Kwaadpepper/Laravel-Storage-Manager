@@ -1,6 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import type { CreateDirectoryValidationField } from '@ts/services';
-import { useService } from '@ts/service-container';
+import { useFileManager, useEventQueue, type CreateDirectoryValidationField } from '@ts/composables';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
 import { handleFormSubmission } from '@ts/tools';
 import { z } from 'zod/v4';
@@ -32,8 +31,8 @@ export interface CreateDirectoryViewModel {
 export function useCreateDirectoryViewModel(): CreateDirectoryViewModel {
   const fileManagerStore = useFileManagerStore();
   const uiStore = useUiStore();
-  const fileManagerService = useService('fileManagerService');
-  const eventQueueService = useService('eventQueueService');
+  const fileManager = useFileManager();
+  const { pushAndWait } = useEventQueue();
 
   const activePath = computed(() => uiStore.targetDirectoryPath ?? fileManagerStore.currentPath);
   const isOpen = computed(() => uiStore.newDirectoryModal === ModalState.Opened);
@@ -65,13 +64,13 @@ export function useCreateDirectoryViewModel(): CreateDirectoryViewModel {
 
     return handleFormSubmission<CreateDirectoryValidationField>({
       execute: async () => {
-        await eventQueueService.pushAndWait({
+        await pushAndWait({
           id: `create-dir-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: 'CREATE',
           sourcePath: basePath,
           destinationPath: `${basePath === '/' ? '' : basePath}/${validName}`,
           execute: async (): Promise<void> => {
-            await fileManagerService.createDirectory(basePath, validName);
+            await fileManager.createDirectory(basePath, validName);
           },
         });
       },

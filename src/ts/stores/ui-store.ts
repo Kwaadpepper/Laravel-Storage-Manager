@@ -4,6 +4,12 @@ import { ref } from 'vue';
 
 export type Theme = 'auto' | 'light' | 'dark';
 
+export const AVAILABLE_THEMES: readonly Theme[] = ['auto', 'light', 'dark'] as const;
+
+export function isValidTheme(theme: string): theme is Theme {
+  return (AVAILABLE_THEMES as readonly string[]).includes(theme);
+}
+
 export enum ModalState {
   Closed = 'closed',
   Opened = 'opened',
@@ -16,23 +22,28 @@ const TREE_VISIBLE_KEY = 'sm-tree-visible';
 export type ViewMode = 'list' | 'tiles';
 
 function getLocalStorageViewMode(): ViewMode {
+  if (typeof localStorage === 'undefined') return 'list';
   const stored = localStorage.getItem(VIEW_MODE_KEY);
   return stored === 'tiles' ? 'tiles' : 'list';
 }
 
 function setLocalStorageViewMode(mode: ViewMode): void {
+  if (typeof localStorage === 'undefined') return;
   localStorage.setItem(VIEW_MODE_KEY, mode);
 }
 
 function getLocalStorageTreeVisible(): boolean {
+  if (typeof localStorage === 'undefined') return true;
   return localStorage.getItem(TREE_VISIBLE_KEY) !== 'false';
 }
 
 function setLocalStorageTreeVisible(visible: boolean): void {
+  if (typeof localStorage === 'undefined') return;
   localStorage.setItem(TREE_VISIBLE_KEY, String(visible));
 }
 
 function getLocalStorageTheme(): Theme {
+  if (typeof localStorage === 'undefined') return 'auto';
   const storedTheme = localStorage.getItem(LOCAL_STORAGE_KEY);
   return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'auto'
     ? storedTheme
@@ -40,6 +51,7 @@ function getLocalStorageTheme(): Theme {
 }
 
 function setLocalStorageTheme(theme: Theme): void {
+  if (typeof localStorage === 'undefined') return;
   localStorage.setItem(LOCAL_STORAGE_KEY, theme);
 }
 
@@ -66,6 +78,29 @@ export const useUiStore = defineStore('ui', () => {
   const targetArchiveFilePath = ref<Path | null>(null);
   const viewMode = ref<ViewMode>(getLocalStorageViewMode());
   const treeVisible = ref<boolean>(getLocalStorageTreeVisible());
+
+  function getSystemTheme(): Theme {
+    return globalThis.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light';
+  }
+
+  function availableThemes(): readonly Theme[] {
+    return AVAILABLE_THEMES;
+  }
+
+  function listenToSystemThemeChanges(handler: (prefersDark: boolean) => void): (() => void) | undefined {
+    const matchMedia = globalThis.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!matchMedia) {
+      console.warn('matchMedia is not supported in this environment. System theme changes will not be detected.');
+      return;
+    }
+
+    const listener = (e: MediaQueryListEvent) => handler(e.matches);
+    matchMedia.addEventListener('change', listener);
+
+    return () => {
+      matchMedia.removeEventListener('change', listener);
+    };
+  }
 
   function setTheme(newTheme: Theme): void {
     theme.value = newTheme;
@@ -108,6 +143,9 @@ export const useUiStore = defineStore('ui', () => {
     setTheme,
     setViewMode,
     setTreeVisible,
+    getSystemTheme,
+    availableThemes,
+    listenToSystemThemeChanges,
   };
 });
 

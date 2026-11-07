@@ -4,7 +4,7 @@ defineOptions({
 });
 
 import { computed, ref } from 'vue';
-import { useService } from '@ts/service-container';
+import { useToastStore } from '@ts/stores';
 import { FileMetadata } from '@ts/types';
 import FileIcon from '@ts/components/shared/FileIcon.vue';
 import FileSize from '@ts/components/shared/FileSize.vue';
@@ -25,7 +25,7 @@ const props = defineProps<{
   metadata: FileMetadata;
 }>();
 
-const toastService = useService('toastService');
+const toastStore = useToastStore();
 
 type TabType = 'general' | 'exif' | 'raw';
 const activeTab = ref<TabType>('general');
@@ -69,7 +69,7 @@ function copyToClipboard(text: string, fieldName: string): void {
     .writeText(text)
     .then(() => {
       copiedField.value = fieldName;
-      toastService.pushToast({ message: `${fieldName} copied to clipboard.`, type: 'success' });
+      toastStore.pushToast({ message: `${fieldName} copied to clipboard.`, type: 'success' });
       setTimeout(() => {
         if (copiedField.value === fieldName) {
           copiedField.value = null;
@@ -77,7 +77,7 @@ function copyToClipboard(text: string, fieldName: string): void {
       }, 2000);
     })
     .catch(() => {
-      toastService.pushToast({ message: 'Failed to copy to clipboard.', type: 'error' });
+      toastStore.pushToast({ message: 'Failed to copy to clipboard.', type: 'error' });
     });
 }
 

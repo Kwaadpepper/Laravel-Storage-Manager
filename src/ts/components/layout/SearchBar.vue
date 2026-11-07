@@ -2,7 +2,7 @@
 defineOptions({
   name: 'SearchBar',
 });
-import { useService } from '@ts/service-container';
+import { useNavigation } from '@ts/composables';
 import { useFileManagerStore, useSearchStore } from '@ts/stores';
 import { Path } from '@ts/types';
 import { t } from '@ts/i18n';
@@ -23,7 +23,7 @@ function parseSizeToUnit(sizeInBytes?: number): { value: string; unit: number } 
   return { value: sizeInBytes.toString(), unit: 1 };
 }
 
-const navigationService = useService('navigationService');
+const navigation = useNavigation();
 const fileManagerStore = useFileManagerStore();
 const searchStore = useSearchStore();
 
@@ -84,7 +84,7 @@ function onSearch(e?: Event): void {
     !localMaxSize.value
   ) {
     if (isSearchMode.value) {
-      navigationService.navigatePrevious();
+      navigation.navigatePrevious();
     }
     return;
   }
@@ -103,12 +103,12 @@ function onSearch(e?: Event): void {
     if (!isNaN(maxBytes)) searchParams.set('maxSize', maxBytes.toString());
   }
 
-  navigationService.navigateTo('/:search' as Path, undefined, searchParams);
+  navigation.navigateTo('/:search' as Path, undefined, searchParams);
 }
 
 function onResetClick(): void {
   if (isSearchMode.value) {
-    navigationService.navigatePrevious();
+    navigation.navigatePrevious();
   }
 }
 </script>

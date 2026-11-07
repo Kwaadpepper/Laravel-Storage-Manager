@@ -1,7 +1,7 @@
 import Cropper from 'cropperjs';
 import { computed, ref, shallowRef, watch, type ComputedRef, type Ref } from 'vue';
-import { useService } from '@ts/service-container';
-import { ModalState, useDiskStore, useUiStore } from '@ts/stores';
+import { useDownload, useUploadQueue } from '@ts/composables';
+import { ModalState, useDiskStore, useToastStore, useUiStore } from '@ts/stores';
 
 export type AspectRatioKey = 'free' | '1:1' | '4:3' | '16:9' | '3:2' | '2:3';
 
@@ -63,9 +63,9 @@ export function getMimeTypeFromExtension(ext: string): string {
 export function useCropImageViewModel(): CropImageViewModel {
   const uiStore = useUiStore();
   const diskStore = useDiskStore();
-  const downloadService = useService('downloadService');
-  const uploadService = useService('uploadService');
-  const toastService = useService('toastService');
+  const toastStore = useToastStore();
+  const { getStreamUrl } = useDownload();
+  const { enqueueUploads } = useUploadQueue();
 
   const isOpen = computed(() => uiStore.cropImageModal === ModalState.Opened);
   const targetFilePath = computed(() => uiStore.targetFilePath);
@@ -87,7 +87,7 @@ export function useCropImageViewModel(): CropImageViewModel {
 
   const imageSrc = computed(() => {
     if (!targetFilePath.value) return null;
-    return downloadService.getStreamUrl(targetFilePath.value);
+    return getStreamUrl(targetFilePath.value);
   });
 
   const aspectRatio = ref<AspectRatioKey>('free');
@@ -275,9 +275,9 @@ export function useCropImageViewModel(): CropImageViewModel {
       const currentDisk = diskStore.currentDisk ?? 'public';
       const duplicatePolicy = saveMode.value === 'overwrite' ? 'overwrite' : 'auto_rename';
 
-      uploadService.enqueueUploads([file], dir, currentDisk, duplicatePolicy);
+      enqueueUploads([file], dir, currentDisk, duplicatePolicy);
 
-      toastService.pushToast({
+      toastStore.pushToast({
         message: `Cropped image "${finalName}" queued for upload.`,
         type: 'info',
       });

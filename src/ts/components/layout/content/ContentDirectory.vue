@@ -3,8 +3,18 @@ defineOptions({
   name: 'ContentDirectory',
 });
 import { useContextualMenuRegistration } from '@ts/components/shared/use-contextual-menu-registration';
-import { useService } from '@ts/service-container';
-import { ContextualMenuEntry, ModalState, toAnchorName, useClipboardStore, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
+import { useEventQueue, useFileManager, useNavigation } from '@ts/composables';
+import {
+  ContextualMenuEntry,
+  ModalState,
+  toAnchorName,
+  useClipboardStore,
+  useConfigStore,
+  useDiskStore,
+  useFileManagerStore,
+  useToastStore,
+  useUiStore,
+} from '@ts/stores';
 import { rootPath, TreeNodeDirectory } from '@ts/types';
 import { t } from '@ts/i18n';
 import { Folder, FolderOpen } from 'lucide-vue-next';
@@ -25,27 +35,26 @@ const uiStore = useUiStore();
 const fileManagerStore = useFileManagerStore();
 const clipboardStore = useClipboardStore();
 const diskStore = useDiskStore();
+const toastStore = useToastStore();
 
-const navigationService = useService('navigationService');
-const clipboardService = useService('clipboardService');
-const fileManagerService = useService('fileManagerService');
-const eventQueueService = useService('eventQueueService');
-const toastService = useService('toastService');
+const navigation = useNavigation();
+const fileManager = useFileManager();
+const eventQueue = useEventQueue();
 
 const anchorName = computed(() => toAnchorName(props.item.path));
 const isRoot = computed(() => props.item.path === rootPath());
 
 const entries = computed<ContextualMenuEntry[]>(() => [
-  { label: t('open'), onClick: () => navigationService.navigateTo(props.item.path) },
+  { label: t('open'), onClick: () => navigation.navigateTo(props.item.path) },
   { separator: true },
   {
     label: t('cut'),
     onClick: () => {
       const paths = Object.values(fileManagerStore.selectedNodes);
       const nodes = paths.length > 0 ? paths : [props.item];
-      clipboardService.setConsumingMode(true);
-      clipboardService.addEntry(...nodes.map((n) => n.path));
-      toastService.pushToast({
+      clipboardStore.setConsumingMode(true);
+      clipboardStore.addEntry(...nodes.map((n) => n.path));
+      toastStore.pushToast({
         message: t('items_cut', { count: nodes.length }),
         type: 'info',
       });
@@ -56,9 +65,9 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     onClick: () => {
       const paths = Object.values(fileManagerStore.selectedNodes);
       const nodes = paths.length > 0 ? paths : [props.item];
-      clipboardService.setConsumingMode(false);
-      clipboardService.addEntry(...nodes.map((n) => n.path));
-      toastService.pushToast({
+      clipboardStore.setConsumingMode(false);
+      clipboardStore.addEntry(...nodes.map((n) => n.path));
+      toastStore.pushToast({
         message: t('items_copied', { count: nodes.length }),
         type: 'info',
       });
@@ -69,10 +78,10 @@ const entries = computed<ContextualMenuEntry[]>(() => [
         {
           label: t('paste'),
           onClick: async () => {
-            const isCut = clipboardService.getIsConsumingMode();
-            const entry = clipboardService.getLastEntry();
+            const isCut = clipboardStore.getIsConsumingMode();
+            const entry = clipboardStore.getLastEntry();
             if (!entry || entry.length === 0) {
-              toastService.pushToast({ message: t('clipboard_empty'), type: 'info' });
+              toastStore.pushToast({ message: t('clipboard_empty'), type: 'info' });
               return;
             }
 
@@ -83,15 +92,15 @@ const entries = computed<ContextualMenuEntry[]>(() => [
               destinationPath: props.item.path,
               execute: async () => {
                 if (isCut) {
-                  await fileManagerService.move(path, props.item.path);
+                  await fileManager.move(path, props.item.path);
                 } else {
-                  await fileManagerService.copy(path, props.item.path);
+                  await fileManager.copy(path, props.item.path);
                 }
               },
             }));
 
-            eventQueueService.pushBatch(events);
-            clipboardService.clearEntries();
+            eventQueue.pushBatch(events);
+            clipboardStore.clearEntries();
           },
         },
       ]
@@ -101,7 +110,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     label: t('copy_path'),
     onClick: () => {
       navigator.clipboard.writeText(props.item.path).catch(() => {});
-      toastService.pushToast({ message: t('path_copied'), type: 'success' });
+      toastStore.pushToast({ message: t('path_copied'), type: 'success' });
     },
   },
   {
@@ -112,7 +121,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       const hashPath = `/${disk}${props.item.path}`;
       url.hash = hashPath.split('/').map(encodeURIComponent).join('/');
       navigator.clipboard.writeText(url.toString()).catch(() => {});
-      toastService.pushToast({ message: t('link_copied'), type: 'success' });
+      toastStore.pushToast({ message: t('link_copied'), type: 'success' });
     },
   },
   { separator: true },

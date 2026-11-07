@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { DownloadService } from '../../src/ts/services/download-service';
+import { DownloadService } from '../../src/ts/composables';
 import type { ConfigStore, DiskStore } from '../../src/ts/stores';
 
 describe('DownloadService', () => {
@@ -105,4 +105,28 @@ describe('DownloadService', () => {
       globalThis.URL.revokeObjectURL = origRevokeObjectURL;
     }
   });
+
+  it('handles paths without leading slash without truncating the filename', () => {
+    const fakeDiskStore = {
+      currentDisk: 'local',
+    } as unknown as DiskStore;
+
+    const service = new DownloadService(fakeDiskStore);
+    expect(service.getStreamUrl('videos/sample-1.mp4' as any)).toBe('/sm/stream/local/videos/sample-1.mp4');
+  });
 });
+
+describe('useDownload composable', () => {
+  it('generates stream, download, and thumbnail URLs', () => {
+    const { useDownload } = require('../../src/ts/composables');
+    const fakeDiskStore = { currentDisk: 's3' } as unknown as DiskStore;
+    const fakeConfigStore = { routePrefix: '/storage' } as unknown as ConfigStore;
+
+    const { getStreamUrl, getDownloadUrl, getThumbnailUrl } = useDownload(fakeDiskStore, fakeConfigStore);
+
+    expect(getStreamUrl('/images/logo.png')).toBe('/storage/stream/s3/images/logo.png');
+    expect(getDownloadUrl('/images/logo.png')).toBe('/storage/download/s3/images/logo.png');
+    expect(getThumbnailUrl('/images/logo.png')).toBe('/storage/thumb/s3/images/logo.png');
+  });
+});
+

@@ -1,8 +1,8 @@
-import { useService } from "@ts/service-container";
-import { onMounted, onUnmounted } from "vue";
+import { useNavigation } from '@ts/composables';
+import { onMounted, onUnmounted } from 'vue';
 
 export function useKeyboardNavigation(): void {
-  const navigationService = useService('navigationService');
+  const navigation = useNavigation();
 
   function onDocKeyDown(e: KeyboardEvent): void {
     const target = e.target as HTMLElement | null;
@@ -11,7 +11,7 @@ export function useKeyboardNavigation(): void {
     }
     if (e.key === 'Backspace') {
       e.preventDefault();
-      navigationService.navigatePrevious();
+      navigation.navigatePrevious();
     }
   }
 

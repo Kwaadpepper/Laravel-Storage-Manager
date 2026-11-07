@@ -25,14 +25,25 @@ function generateToastId(): ToastId {
 
 export const useToastStore = defineStore('toast', () => {
   const toasts = ref<InnerToast[]>([]);
+  const defaultTimeout = 5000;
 
-  function pushToast(toast: Toast, options?: { persistent?: boolean }): InnerToast {
+  function pushToast(
+    toast: Toast,
+    options?: { timeout?: number; persistent?: boolean }
+  ): InnerToast {
     const newToast: InnerToast = {
       ...toast,
       id: generateToastId(),
       persistent: options?.persistent ?? false,
     };
     toasts.value.push(newToast);
+
+    if (!options?.persistent || options?.timeout) {
+      setTimeout(() => {
+        pullToast(newToast.id);
+      }, options?.timeout ?? defaultTimeout);
+    }
+
     return newToast;
   }
 
@@ -47,6 +58,7 @@ export const useToastStore = defineStore('toast', () => {
   return {
     toasts,
     pushToast,
+    push: pushToast,
     pullToast,
   };
 });

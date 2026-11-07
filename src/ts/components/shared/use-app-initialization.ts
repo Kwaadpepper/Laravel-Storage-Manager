@@ -1,26 +1,25 @@
-import { useService } from '@ts/service-container';
+import { getDiskAndPath, useFileManager, useNavigation } from '@ts/composables';
 import { rootPath } from '@ts/types';
 import { onMounted } from 'vue';
 
 export function useAppInitialization(): void {
-  const fileManagerService = useService('fileManagerService');
-  const navigationService = useService('navigationService');
-  const locationService = useService('locationService');
+  const fileManager = useFileManager();
+  const navigation = useNavigation();
 
   onMounted(() => {
-    fileManagerService
+    fileManager
       .initialize()
       .then(async () => {
-        const { path: initialPath, searchParams } = locationService.getDiskAndPath();
+        const { path: initialPath, searchParams } = getDiskAndPath();
         try {
           if (initialPath === '/:search') {
-            navigationService.navigateTo(initialPath, undefined, searchParams);
+            navigation.navigateTo(initialPath, undefined, searchParams);
           } else {
-            const data = await fileManagerService.listFiles(initialPath);
-            navigationService.navigateTo(initialPath, data, searchParams);
+            const data = await fileManager.listFiles(initialPath);
+            navigation.navigateTo(initialPath, data, searchParams);
           }
         } catch {
-          navigationService.navigateTo(rootPath());
+          navigation.navigateTo(rootPath());
         }
       })
       .catch(() => {

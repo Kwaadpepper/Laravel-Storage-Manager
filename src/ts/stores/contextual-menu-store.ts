@@ -41,7 +41,31 @@ export const useContextualMenuStore = defineStore('contextualMenu', () => {
 
   function closeMenu(): void {
     visible.value = false;
-    entries.value = [];
+  }
+
+  const contextualMenuList = ref(new Map<AnchorName, ContextualMenuEntry[]>());
+
+  function register(anchor: AnchorName, menuEntries: ContextualMenuEntry[]): void {
+    contextualMenuList.value.set(anchor, [...menuEntries]);
+  }
+
+  function unregister(anchor: AnchorName): void {
+    contextualMenuList.value.delete(anchor);
+  }
+
+  function open(anchor: AnchorName): boolean {
+    const forEntries = contextualMenuList.value.get(anchor) || [];
+    if (forEntries.length === 0) {
+      closeMenu();
+      return false;
+    }
+
+    setMenu(anchor, forEntries);
+    return true;
+  }
+
+  function close(): void {
+    closeMenu();
   }
 
   return {
@@ -51,6 +75,10 @@ export const useContextualMenuStore = defineStore('contextualMenu', () => {
     entries,
     setMenu,
     closeMenu,
+    register,
+    unregister,
+    open,
+    close,
   };
 });
 

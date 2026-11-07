@@ -1,5 +1,5 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
-import { useService } from '@ts/service-container';
+import { useFileManager, useEventQueue } from '@ts/composables';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
 import { handleFormSubmission } from '@ts/tools';
 import { isFile, type Path } from '@ts/types';
@@ -31,8 +31,8 @@ export interface BulkRenameViewModel {
 export function useBulkRenameViewModel(): BulkRenameViewModel {
   const uiStore = useUiStore();
   const fileManagerStore = useFileManagerStore();
-  const fileManagerService = useService('fileManagerService');
-  const eventQueueService = useService('eventQueueService');
+  const fileManager = useFileManager();
+  const { pushAndWait } = useEventQueue();
 
   const isOpen = computed(() => uiStore.bulkRenameModal === ModalState.Opened);
   const selectedEntries = computed(() => Object.entries(fileManagerStore.selectedNodes));
@@ -122,12 +122,12 @@ export function useBulkRenameViewModel(): BulkRenameViewModel {
 
     return handleFormSubmission({
       execute: async () => {
-        await eventQueueService.pushAndWait({
+        await pushAndWait({
           id: `bulk-rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: 'RENAME',
           sourcePath: fileManagerStore.currentPath,
           execute: async (): Promise<void> => {
-            await fileManagerService.bulkRename(renames);
+            await fileManager.bulkRename(renames);
           },
         });
       },

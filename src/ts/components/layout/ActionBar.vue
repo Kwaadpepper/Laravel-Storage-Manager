@@ -4,8 +4,8 @@ defineOptions({
 });
 import SearchBar from '@ts/components/layout/SearchBar.vue';
 import ThemeSelector from '@ts/components/layout/ThemeSelector.vue';
-import { useService } from '@ts/service-container';
-import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useUiStore } from '@ts/stores';
+import { useNavigation } from '@ts/composables';
+import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useToastStore, useUiStore } from '@ts/stores';
 import { t } from '@ts/i18n';
 import {
   ArrowLeft,
@@ -43,8 +43,8 @@ const uiStore = useUiStore();
 const fileManagerStore = useFileManagerStore();
 const configStore = useConfigStore();
 const diskStore = useDiskStore();
-const navigationService = useService('navigationService');
-const toastService = useService('toastService');
+const toastStore = useToastStore();
+const navigation = useNavigation();
 
 const isFullscreen = ref(false);
 
@@ -65,19 +65,19 @@ onUnmounted(() => {
 });
 
 function onReloadClick(): void {
-  navigationService.refreshCurrentPath();
+  navigation.refreshCurrentPath();
 }
 
 function onBackClick(): void {
-  navigationService.navigatePrevious();
+  navigation.navigatePrevious();
 }
 
 function onForwardClick(): void {
-  navigationService.navigateNext();
+  navigation.navigateNext();
 }
 
 function onUpClick(): void {
-  navigationService.navigateToParent();
+  navigation.navigateToParent();
 }
 
 function onNewFileClick(): void {
@@ -102,7 +102,7 @@ function onAboutClick(): void {
 
 function onCopyPathClick(): void {
   navigator.clipboard.writeText(fileManagerStore.currentPath).catch(() => {});
-  toastService.pushToast({ message: t('path_copied'), type: 'success' });
+  toastStore.pushToast({ message: t('path_copied'), type: 'success' });
 }
 
 function onCopyLinkClick(): void {
@@ -111,7 +111,7 @@ function onCopyLinkClick(): void {
   const hashPath = `/${disk}${fileManagerStore.currentPath === '/' ? '' : fileManagerStore.currentPath}`;
   url.hash = hashPath.split('/').map(encodeURIComponent).join('/');
   navigator.clipboard.writeText(url.toString()).catch(() => {});
-  toastService.pushToast({ message: t('link_copied'), type: 'success' });
+  toastStore.pushToast({ message: t('link_copied'), type: 'success' });
 }
 </script>
 

@@ -5,7 +5,7 @@ defineOptions({
 import ContentWrapper from '@ts/components/layout/content/ContentWrapper.vue';
 import SortHeader from '@ts/components/shared/SortHeader.vue';
 import { useContextualMenuRegistration } from '@ts/components/shared/use-contextual-menu-registration';
-import { useService } from '@ts/service-container';
+import { useEventQueue, useFileManager, useNavigation, useUploadQueue } from '@ts/composables';
 import {
   ContextualMenuEntry,
   ModalState,
@@ -15,6 +15,7 @@ import {
   useFileManagerStore,
   usePickerStore,
   useSearchStore,
+  useToastStore,
   useUiStore,
 } from '@ts/stores';
 import { isDirectory, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
@@ -31,13 +32,12 @@ const searchStore = useSearchStore();
 const clipboardStore = useClipboardStore();
 const diskStore = useDiskStore();
 const pickerStore = usePickerStore();
+const toastStore = useToastStore();
 
-const navigationService = useService('navigationService');
-const clipboardService = useService('clipboardService');
-const fileManagerService = useService('fileManagerService');
-const uploadService = useService('uploadService');
-const toastService = useService('toastService');
-const eventQueueService = useService('eventQueueService');
+const navigation = useNavigation();
+const fileManager = useFileManager();
+const uploadQueue = useUploadQueue();
+const eventQueue = useEventQueue();
 
 const isSearchMode = computed(() => fileManagerStore.currentPath === '/:search');
 const directoryNodes = computed(() =>
@@ -126,10 +126,10 @@ const bgEntries = computed<ContextualMenuEntry[]>(() => [
         {
           label: t('paste'),
           onClick: async () => {
-            const isCut = clipboardService.getIsConsumingMode();
-            const entry = clipboardService.getLastEntry();
+            const isCut = clipboardStore.getIsConsumingMode();
+            const entry = clipboardStore.getLastEntry();
             if (!entry || entry.length === 0) {
-              toastService.pushToast({ message: t('clipboard_empty'), type: 'info' });
+              toastStore.pushToast({ message: t('clipboard_empty'), type: 'info' });
               return;
             }
 
@@ -140,15 +140,15 @@ const bgEntries = computed<ContextualMenuEntry[]>(() => [
               destinationPath: fileManagerStore.currentPath,
               execute: async () => {
                 if (isCut) {
-                  await fileManagerService.move(path, fileManagerStore.currentPath);
+                  await fileManager.move(path, fileManagerStore.currentPath);
                 } else {
-                  await fileManagerService.copy(path, fileManagerStore.currentPath);
+                  await fileManager.copy(path, fileManagerStore.currentPath);
                 }
               },
             }));
 
-            eventQueueService.pushBatch(events);
-            clipboardService.clearEntries();
+            eventQueue.pushBatch(events);
+            clipboardStore.clearEntries();
           },
         },
       ]
@@ -215,7 +215,7 @@ function onListKeyDown(e: KeyboardEvent): void {
       e.stopPropagation();
 
       if (isDirectory(selectedFile.value)) {
-        navigationService.navigateTo(selectedFile.value.path);
+        navigation.navigateTo(selectedFile.value.path);
       } else if (pickerStore.isPickerMode) {
         pickerStore.selectFile(selectedFile.value);
       } else {
@@ -290,7 +290,7 @@ function handleItemClick(
 
 function handleItemDoubleClick(item: TreeNodeDirectory | TreeNodeFile): void {
   if (isDirectory(item)) {
-    navigationService.navigateTo(item.path);
+    navigation.navigateTo(item.path);
   } else if (pickerStore.isPickerMode) {
     pickerStore.selectFile(item);
   } else {
@@ -338,7 +338,7 @@ const onDrop = (e: DragEvent) => {
     const files = Array.from(e.dataTransfer.files);
     const currentDisk = diskStore.currentDisk;
     if (currentDisk) {
-      uploadService.enqueueUploads(files, fileManagerStore.currentPath, currentDisk);
+      uploadQueue.enqueueUploads(files, fileManagerStore.currentPath, currentDisk);
     }
   }
 };

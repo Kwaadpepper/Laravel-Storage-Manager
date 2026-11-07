@@ -2,7 +2,7 @@
 defineOptions({
   name: 'DirectoryButtons',
 });
-import { useService } from '@ts/service-container';
+import { useNavigation } from '@ts/composables';
 import { isDirectory, TreeNode } from '@ts/types';
 import { t } from '@ts/i18n';
 import { FolderOpen } from 'lucide-vue-next';
@@ -12,7 +12,7 @@ const props = defineProps<{
   selectedNodes: TreeNode[];
 }>();
 
-const navigationService = useService('navigationService');
+const navigation = useNavigation();
 
 const hasMultipleSelection = computed(() => props.selectedNodes.length > 1);
 const firstSelectedNode = computed<TreeNode | null>(
@@ -26,7 +26,7 @@ function onClickOpen(): void {
   if (firstSelectedNode.value === null || !firstNodeIsDir.value) {
     return;
   }
-  navigationService.navigateTo(firstSelectedNode.value.path);
+  navigation.navigateTo(firstSelectedNode.value.path);
 }
 </script>
 

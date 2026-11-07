@@ -6,10 +6,8 @@ defineOptions({
 import { computed } from 'vue';
 import { Cloud, HardDrive, RefreshCw } from 'lucide-vue-next';
 import FileSize from '@ts/components/shared/FileSize.vue';
-import { useService } from '@ts/service-container';
 import { useConfigStore, useDiskStore } from '@ts/stores';
 
-const diskService = useService('diskService');
 const configStore = useConfigStore();
 const diskStore = useDiskStore();
 
@@ -52,7 +50,7 @@ const modeLabel = computed(() => {
 });
 
 function onRefresh(): void {
-  void diskService.fetchDiskStats(undefined, true);
+  void diskStore.fetchDiskStats(undefined, true);
 }
 </script>
 

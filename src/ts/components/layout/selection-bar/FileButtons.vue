@@ -2,8 +2,8 @@
 defineOptions({
   name: 'FileButtons',
 });
-import { useService } from '@ts/service-container';
-import { ModalState, useConfigStore, usePickerStore, useUiStore } from '@ts/stores';
+import { useDownload } from '@ts/composables';
+import { ModalState, useConfigStore, usePickerStore, useToastStore, useUiStore } from '@ts/stores';
 import { isFile, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
 import { t } from '@ts/i18n';
 import { ArchiveRestore, Check, Download, Eye, Info } from 'lucide-vue-next';
@@ -16,8 +16,8 @@ const props = defineProps<{
 const configStore = useConfigStore();
 const uiStore = useUiStore();
 const pickerStore = usePickerStore();
-const downloadService = useService('downloadService');
-const toastService = useService('toastService');
+const toastStore = useToastStore();
+const { triggerDownload } = useDownload();
 
 const hasMultipleSelection = computed(() => props.selectedNodes.length > 1);
 const firstSelectedNode = computed<TreeNodeDirectory | TreeNodeFile | null>(
@@ -74,9 +74,9 @@ async function onClickDownload(): Promise<void> {
     if (node === null || !isFile(node)) {
       return;
     }
-    await downloadService.triggerDownload(node.path, node.name);
+    await triggerDownload(node.path, node.name);
   } catch {
-    toastService.pushToast({ message: t('download_failed'), type: 'error' });
+    toastStore.pushToast({ message: t('download_failed'), type: 'error' });
   }
 }
 </script>

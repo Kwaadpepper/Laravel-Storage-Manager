@@ -1,7 +1,7 @@
 import { computed, onUnmounted, ref, watch, type ComputedRef, type Ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useService } from '@ts/service-container';
-import { ModalState, useDiskStore, useTrashStore, useUiStore, type TrashItemProcessingState } from '@ts/stores';
+import { useTrash, useEventQueue } from '@ts/composables';
+import { ModalState, useDiskStore, useToastStore, useTrashStore, useUiStore, type TrashItemProcessingState } from '@ts/stores';
 import type { TrashedItem } from '@ts/types';
 
 export interface TrashViewModel {
@@ -34,9 +34,9 @@ export interface TrashViewModel {
 }
 
 export function useTrashViewModel(): TrashViewModel {
-  const trashService = useService('trashService');
-  const toastService = useService('toastService');
-  const eventQueueService = useService('eventQueueService');
+  const trash = useTrash();
+  const toastStore = useToastStore();
+  const { push, pushBatch } = useEventQueue();
   const uiStore = useUiStore();
   const diskStore = useDiskStore();
   const trashStore = useTrashStore();
@@ -119,7 +119,7 @@ export function useTrashViewModel(): TrashViewModel {
       isLoading.value = true;
     }
     try {
-      const res = await trashService.list();
+      const res = await trash.list();
       items.value = res.items;
 
       const resItemMap = new Map(res.items.map((i) => [i.id, i]));
@@ -147,7 +147,7 @@ export function useTrashViewModel(): TrashViewModel {
       selectedIds.value = selectedIds.value.filter((id) => existingIds.has(id));
     } catch {
       if (showLoading) {
-        toastService.pushToast({
+        toastStore.pushToast({
           type: 'error',
           message: 'Failed to load trash items.',
         });
@@ -268,12 +268,12 @@ export function useTrashViewModel(): TrashViewModel {
         sourcePath: originalPath,
         execute: async (): Promise<void> => {
           try {
-            await trashService.restore([id]);
+            await trash.restore([id]);
             trashStore.removeItem(id);
             completedCount++;
 
             if (completedCount === count) {
-              toastService.pushToast({
+              toastStore.pushToast({
                 type: 'success',
                 message:
                   count === 1
@@ -282,7 +282,7 @@ export function useTrashViewModel(): TrashViewModel {
               });
             }
           } catch (err: unknown) {
-            toastService.pushToast({
+            toastStore.pushToast({
               type: 'error',
               message: `Failed to restore "${name}": ${err instanceof Error ? err.message : 'Unknown error'}`,
             });
@@ -294,7 +294,7 @@ export function useTrashViewModel(): TrashViewModel {
       };
     });
 
-    eventQueueService.pushBatch(events);
+    pushBatch(events);
   }
 
   function purgeItems(ids: string[]): void {
@@ -321,12 +321,12 @@ export function useTrashViewModel(): TrashViewModel {
         sourcePath: originalPath,
         execute: async (): Promise<void> => {
           try {
-            await trashService.purge([id]);
+            await trash.purge([id]);
             trashStore.removeItem(id);
             completedCount++;
 
             if (completedCount === count) {
-              toastService.pushToast({
+              toastStore.pushToast({
                 type: 'success',
                 message:
                   count === 1
@@ -335,7 +335,7 @@ export function useTrashViewModel(): TrashViewModel {
               });
             }
           } catch (err: unknown) {
-            toastService.pushToast({
+            toastStore.pushToast({
               type: 'error',
               message: `Failed to delete "${name}": ${err instanceof Error ? err.message : 'Unknown error'}`,
             });
@@ -347,7 +347,7 @@ export function useTrashViewModel(): TrashViewModel {
       };
     });
 
-    eventQueueService.pushBatch(events);
+    pushBatch(events);
   }
 
   function emptyTrash(): void {
@@ -362,15 +362,15 @@ export function useTrashViewModel(): TrashViewModel {
       destinationPath: 'All items',
       execute: async (): Promise<void> => {
         try {
-          await trashService.emptyTrash();
+          await trash.emptyTrash();
           trashStore.setItems([]);
           selectedIds.value = [];
-          toastService.pushToast({
+          toastStore.pushToast({
             type: 'success',
             message: 'Trash emptied successfully.',
           });
         } catch (err: unknown) {
-          toastService.pushToast({
+          toastStore.pushToast({
             type: 'error',
             message: `Failed to empty trash: ${err instanceof Error ? err.message : 'Unknown error'}`,
           });
@@ -382,7 +382,7 @@ export function useTrashViewModel(): TrashViewModel {
       },
     };
 
-    eventQueueService.push(event);
+    push(event);
   }
 
   watch(

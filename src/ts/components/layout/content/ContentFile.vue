@@ -4,15 +4,17 @@ defineOptions({
 });
 import FileSize from '@ts/components/shared/FileSize.vue';
 import { useContextualMenuRegistration } from '@ts/components/shared/use-contextual-menu-registration';
-import { useService } from '@ts/service-container';
+import { useDownload } from '@ts/composables';
 import {
   ContextualMenuEntry,
   ModalState,
   toAnchorName,
+  useClipboardStore,
   useConfigStore,
   useDiskStore,
   useFileManagerStore,
   usePickerStore,
+  useToastStore,
   useUiStore,
 } from '@ts/stores';
 import { TreeNodeFile } from '@ts/types';
@@ -37,9 +39,9 @@ const uiStore = useUiStore();
 const fileManagerStore = useFileManagerStore();
 const diskStore = useDiskStore();
 const pickerStore = usePickerStore();
-const downloadService = useService('downloadService');
-const clipboardService = useService('clipboardService');
-const toastService = useService('toastService');
+const clipboardStore = useClipboardStore();
+const toastStore = useToastStore();
+const { triggerDownload } = useDownload();
 
 const anchorName = computed(() => toAnchorName(props.item.path));
 const fileType = computed(() => getFileTypeInfo(props.item.name, props.item.extension));
@@ -49,9 +51,9 @@ const isReadOnly = computed(() =>
 
 async function download(): Promise<void> {
   try {
-    await downloadService.triggerDownload(props.item.path, props.item.name);
+    await triggerDownload(props.item.path, props.item.name);
   } catch {
-    toastService.pushToast({ message: t('download_failed'), type: 'error' });
+    toastStore.pushToast({ message: t('download_failed'), type: 'error' });
   }
 }
 
@@ -109,9 +111,9 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     onClick: () => {
       const paths = Object.values(fileManagerStore.selectedNodes);
       const nodes = paths.length > 0 ? paths : [props.item];
-      clipboardService.setConsumingMode(true);
-      clipboardService.addEntry(...nodes.map((n) => n.path));
-      toastService.pushToast({
+      clipboardStore.setConsumingMode(true);
+      clipboardStore.addEntry(...nodes.map((n) => n.path));
+      toastStore.pushToast({
         message: t('items_cut', { count: nodes.length }),
         type: 'info',
       });
@@ -122,9 +124,9 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     onClick: () => {
       const paths = Object.values(fileManagerStore.selectedNodes);
       const nodes = paths.length > 0 ? paths : [props.item];
-      clipboardService.setConsumingMode(false);
-      clipboardService.addEntry(...nodes.map((n) => n.path));
-      toastService.pushToast({
+      clipboardStore.setConsumingMode(false);
+      clipboardStore.addEntry(...nodes.map((n) => n.path));
+      toastStore.pushToast({
         message: t('items_copied', { count: nodes.length }),
         type: 'info',
       });
@@ -135,7 +137,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
     label: t('copy_path'),
     onClick: () => {
       navigator.clipboard.writeText(props.item.path).catch(() => {});
-      toastService.pushToast({ message: t('path_copied'), type: 'success' });
+      toastStore.pushToast({ message: t('path_copied'), type: 'success' });
     },
   },
   {
@@ -146,7 +148,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
       const hashPath = `/${disk}${props.item.path}`;
       url.hash = hashPath.split('/').map(encodeURIComponent).join('/');
       navigator.clipboard.writeText(url.toString()).catch(() => {});
-      toastService.pushToast({ message: t('link_copied'), type: 'success' });
+      toastStore.pushToast({ message: t('link_copied'), type: 'success' });
     },
   },
   ...(props.item.publicUrl
@@ -155,7 +157,7 @@ const entries = computed<ContextualMenuEntry[]>(() => [
           label: t('copy_public_url'),
           onClick: () => {
             navigator.clipboard.writeText(props.item.publicUrl as string).catch(() => {});
-            toastService.pushToast({
+            toastStore.pushToast({
               message: t('public_url_copied'),
               type: 'success',
             });

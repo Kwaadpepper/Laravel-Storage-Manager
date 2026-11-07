@@ -1,7 +1,8 @@
 import '@css/app.css';
 import { appConfigSchema } from '@ts/schemas';
-import { buildServiceContainer, serviceContainerKey } from '@ts/service-container';
 import { useConfigStore, useDiskStore } from '@ts/stores';
+import { registerGlobalErrorHandlers } from '@ts/utils';
+import { getDiskAndPath } from '@ts/composables';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './components/App.vue';
@@ -19,12 +20,11 @@ if (!globalConfig.success) {
 const configStore = useConfigStore();
 configStore.initialize(globalConfig.data);
 
-const container = buildServiceContainer();
-container.errorHandlerService.registerGlobalHandlers();
+registerGlobalErrorHandlers();
 
 const initialDisks = configStore.disks;
 if (initialDisks.length > 0) {
-  const { disk } = container.locationService.getDiskAndPath();
+  const { disk } = getDiskAndPath();
   const diskStore = useDiskStore();
 
   if (disk && initialDisks.includes(disk)) {
@@ -33,8 +33,6 @@ if (initialDisks.length > 0) {
     diskStore.setCurrentDisk(initialDisks[0]);
   }
 }
-
-app.provide(serviceContainerKey, container);
 
 const rootEl = document.getElementById('file-manager');
 if (rootEl === null) {

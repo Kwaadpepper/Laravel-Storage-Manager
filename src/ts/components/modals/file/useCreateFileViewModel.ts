@@ -1,5 +1,5 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
-import { useService } from '@ts/service-container';
+import { useFileManager, useEventQueue } from '@ts/composables';
 import { ModalState, useFileManagerStore, useUiStore } from '@ts/stores';
 import { handleFormSubmission } from '@ts/tools';
 import type { Path } from '@ts/types';
@@ -41,8 +41,8 @@ export interface CreateFileViewModel {
 export function useCreateFileViewModel(): CreateFileViewModel {
   const fileManagerStore = useFileManagerStore();
   const uiStore = useUiStore();
-  const fileManagerService = useService('fileManagerService');
-  const eventQueueService = useService('eventQueueService');
+  const fileManager = useFileManager();
+  const { pushAndWait } = useEventQueue();
 
   const baseName = ref<string | null>(null);
   const extension = ref<string | null>(null);
@@ -70,7 +70,7 @@ export function useCreateFileViewModel(): CreateFileViewModel {
     const newName = trimmedExtension ? `${inputBaseName}.${trimmedExtension}` : inputBaseName;
     const candidatePath = `${currentPath.value.replace(/\/$/, '')}/${newName}` as Path;
 
-    const exists = await fileManagerService.fileExists(candidatePath);
+    const exists = await fileManager.fileExists(candidatePath);
     if (exists) {
       return [{ field: 'baseName', message: 'A file with this name already exists.' }];
     }
@@ -91,13 +91,13 @@ export function useCreateFileViewModel(): CreateFileViewModel {
 
     return handleFormSubmission({
       execute: async () => {
-        await eventQueueService.pushAndWait({
+        await pushAndWait({
           id: `create-file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: 'CREATE',
           sourcePath: curPath,
           destinationPath: `${curPath === '/' ? '' : curPath}/${newName}`,
           execute: async (): Promise<void> => {
-            await fileManagerService.createFile(curPath, newName, content);
+            await fileManager.createFile(curPath, newName, content);
           },
         });
       },

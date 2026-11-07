@@ -1,10 +1,10 @@
-import { useService } from '@ts/service-container';
+import { useFileManager } from '@ts/composables';
 import { useFileManagerStore, useSearchStore } from '@ts/stores';
 import { Path, rootPath } from '@ts/types';
 import { onUnmounted, watch } from 'vue';
 
 export function useSearchWorker(): void {
-  const fileManagerService = useService('fileManagerService');
+  const fileManager = useFileManager();
   const fileManagerStore = useFileManagerStore();
   const searchStore = useSearchStore();
 
@@ -49,7 +49,7 @@ export function useSearchWorker(): void {
         const currentBatch = queue.splice(0, batchSize);
 
         try {
-          const result = await fileManagerService.search(
+          const result = await fileManager.search(
             currentBatch,
             query,
             extension,

@@ -5,8 +5,8 @@ import {
   restoredTrashResponseSchema,
   trashListResponseSchema,
 } from '../../src/ts/schemas';
-import { TrashService } from '../../src/ts/services/trash-service';
-import type { ApiService } from '../../src/ts/services/api-service';
+import { TrashService } from '../../src/ts/composables';
+import type { ApiService } from '../../src/ts/clients';
 import type { ConfigStore, DiskStore } from '../../src/ts/stores';
 
 describe('Trash Schemas', () => {
@@ -216,8 +216,8 @@ describe('Trash EventQueue Integration', () => {
   it('queues RESTORE events and executes them', async () => {
     const { createPinia, setActivePinia } = await import('pinia');
     const { useActionStore } = await import('../../src/ts/stores');
-    const { EventQueueService } = await import('../../src/ts/services/event-queue-service');
-    type NavigationService = import('../../src/ts/services/navigation-service').NavigationService;
+    const { EventQueueService } = await import('../../src/ts/composables');
+    type NavigationService = import('../../src/ts/composables').NavigationService;
 
     setActivePinia(createPinia());
     const actionStore = useActionStore();
@@ -254,8 +254,8 @@ describe('Trash EventQueue Integration', () => {
   it('queues PURGE events and marks errors properly', async () => {
     const { createPinia, setActivePinia } = await import('pinia');
     const { useActionStore } = await import('../../src/ts/stores');
-    const { EventQueueService } = await import('../../src/ts/services/event-queue-service');
-    type NavigationService = import('../../src/ts/services/navigation-service').NavigationService;
+    const { EventQueueService } = await import('../../src/ts/composables');
+    type NavigationService = import('../../src/ts/composables').NavigationService;
 
     setActivePinia(createPinia());
     const actionStore = useActionStore();

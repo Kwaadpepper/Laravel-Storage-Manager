@@ -13,7 +13,7 @@ import {
   useUploadStore,
   type UploadItem,
 } from '@ts/stores';
-import { useService } from '@ts/service-container';
+import { useUploadQueue } from '@ts/composables';
 import { useEscapeClose } from '@ts/tools';
 import { t } from '@ts/i18n';
 import FileIcon from '@ts/components/shared/FileIcon.vue';
@@ -25,7 +25,7 @@ const fileManagerStore = useFileManagerStore();
 const uploadStore = useUploadStore();
 const configStore = useConfigStore();
 const pickerStore = usePickerStore();
-const uploadService = useService('uploadService');
+const { enqueueUploads } = useUploadQueue();
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const isDraggingOver = ref(false);
@@ -66,7 +66,7 @@ useEscapeClose(onBackdropClose);
 const onFileSelect = (e: Event): void => {
   const target = e.target as HTMLInputElement;
   if (target.files && target.files.length > 0 && diskStore.currentDisk) {
-    uploadService.enqueueUploads(Array.from(target.files), fileManagerStore.currentPath, diskStore.currentDisk);
+    enqueueUploads(Array.from(target.files), fileManagerStore.currentPath, diskStore.currentDisk);
   }
   target.value = '';
 };
@@ -87,7 +87,7 @@ const onDrop = (e: DragEvent): void => {
   e.preventDefault();
   isDraggingOver.value = false;
   if (e.dataTransfer?.files && e.dataTransfer.files.length > 0 && diskStore.currentDisk) {
-    uploadService.enqueueUploads(Array.from(e.dataTransfer.files), fileManagerStore.currentPath, diskStore.currentDisk);
+    enqueueUploads(Array.from(e.dataTransfer.files), fileManagerStore.currentPath, diskStore.currentDisk);
   }
 };
 

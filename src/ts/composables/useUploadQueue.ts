@@ -1,46 +1,55 @@
+import { getApiClient } from '@ts/clients';
 import { uploadInitSchema, uploadSuccessSchema } from '@ts/schemas/file-manager';
-import { ConfigStore } from '@ts/stores/config-store';
-import { FileManagerStore } from '@ts/stores/file-manager-store';
-import { PickerStore } from '@ts/stores/picker-store';
-import { UploadItem, UploadStore } from '@ts/stores/upload-store';
+import {
+  useConfigStore,
+  useDiskStore,
+  useFileManagerStore,
+  usePickerStore,
+  useToastStore,
+  useUploadStore,
+  type UploadItem,
+} from '@ts/stores';
 import { uniqueId } from '@ts/tools';
 import SparkMD5 from 'spark-md5';
-import { ApiService } from './api-service';
-import { DiskService } from './disk-service';
-import { NavigationService } from './navigation-service';
-import { ToastService } from './toast-service';
+import { useNavigation } from './useNavigation';
 
 const MAX_CONCURRENT_UPLOADS = 2;
 
-export class UploadService {
-  private activeUploads = new Set<string>();
-  private refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+// Module-level state for active uploads across invocations
+const activeUploads = new Set<string>();
+let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+let unloadListenerRegistered = false;
 
-  constructor(
-    private readonly apiService: ApiService,
-    private readonly navigationService: NavigationService,
-    private readonly uploadStore: UploadStore,
-    private readonly configStore: ConfigStore,
-    private readonly fileManagerStore: FileManagerStore,
-    private readonly diskService?: DiskService,
-    private readonly pickerStore?: PickerStore,
-    private readonly toastService?: ToastService,
-  ) {
-    window.addEventListener('beforeunload', (e) => {
-      if (this.activeUploads.size > 0) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    });
-  }
+function ensureUnloadListener(): void {
+  if (unloadListenerRegistered || typeof window === 'undefined') return;
+  unloadListenerRegistered = true;
+  window.addEventListener('beforeunload', (e) => {
+    if (activeUploads.size > 0) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+}
 
-  public enqueueUploads(
+export function useUploadQueue() {
+  const uploadStore = useUploadStore();
+  const configStore = useConfigStore();
+  const fileManagerStore = useFileManagerStore();
+  const diskStore = useDiskStore();
+  const pickerStore = usePickerStore();
+  const toastStore = useToastStore();
+  const navigation = useNavigation();
+  const apiClient = getApiClient();
+
+  ensureUnloadListener();
+
+  function enqueueUploads(
     files: File[],
     destinationPath: string,
     disk: string,
     duplicatePolicy?: 'overwrite' | 'auto_rename' | 'error'
   ): void {
-    const allowed = this.configStore.allowedExtensions.map((ext) =>
+    const allowed = configStore.allowedExtensions.map((ext) =>
       ext.toLowerCase().replace(/^\./, '').trim()
     );
 
@@ -50,7 +59,7 @@ export class UploadService {
         : '';
 
       if (allowed.length > 0 && (!ext || !allowed.includes(ext))) {
-        this.toastService?.pushToast({
+        toastStore.pushToast({
           message: `File "${file.name}" has an unsupported extension.`,
           type: 'error',
         });
@@ -58,17 +67,17 @@ export class UploadService {
       }
 
       if (
-        this.pickerStore?.scopedType &&
-        !this.pickerStore.isFileAllowed({ name: file.name, extension: ext })
+        pickerStore.scopedType &&
+        !pickerStore.isFileAllowed({ name: file.name, extension: ext })
       ) {
-        this.toastService?.pushToast({
-          message: `File "${file.name}" does not match the required type (${this.pickerStore.scopedType}).`,
+        toastStore.pushToast({
+          message: `File "${file.name}" does not match the required type (${pickerStore.scopedType}).`,
           type: 'error',
         });
         return;
       }
 
-      this.uploadStore.addUpload({
+      uploadStore.addUpload({
         id: uniqueId(),
         file,
         fileName: file.name,
@@ -79,37 +88,37 @@ export class UploadService {
       });
     });
 
-    this.processQueue();
+    processQueue();
   }
 
-  public processQueue(): void {
-    const pendingUploads = this.uploadStore.uploads.filter((u) => u.status === 'pending');
+  function processQueue(): void {
+    const pendingUploads = uploadStore.uploads.filter((u) => u.status === 'pending');
 
-    while (this.activeUploads.size < MAX_CONCURRENT_UPLOADS && pendingUploads.length > 0) {
+    while (activeUploads.size < MAX_CONCURRENT_UPLOADS && pendingUploads.length > 0) {
       const upload = pendingUploads.shift();
       if (upload) {
-        this.startUpload(upload);
+        void startUpload(upload);
       }
     }
   }
 
-  private async startUpload(item: UploadItem): Promise<void> {
+  async function startUpload(item: UploadItem): Promise<void> {
     if (!item.file) return;
 
-    this.activeUploads.add(item.id);
-    this.uploadStore.setStatus(item.id, 'uploading');
+    activeUploads.add(item.id);
+    uploadStore.setStatus(item.id, 'uploading');
 
     try {
       // 1. Init
-      const chunkMinSize = this.configStore.chunkMinSize;
-      const chunkMaxSize = this.configStore.chunkMaxSize;
+      const chunkMinSize = configStore.chunkMinSize;
+      const chunkMaxSize = configStore.chunkMaxSize;
       const adaptiveChunkSize = Math.min(
         chunkMaxSize,
         Math.max(chunkMinSize, Math.ceil(item.totalSize / 100))
       );
 
-      const { upload_id } = await this.apiService.post(
-        this.configStore.routes.fmUploadInit.toString(),
+      const { upload_id } = await apiClient.post(
+        configStore.routes.fmUploadInit.toString(),
         {
           fileName: item.fileName,
           totalSize: item.totalSize,
@@ -120,7 +129,7 @@ export class UploadService {
 
       // 2. Upload chunks
       const chunkSize = adaptiveChunkSize;
-      const totalChunks = Math.ceil(item.totalSize / chunkSize) || 1; // At least 1 chunk for empty files
+      const totalChunks = Math.ceil(item.totalSize / chunkSize) || 1;
       let uploadedBytes = 0;
 
       const maxConcurrent = 4;
@@ -128,11 +137,7 @@ export class UploadService {
       let hasError = false;
       let errorMessage = '';
 
-      if (!item.file) {
-        throw new Error('File object is missing');
-      }
-
-      const file = item.file; // type narrowed
+      const file = item.file;
 
       const worker = async () => {
         while (currentIndex < totalChunks && !hasError) {
@@ -155,14 +160,14 @@ export class UploadService {
             formData.append('file', chunkFile);
             formData.append('chunk_checksum', chunk_checksum);
 
-            await this.apiService.postMultiPart(
-              this.configStore.routes.fmUploadChunk.toString(),
+            await apiClient.postMultiPart(
+              configStore.routes.fmUploadChunk.toString(),
               formData,
               uploadSuccessSchema
             );
 
             uploadedBytes += blob.size;
-            this.uploadStore.updateProgress(item.id, uploadedBytes, item.totalSize);
+            uploadStore.updateProgress(item.id, uploadedBytes, item.totalSize);
           } catch (e) {
             hasError = true;
             errorMessage = e instanceof Error ? e.message : 'Chunk upload failed';
@@ -178,40 +183,41 @@ export class UploadService {
       }
 
       // 3. Complete (with SSE streaming)
-      this.uploadStore.setStatus(item.id, 'assembling');
+      uploadStore.setStatus(item.id, 'assembling');
 
-      const finalFileName = await this.streamComplete(upload_id, item, totalChunks);
+      const finalFileName = await streamComplete(upload_id, item, totalChunks);
 
-      this.uploadStore.setStatus(item.id, 'success', undefined, finalFileName);
+      uploadStore.setStatus(item.id, 'success', undefined, finalFileName);
 
       // Trigger directory refresh with a debounce
-      if (this.fileManagerStore.currentPath === item.destinationPath) {
-        if (this.refreshTimeout) {
-          clearTimeout(this.refreshTimeout);
+      if (fileManagerStore.currentPath === item.destinationPath) {
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
         }
-        this.refreshTimeout = setTimeout(() => {
-          this.navigationService.refreshCurrentPath();
-          void this.diskService?.fetchDiskStats(undefined, true);
+        refreshTimeout = setTimeout(() => {
+          navigation.refreshCurrentPath();
+          void diskStore.fetchDiskStats(undefined, true);
         }, 500);
       } else {
-        void this.diskService?.fetchDiskStats(undefined, true);
+        void diskStore.fetchDiskStats(undefined, true);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-      this.uploadStore.setStatus(item.id, 'error', errorMessage);
+      uploadStore.setStatus(item.id, 'error', errorMessage);
     } finally {
-      this.activeUploads.delete(item.id);
-      this.processQueue();
+      activeUploads.delete(item.id);
+      processQueue();
     }
   }
 
-  private async streamComplete(
+  async function streamComplete(
     upload_id: string,
     item: UploadItem,
     totalChunks: number
   ): Promise<string | undefined> {
-    const url = this.configStore.routes.fmUploadComplete.toString();
-    const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+    const url = configStore.routes.fmUploadComplete.toString();
+    const csrf =
+      document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 
     const response = await fetch(url, {
       method: 'POST',
@@ -245,40 +251,68 @@ export class UploadService {
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop() ?? ''; // keep incomplete fragment
+      buffer = lines.pop() ?? '';
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         const dataStr = line.slice(6);
         if (!dataStr.trim()) continue;
 
+        let data: {
+          status: string;
+          progress?: number;
+          message?: string;
+          fileName?: string;
+        };
         try {
-          const data = JSON.parse(dataStr) as {
-            status: string;
-            progress?: number;
-            message?: string;
-            fileName?: string;
-          };
-
-          if (data.status === 'error') {
-            throw new Error(data.message ?? 'Assembly failed');
-          }
-
-          if (data.status === 'completed') {
-            return data.fileName; // finished
-          }
-
-          if (
-            (data.status === 'assembling' || data.status === 'transferring') &&
-            data.progress !== undefined
-          ) {
-            const newProgress = 50 + data.progress * 0.5;
-            this.uploadStore.updateAssemblyProgress(item.id, newProgress);
-          }
+          data = JSON.parse(dataStr);
         } catch {
           // ignore JSON parse errors for incomplete chunks
+          continue;
+        }
+
+        if (data.status === 'error') {
+          throw new Error(data.message ?? 'Assembly failed');
+        }
+
+        if (data.status === 'completed') {
+          return data.fileName;
+        }
+
+        if (
+          (data.status === 'assembling' || data.status === 'transferring') &&
+          data.progress !== undefined
+        ) {
+          const newProgress = 50 + data.progress * 0.5;
+          uploadStore.updateAssemblyProgress(item.id, newProgress);
         }
       }
     }
+  }
+
+  return {
+    enqueueUploads,
+    processQueue,
+  };
+}
+
+export class UploadService {
+  private readonly uploadQueue: ReturnType<typeof useUploadQueue>;
+
+  constructor() {
+    this.uploadQueue = useUploadQueue();
+  }
+
+  public enqueueUploads(
+    files: File[],
+    destinationPath: string,
+    disk: string,
+    duplicatePolicy?: 'overwrite' | 'auto_rename' | 'error'
+  ): void {
+    this.uploadQueue.enqueueUploads(files, destinationPath, disk, duplicatePolicy);
+  }
+
+  public processQueue(): void {
+    this.uploadQueue.processQueue();
   }
 }

@@ -4,7 +4,7 @@ defineOptions({
 });
 import DiskSelector from '@ts/components/shared/DiskSelector.vue';
 import TreeNodeItem from '@ts/components/layout/tree-view/TreeNodeItem.vue';
-import { useService } from '@ts/service-container';
+import { useNavigation } from '@ts/composables';
 import { useTreeStore } from '@ts/stores';
 import { Path, rootPath } from '@ts/types';
 import { ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-vue-next';
@@ -18,7 +18,7 @@ const emit = defineEmits<{
   (e: 'select', path: Path): void;
 }>();
 
-const navigationService = useService('navigationService');
+const navigation = useNavigation();
 const treeStore = useTreeStore();
 
 const rootState = computed(() => treeStore.nodes[rootPath()]);
@@ -40,7 +40,7 @@ const rootActive = computed(() => props.selectedPath === rootPath());
             type="button"
             class="btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 shrink-0"
             :aria-label="rootState?.expanded ? 'Collapse root' : 'Expand root'"
-            @click.stop="navigationService.loadTreeNode(rootPath())"
+            @click.stop="navigation.loadTreeNode(rootPath())"
           >
             <ChevronDown
               v-if="rootState?.expanded"
@@ -86,7 +86,7 @@ const rootActive = computed(() => props.selectedPath === rootPath());
               :node-state="treeStore.nodes[dir.path]"
               :current-path="selectedPath ?? ('' as Path)"
               :nodes="treeStore.nodes"
-              @toggle="(path) => navigationService.loadTreeNode(path)"
+              @toggle="(path) => navigation.loadTreeNode(path)"
               @navigate="(path) => emit('select', path)"
             />
           </template>

@@ -5,7 +5,7 @@ defineOptions({
 
 import { computed, ref, watch } from 'vue';
 import { TreeNodeFile } from '@ts/types';
-import { useService } from '@ts/service-container';
+import { useDownload } from '@ts/composables';
 import FileIcon from '@ts/components/shared/FileIcon.vue';
 
 const props = withDefaults(
@@ -20,11 +20,11 @@ const props = withDefaults(
   }
 );
 
-const downloadService = useService('downloadService');
+const { getThumbnailUrl } = useDownload();
 const hasError = ref(false);
 const isLoaded = ref(false);
 
-const thumbnailUrl = computed(() => downloadService.getThumbnailUrl(props.item.path));
+const thumbnailUrl = computed(() => getThumbnailUrl(props.item.path));
 
 watch(thumbnailUrl, () => {
   isLoaded.value = false;

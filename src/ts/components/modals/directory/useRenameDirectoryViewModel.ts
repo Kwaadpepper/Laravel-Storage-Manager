@@ -1,6 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
-import type { RenameDirectoryValidationField } from '@ts/services';
-import { useService } from '@ts/service-container';
+import { useFileManager, useEventQueue, type RenameDirectoryValidationField } from '@ts/composables';
 import { ModalState, useUiStore } from '@ts/stores';
 import { handleFormSubmission } from '@ts/tools';
 import { z } from 'zod/v4';
@@ -32,8 +31,8 @@ export interface RenameDirectoryViewModel {
 
 export function useRenameDirectoryViewModel(): RenameDirectoryViewModel {
   const uiStore = useUiStore();
-  const fileManagerService = useService('fileManagerService');
-  const eventQueueService = useService('eventQueueService');
+  const fileManager = useFileManager();
+  const { pushAndWait } = useEventQueue();
 
   const isOpen = computed(() => uiStore.renameDirectoryModal === ModalState.Opened);
   const targetDirectoryPath = computed(() => uiStore.targetDirectoryPath);
@@ -79,13 +78,13 @@ export function useRenameDirectoryViewModel(): RenameDirectoryViewModel {
 
     return handleFormSubmission<RenameDirectoryValidationField>({
       execute: async () => {
-        await eventQueueService.pushAndWait({
+        await pushAndWait({
           id: `rename-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: 'RENAME',
           sourcePath: currentTargetPath,
           destinationPath: currentTargetPath.substring(0, currentTargetPath.lastIndexOf('/')) + '/' + newName,
           execute: async (): Promise<void> => {
-            await fileManagerService.renameDirectory(currentTargetPath, newName);
+            await fileManager.renameDirectory(currentTargetPath, newName);
           },
         });
       },

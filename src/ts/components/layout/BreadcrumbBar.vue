@@ -3,7 +3,7 @@ defineOptions({
   name: 'BreadcrumbBar',
 });
 import DiskSelector from '@ts/components/shared/DiskSelector.vue';
-import { useService } from '@ts/service-container';
+import { useNavigation } from '@ts/composables';
 import { useConfigStore, useFileManagerStore } from '@ts/stores';
 import { Path, rootPath } from '@ts/types';
 import { computed } from 'vue';
@@ -13,7 +13,7 @@ interface BreadcrumbPathPart {
   path: Path;
 }
 
-const navigationService = useService('navigationService');
+const navigation = useNavigation();
 const fileManagerStore = useFileManagerStore();
 const configStore = useConfigStore();
 
@@ -32,7 +32,7 @@ const breadcrumbs = computed<BreadcrumbPathPart[]>(() => {
 });
 
 function onBreadcrumbClick(part: BreadcrumbPathPart): void {
-  navigationService.navigateTo(part.path);
+  navigation.navigateTo(part.path);
 }
 </script>
 
