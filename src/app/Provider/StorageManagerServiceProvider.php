@@ -49,6 +49,7 @@ use Kwaadpepper\LaravelStorageManager\Service\TrashService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class StorageManagerServiceProvider extends ServiceProvider
 {
@@ -68,6 +69,14 @@ class StorageManagerServiceProvider extends ServiceProvider
                 return new UploadId($value);
             } catch (IllegalDomainStateException) {
                 throw new HttpException(400, 'Invalid Upload ID format.');
+            }
+        });
+
+        Route::bind('disk', function (string $value): Disk {
+            try {
+                return resolve(DiskService::class)->getDisk($value);
+            } catch (\InvalidArgumentException) {
+                throw new NotFoundHttpException("Disk '{$value}' not found.");
             }
         });
 
@@ -175,7 +184,6 @@ class StorageManagerServiceProvider extends ServiceProvider
             fn (Application $app): StorageGateway => new StorageGateway(
                 $app->make(FilesystemFactory::class),
                 $app->make(PathNormalizer::class),
-                $app->make(StorageManagerConfig::class),
                 $app->make(LocalStorageStrategy::class),
                 $app->make(S3StorageStrategy::class),
                 $app->make(RemoteStorageStrategy::class),

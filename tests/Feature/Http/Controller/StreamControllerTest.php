@@ -186,4 +186,32 @@ describe('StreamController', function (): void {
 
         expect($output)->toBe($content);
     });
+
+    it('returns 404 when disk does not exist for streaming', function (): void {
+        // GIVEN
+        Storage::fake('local');
+
+        // WHEN
+        $response = $this->get(route('storage-manager.stream', [
+            'disk' => 'non-existent-disk',
+            'path' => 'videos/sample.mp4',
+        ]));
+
+        // THEN
+        $response->assertStatus(404);
+    });
+
+    it('returns 404 when disk does not exist for download', function (): void {
+        // GIVEN
+        Storage::fake('local');
+
+        // WHEN
+        $response = $this->get(route('storage-manager.download', [
+            'disk' => 'non-existent-disk',
+            'path' => 'docs/sample.txt',
+        ]));
+
+        // THEN
+        $response->assertStatus(404);
+    });
 });

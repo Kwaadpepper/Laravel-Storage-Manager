@@ -10,6 +10,7 @@ use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Http\Response\StreamResponseFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -21,7 +22,7 @@ class StreamController extends Controller
     ) {
     }
 
-    public function __invoke(Request $request, string $disk, string $path): StreamedResponse
+    public function __invoke(Request $request, Disk $disk, string $path): StreamedResponse
     {
         try {
             $resolvedFile = $this->storageGateway->resolveExistingFile($disk, $path);

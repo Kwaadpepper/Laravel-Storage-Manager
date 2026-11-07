@@ -78,7 +78,9 @@ describe('UploadSessionService', function (): void {
         $uploadId = UploadId::generate();
 
         // WHEN
-        $action = fn () => $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), 'final_disk');
+        $action = function () use ($uploadId): void {
+            $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), new Disk('local', 'final_disk'));
+        };
 
         // THEN
         expect($action)->toThrow(MissingMetadataException::class);
@@ -92,7 +94,9 @@ describe('UploadSessionService', function (): void {
         $this->sessionService->storeChunk($uploadId, 0, $file);
 
         // WHEN
-        $action = fn () => $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), 'final_disk');
+        $action = function () use ($uploadId): void {
+            $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), new Disk('local', 'final_disk'));
+        };
 
         // THEN
         expect($action)->toThrow(MissingChunkException::class);
@@ -110,7 +114,7 @@ describe('UploadSessionService', function (): void {
         $this->sessionService->storeChunk($uploadId, 1, $file2);
 
         // WHEN
-        $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), 'final_disk');
+        $this->sessionService->assembleAndTransfer($uploadId, new Path('/final/test.txt'), new Disk('local', 'final_disk'));
 
         // THEN
         expect(Storage::disk('final_disk')->exists('/final/test.txt'))->toBeTrue();

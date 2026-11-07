@@ -7,7 +7,6 @@ namespace Kwaadpepper\LaravelStorageManager\Lib;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
-use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
@@ -28,7 +27,6 @@ readonly class StorageGateway
     public function __construct(
         private FilesystemFactory $filesystemFactory,
         private PathNormalizer $pathNormalizer,
-        private StorageManagerConfig $config,
         private LocalStorageStrategy $localStorageStrategy,
         private S3StorageStrategy $s3StorageStrategy,
         private RemoteStorageStrategy $remoteStorageStrategy,
@@ -36,9 +34,9 @@ readonly class StorageGateway
     ) {
     }
 
-    public function disk(Disk | string $disk): Filesystem
+    public function disk(Disk $disk): Filesystem
     {
-        return $this->filesystemFactory->disk($disk instanceof Disk ? $disk->name : $disk);
+        return $this->filesystemFactory->disk($disk->name);
     }
 
     public function get(Disk $disk, string $path): ?string
@@ -462,15 +460,8 @@ readonly class StorageGateway
     /**
      * @throws FileOperationException
      */
-    public function resolveExistingFile(string $diskName, string $rawPath): ResolvedFile
+    public function resolveExistingFile(Disk $disk, string $rawPath): ResolvedFile
     {
-        $disksMap = $this->config->disks->getDisksMap();
-
-        if (! isset($disksMap[$diskName])) {
-            FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
-        }
-
-        $disk = $disksMap[$diskName];
         $path = new Path($this->pathNormalizer->normalizePath(rawurldecode($rawPath)));
 
         if (! $this->isFile($disk, $path)) {

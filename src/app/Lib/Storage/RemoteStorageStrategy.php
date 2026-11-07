@@ -94,7 +94,7 @@ readonly class RemoteStorageStrategy implements StorageDriverStrategy
 
         $storage = $this->filesystemFactory->disk($disk->name);
 
-        if (! $this->streamCopy($storage, $disk->name, $source, $destination)) {
+        if (! $this->streamCopy($storage, $disk, $source, $destination)) {
             FileOperationException::throwWith(FileOperationError::UNKNOWN_ERROR);
         }
     }
@@ -139,12 +139,12 @@ readonly class RemoteStorageStrategy implements StorageDriverStrategy
         }
     }
 
-    private function streamCopy(Filesystem $storage, string $diskName, string $source, string $destination): bool
+    private function streamCopy(Filesystem $storage, Disk $disk, string $source, string $destination): bool
     {
         try {
             $stream = $storage->readStream($source);
             if ($stream === false || $stream === null) {
-                $this->logger->error(sprintf('Failed to open read stream for "%s" on remote disk "%s"', $source, $diskName));
+                $this->logger->error(sprintf('Failed to open read stream for "%s" on remote disk "%s"', $source, $disk->name));
 
                 return false;
             }
@@ -156,7 +156,7 @@ readonly class RemoteStorageStrategy implements StorageDriverStrategy
 
             return $written !== false;
         } catch (\Throwable $e) {
-            $this->logger->error(sprintf('Failed to stream copy on remote disk "%s" from "%s" to "%s"', $diskName, $source, $destination), [
+            $this->logger->error(sprintf('Failed to stream copy on remote disk "%s" from "%s" to "%s"', $disk->name, $source, $destination), [
                 'exception' => $e,
             ]);
 

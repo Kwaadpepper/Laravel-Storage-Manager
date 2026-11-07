@@ -271,11 +271,12 @@ describe('StorageGateway', function (): void {
         // GIVEN
         $storage = Storage::disk('local');
         $gateway = resolve(StorageGateway::class);
+        $disk    = new Disk('local', 'local');
 
         $storage->put('docs/readme.txt', 'Readme content');
 
         // WHEN
-        $resolved = $gateway->resolveExistingFile('local', 'docs/readme.txt');
+        $resolved = $gateway->resolveExistingFile($disk, 'docs/readme.txt');
 
         // THEN
         expect($resolved)->toBeInstanceOf(ResolvedFile::class);
@@ -287,23 +288,13 @@ describe('StorageGateway', function (): void {
         expect($resolved->properties->size)->toBe(strlen('Readme content'));
     });
 
-    it('throws FileOperationException when disk does not exist in resolveExistingFile', function (): void {
-        // GIVEN
-        $gateway = resolve(StorageGateway::class);
-
-        // WHEN
-        $action = fn (): ResolvedFile => $gateway->resolveExistingFile('unknown-disk', 'test.txt');
-
-        // THEN
-        expect($action)->toThrow(FileOperationException::class);
-    });
-
     it('throws FileOperationException when file does not exist in resolveExistingFile', function (): void {
         // GIVEN
         $gateway = resolve(StorageGateway::class);
+        $disk    = new Disk('local', 'local');
 
         // WHEN
-        $action = fn (): ResolvedFile => $gateway->resolveExistingFile('local', 'non_existent.txt');
+        $action = fn (): ResolvedFile => $gateway->resolveExistingFile($disk, 'non_existent.txt');
 
         // THEN
         expect($action)->toThrow(FileOperationException::class);
@@ -313,11 +304,12 @@ describe('StorageGateway', function (): void {
         // GIVEN
         $storage = Storage::disk('local');
         $gateway = resolve(StorageGateway::class);
+        $disk    = new Disk('local', 'local');
 
         $storage->makeDirectory('a_folder');
 
         // WHEN
-        $action = fn (): ResolvedFile => $gateway->resolveExistingFile('local', 'a_folder');
+        $action = fn (): ResolvedFile => $gateway->resolveExistingFile($disk, 'a_folder');
 
         // THEN
         expect($action)->toThrow(FileOperationException::class);
@@ -377,12 +369,10 @@ describe('StorageGateway', function (): void {
         $diskObj = new Disk('local', 'local');
 
         // WHEN
-        $fsFromObj  = $gateway->disk($diskObj);
-        $fsFromName = $gateway->disk('local');
+        $fsFromObj = $gateway->disk($diskObj);
 
         // THEN
         expect($fsFromObj)->toBeInstanceOf(Filesystem::class);
-        expect($fsFromName)->toBeInstanceOf(Filesystem::class);
     });
 
     it('performs put, get, and delete operations via gateway', function (): void {

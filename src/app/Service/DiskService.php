@@ -94,9 +94,9 @@ class DiskService
         return $stats;
     }
 
-    public function clearDiskStatsCache(string $diskName): void
+    public function clearDiskStatsCache(Disk $disk): void
     {
-        $this->cache->forget("sm_disk_stats_{$diskName}");
+        $this->cache->forget("sm_disk_stats_{$disk->name}");
     }
 
     public function calculateDiskUsedBytes(Disk $disk): int

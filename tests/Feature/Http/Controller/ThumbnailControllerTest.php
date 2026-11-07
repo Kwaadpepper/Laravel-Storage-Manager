@@ -152,4 +152,18 @@ describe('ThumbnailController', function (): void {
         // THEN
         $response->assertStatus(404);
     });
+
+    it('returns 404 when disk does not exist', function (): void {
+        // GIVEN
+        Storage::fake('local');
+
+        // WHEN
+        $response = $this->get(route('storage-manager.thumb', [
+            'disk' => 'non-existent-disk',
+            'path' => 'images/sample.png',
+        ]));
+
+        // THEN
+        $response->assertStatus(404);
+    });
 });

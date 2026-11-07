@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 
 describe('DiskStats', function (): void {
@@ -48,7 +49,7 @@ describe('DiskStats', function (): void {
         app()->forgetInstance(DiskService::class);
 
         $diskService = resolve(DiskService::class);
-        $diskService->clearDiskStatsCache('local');
+        $diskService->clearDiskStatsCache(new Disk('local', 'local'));
 
         // WHEN
         $response = $this->getJson(route('storage-manager.api.disks.stats', ['disk' => 'local']));

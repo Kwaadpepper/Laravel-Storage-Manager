@@ -47,7 +47,7 @@ final class DiskController extends Controller
         $disk = $request->getDisk();
 
         if ($request->boolean('fresh')) {
-            $this->diskService->clearDiskStatsCache($disk->name);
+            $this->diskService->clearDiskStatsCache($disk);
         }
 
         return ApiResponse::json(

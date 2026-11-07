@@ -213,7 +213,7 @@ class UploadSessionService
         $this->assembleAndTransfer(
             $uploadId,
             $finalDestination,
-            $disk->name,
+            $disk,
             $onProgress
         );
 
@@ -239,7 +239,7 @@ class UploadSessionService
     public function assembleAndTransfer(
         UploadId $uploadId,
         Path $finalDestination,
-        string $diskName,
+        Disk $disk,
         ?callable $onProgress = null,
     ): void {
         $metadata = $this->readMetadata($uploadId);
@@ -291,7 +291,7 @@ class UploadSessionService
             $uploadId,
             $assembledFilePath,
             $finalDestination,
-            $diskName,
+            $disk,
             $onProgress
         );
 
@@ -342,7 +342,7 @@ class UploadSessionService
         UploadId $uploadId,
         string $assembledFilePath,
         Path $finalDestination,
-        string $diskName,
+        Disk $disk,
         ?callable $onProgress = null,
     ): void {
         $totalSize = filesize($assembledFilePath);
@@ -370,7 +370,7 @@ class UploadSessionService
 
         $filter = stream_filter_append($stream, 'lsm_upload_progress', STREAM_FILTER_READ, $filterParams);
 
-        $this->storageGateway->disk($diskName)->put($finalDestination->toRelative(), $stream);
+        $this->storageGateway->disk($disk)->put($finalDestination->toRelative(), $stream);
 
         if ($filter !== false) {
             stream_filter_remove($filter);

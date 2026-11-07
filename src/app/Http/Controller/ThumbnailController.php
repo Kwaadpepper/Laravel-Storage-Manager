@@ -10,6 +10,7 @@ use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Http\Response\StreamResponseFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Service\ThumbnailService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,7 +24,7 @@ class ThumbnailController extends Controller
     ) {
     }
 
-    public function __invoke(Request $request, string $disk, string $path): StreamedResponse
+    public function __invoke(Request $request, Disk $disk, string $path): StreamedResponse
     {
         if (! $this->config->thumbnails->thumbsAreEnabled) {
             throw new NotFoundHttpException();
