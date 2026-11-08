@@ -33,7 +33,7 @@
 - [x] Column ordering (name, size, type)
 - [ ] Keyboard shortcuts (Del, F2, Ctrl+C/V...)
 - [ ] Drag & drop to move files and directories
-- [ ] Directory content lazy loading (for large directories)
+- [x] Directory content lazy loading (for large directories, pagination with infinite scroll)
 - [ ] Recent files (quick access to last viewed/modified files)
 
 ## Previews & viewers
@@ -59,7 +59,7 @@
 ## Access control
 
 - [x] ACL (read-only mode, per-disk permissions)
-- [ ] Per-disk configuration (root/prefix, allowed extensions, trash, max upload size, naming rules)
+- [x] Per-disk configuration (root/prefix, allowed extensions, trash, max upload size, naming rules)
 - [ ] Granularité ACL & Multi-tenancy: dossier privé par utilisateur + dossier partagé (scoping dynamique du chemin racine par utilisateur / tenant)
 - [x] Activity log (who uploaded, deleted, renamed and when)
 
