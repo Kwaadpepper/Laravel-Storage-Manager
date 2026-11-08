@@ -4,3 +4,5 @@
 /.intellipest/
 phpstan.neon
 /node_modules/
+/coverage-report/
+clover.xml
