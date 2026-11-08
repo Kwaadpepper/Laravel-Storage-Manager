@@ -7,13 +7,18 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\BulkRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\BulkRenaming;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryCopied;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryMoved;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryRenamed;
 use Kwaadpepper\LaravelStorageManager\Event\FileCopied;
+use Kwaadpepper\LaravelStorageManager\Event\FileCopying;
 use Kwaadpepper\LaravelStorageManager\Event\FileMoved;
+use Kwaadpepper\LaravelStorageManager\Event\FileMoving;
 use Kwaadpepper\LaravelStorageManager\Event\FileRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\FileRenaming;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationCancelledException;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileTransferService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
@@ -84,17 +89,22 @@ describe('FileTransferService', function (): void {
             expect($action)->toThrow(FileOperationException::class, FileOperationError::FILE_ALREADY_EXISTS->message());
         });
 
-        it('throws when renaming file to forbidden extension', function (): void {
+        it('throws OperationCancelledException and prevents rename when FileRenaming is cancelled', function (): void {
             // GIVEN
-            Storage::disk('local')->put('script.txt', 'echo 1;');
+            Event::listen(FileRenaming::class, function (FileRenaming $event): void {
+                $event->cancel('Rename not allowed');
+            });
+            Storage::disk('local')->put('locked.txt', 'hello');
             $disk    = new Disk('local', 'local');
             $service = resolve(FileTransferService::class);
 
             // WHEN
-            $action = fn (): Path => $service->rename($disk, new Path('/script.txt'), 'script.exe');
+            $action = fn (): Path => $service->rename($disk, new Path('/locked.txt'), 'renamed.txt');
 
             // THEN
-            expect($action)->toThrow(FileOperationException::class, FileOperationError::FORBIDDEN_FILE_EXTENSION->message());
+            expect($action)->toThrow(OperationCancelledException::class, 'Rename not allowed');
+            expect(Storage::disk('local')->exists('locked.txt'))->toBeTrue();
+            expect(Storage::disk('local')->exists('renamed.txt'))->toBeFalse();
         });
     });
 
@@ -162,6 +172,24 @@ describe('FileTransferService', function (): void {
                 DirectoryCopied::class,
                 fn (DirectoryCopied $event): bool => $event->sourcePath === '/src_dir' && $event->targetPath === '/dest_dir/src_dir'
             );
+        });
+
+        it('throws OperationCancelledException and prevents copy when FileCopying is cancelled', function (): void {
+            // GIVEN
+            Event::listen(FileCopying::class, function (FileCopying $event): void {
+                $event->cancel('Copy limit exceeded');
+            });
+            Storage::disk('local')->put('source_file.txt', 'data');
+            Storage::disk('local')->makeDirectory('dest_dir');
+            $disk    = new Disk('local', 'local');
+            $service = resolve(FileTransferService::class);
+
+            // WHEN
+            $action = fn (): Path => $service->copy($disk, new Path('/source_file.txt'), new Path('/dest_dir'));
+
+            // THEN
+            expect($action)->toThrow(OperationCancelledException::class, 'Copy limit exceeded');
+            expect(Storage::disk('local')->exists('dest_dir/source_file.txt'))->toBeFalse();
         });
     });
 
@@ -231,6 +259,25 @@ describe('FileTransferService', function (): void {
                 fn (DirectoryMoved $event): bool => $event->sourcePath === '/folder' && $event->targetPath === '/target/folder'
             );
         });
+
+        it('throws OperationCancelledException and prevents move when FileMoving is cancelled', function (): void {
+            // GIVEN
+            Event::listen(FileMoving::class, function (FileMoving $event): void {
+                $event->cancel('Move not permitted');
+            });
+            Storage::disk('local')->put('item_to_move.txt', 'data');
+            Storage::disk('local')->makeDirectory('target');
+            $disk    = new Disk('local', 'local');
+            $service = resolve(FileTransferService::class);
+
+            // WHEN
+            $action = fn (): Path => $service->move($disk, new Path('/item_to_move.txt'), new Path('/target'));
+
+            // THEN
+            expect($action)->toThrow(OperationCancelledException::class, 'Move not permitted');
+            expect(Storage::disk('local')->exists('item_to_move.txt'))->toBeTrue();
+            expect(Storage::disk('local')->exists('target/item_to_move.txt'))->toBeFalse();
+        });
     });
 
     describe('bulkRename', function (): void {
@@ -293,6 +340,30 @@ describe('FileTransferService', function (): void {
 
             // THEN
             expect($action)->toThrow(FileOperationException::class, FileOperationError::FILE_ALREADY_EXISTS->message());
+        });
+
+        it('throws OperationCancelledException and prevents bulk rename when BulkRenaming is cancelled', function (): void {
+            // GIVEN
+            Event::listen(BulkRenaming::class, function (BulkRenaming $event): void {
+                $event->cancel('Batch rename cancelled');
+            });
+            Storage::disk('local')->put('batch1.txt', 'one');
+            Storage::disk('local')->put('batch2.txt', 'two');
+            $disk    = new Disk('local', 'local');
+            $service = resolve(FileTransferService::class);
+
+            // WHEN
+            $action = fn (): array => $service->bulkRename($disk, [
+                ['from' => new Path('/batch1.txt'), 'to' => 'new1.txt'],
+                ['from' => new Path('/batch2.txt'), 'to' => 'new2.txt'],
+            ]);
+
+            // THEN
+            expect($action)->toThrow(OperationCancelledException::class, 'Batch rename cancelled');
+            expect(Storage::disk('local')->exists('batch1.txt'))->toBeTrue();
+            expect(Storage::disk('local')->exists('batch2.txt'))->toBeTrue();
+            expect(Storage::disk('local')->exists('new1.txt'))->toBeFalse();
+            expect(Storage::disk('local')->exists('new2.txt'))->toBeFalse();
         });
     });
 })->covers(FileTransferService::class);

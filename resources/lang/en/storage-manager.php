@@ -45,6 +45,7 @@ return [
         1018 => 'A storage I/O error occurred.',
         1019 => 'Failed to connect to the storage disk.',
         1020 => 'The requested operation is not supported by this storage driver.',
+        1021 => 'The operation was cancelled.',
     ],
     'ui' => [
         'missing_assets'               => 'Warning: Assets not published. Please run `php artisan vendor:publish --tag=storage-manager:assets`.',

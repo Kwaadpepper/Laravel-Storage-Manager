@@ -9,10 +9,15 @@ use Illuminate\Support\Str;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryRestored;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryRestoring;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryTrashed;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryTrashing;
 use Kwaadpepper\LaravelStorageManager\Event\FileRestored;
+use Kwaadpepper\LaravelStorageManager\Event\FileRestoring;
 use Kwaadpepper\LaravelStorageManager\Event\FileTrashed;
+use Kwaadpepper\LaravelStorageManager\Event\FileTrashing;
 use Kwaadpepper\LaravelStorageManager\Event\TrashEmptied;
+use Kwaadpepper\LaravelStorageManager\Event\TrashEmptying;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathConflictResolver;
@@ -59,6 +64,14 @@ class TrashService
         $name      = basename($normalizedPath);
         $dirs      = $this->ensureTrashDirectoriesExist($disk);
         $storedRel = $dirs['files'] . '/' . $trashId . '_' . $name;
+
+        $this->eventDispatcher->dispatch(
+            $isDir ? DirectoryTrashing::class : FileTrashing::class,
+            [
+                'disk' => $disk->name,
+                'path' => $path->value,
+            ]
+        );
 
         $this->storageGateway->move($disk, $normalizedPath, $storedRel, $isDir);
 
@@ -245,6 +258,11 @@ class TrashService
                 ]);
             }
 
+            $this->eventDispatcher->dispatch(
+                $isDir ? DirectoryRestoring::class : FileRestoring::class,
+                ['disk' => $disk->name, 'path' => $targetPath->value, 'trashId' => $trashId]
+            );
+
             $this->storageGateway->move($disk, $storedRel, $targetPath->value, $isDir);
 
             $metaRel = $this->getTrashMetaDir() . '/' . $trashId . '.json';
@@ -337,6 +355,11 @@ class TrashService
         $count = count($items);
 
         $filesDir = $this->getTrashFilesDir();
+
+        $this->eventDispatcher->dispatch(
+            TrashEmptying::class,
+            ['disk' => $disk->name, 'count' => $count]
+        );
 
         if ($this->storageGateway->exists($disk, $this->toPath($filesDir))) {
             $this->storageGateway->deleteDirectory($disk, $filesDir);

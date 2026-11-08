@@ -45,6 +45,7 @@ return [
         1018 => 'Une erreur d\'E/S de stockage est survenue.',
         1019 => 'Échec de la connexion au disque de stockage.',
         1020 => 'L\'opération demandée n\'est pas prise en charge par ce disque.',
+        1021 => 'L\'opération a été annulée.',
     ],
     'ui' => [
         'missing_assets'               => 'Attention : Les assets ne sont pas publiés. Veuillez exécuter `php artisan vendor:publish --tag=storage-manager:assets`.',

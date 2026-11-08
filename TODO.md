@@ -21,6 +21,7 @@
 - [x] Filename sanitization on upload (strip special chars, configurable)
 - [ ] Temporary signed download link (with configurable expiration)
 - [x] Copy file path / public URL to clipboard
+- [ ] Upload concurrency lock (atomic locks on status.json during parallel chunk uploads)
 
 ## Navigation & UX
 
@@ -58,13 +59,14 @@
 ## Access control
 
 - [x] ACL (read-only mode, per-disk permissions)
-- [ ] Per-disk configuration (allowed extensions, max upload size...)
-- [x] Multi-user mode: private folder per user + shared folder (configurable)
+- [ ] Per-disk configuration (root/prefix, allowed extensions, trash, max upload size, naming rules)
+- [ ] Granularité ACL & Multi-tenancy: dossier privé par utilisateur + dossier partagé (scoping dynamique du chemin racine par utilisateur / tenant)
 - [x] Activity log (who uploaded, deleted, renamed and when)
 
 ## Events & integrations
 
 - [x] Events (upload, delete, rename, move...)
+- [x] Before / interceptable events (`FileCreating`, `FileDeleting`, `FileMoving` avec possibilité d'annulation)
 - [ ] WYSIWYG integration (CKEditor 4 - 5, Tiptap, Tinymce 3 - 4 - 5, Standalone - provide plugins)
 - [x] File type scoping when opening via integration (`type=image|audio|video|archive`)
 - [ ] Multi-panel view (side by side)

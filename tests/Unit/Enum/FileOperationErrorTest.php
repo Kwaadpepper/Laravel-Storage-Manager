@@ -16,11 +16,13 @@ describe('FileOperationError', function (): void {
         $messageExists        = FileOperationError::DIRECTORY_ALREADY_EXISTS->message();
         $messageNotFound      = FileOperationError::FILE_NOT_FOUND->message();
         $messageForbiddenMime = FileOperationError::FORBIDDEN_FILE_MIME->message();
+        $messageCancelled     = FileOperationError::OPERATION_CANCELLED->message();
 
         // THEN
         expect($messageExists)->toBe('The directory already exists.');
         expect($messageNotFound)->toBe('The file was not found.');
         expect($messageForbiddenMime)->toBe('The file content does not match its extension or is forbidden.');
+        expect($messageCancelled)->toBe('The operation was cancelled.');
     });
 
     it('translates error messages to French when locale is fr', function (): void {
@@ -31,10 +33,12 @@ describe('FileOperationError', function (): void {
         $messageExists        = FileOperationError::DIRECTORY_ALREADY_EXISTS->message();
         $messageNotFound      = FileOperationError::FILE_NOT_FOUND->message();
         $messageForbiddenMime = FileOperationError::FORBIDDEN_FILE_MIME->message();
+        $messageCancelled     = FileOperationError::OPERATION_CANCELLED->message();
 
         // THEN
         expect($messageExists)->toBe('Le dossier existe déjà.');
         expect($messageNotFound)->toBe('Le fichier est introuvable.');
         expect($messageForbiddenMime)->toBe('Le contenu du fichier ne correspond pas à son extension ou est interdit.');
+        expect($messageCancelled)->toBe('L\'opération a été annulée.');
     });
 })->covers(FileOperationError::class);

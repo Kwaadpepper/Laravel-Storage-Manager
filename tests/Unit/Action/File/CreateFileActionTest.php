@@ -10,7 +10,9 @@ use Kwaadpepper\LaravelStorageManager\Action\File\CreateFileAction;
 use Kwaadpepper\LaravelStorageManager\Action\File\CreateFileInput;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
+use Kwaadpepper\LaravelStorageManager\Event\FileCreating;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationCancelledException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
@@ -95,5 +97,67 @@ describe('CreateFileAction', function (): void {
 
         // THEN
         expect($callback)->toThrow(FileOperationException::class, FileOperationError::FILE_ALREADY_EXISTS->message());
+    });
+
+    it('dispatches FileCreating before creating file', function (): void {
+        // GIVEN
+        Event::fake([FileCreating::class, FileCreated::class]);
+        $disk   = new Disk('local', 'local');
+        $action = resolve(CreateFileAction::class);
+        $path   = new Path('/new_file.txt');
+        $input  = new CreateFileInput($disk, $path, 'sample text');
+
+        // WHEN
+        $action($input);
+
+        // THEN
+        expect(Storage::disk('local')->exists('new_file.txt'))->toBeTrue();
+        Event::assertDispatched(
+            FileCreating::class,
+            fn (FileCreating $event): bool => $event->disk === 'local'
+                && $event->path                            === '/new_file.txt'
+                && $event->size                            === 11
+        );
+        Event::assertDispatched(FileCreated::class);
+    });
+
+    it('throws OperationCancelledException and prevents file creation when FileCreating is cancelled', function (): void {
+        // GIVEN
+        Event::listen(FileCreating::class, function (FileCreating $event): void {
+            $event->cancel('User quota exceeded');
+        });
+        $disk   = new Disk('local', 'local');
+        $action = resolve(CreateFileAction::class);
+        $path   = new Path('/cancelled_file.txt');
+        $input  = new CreateFileInput($disk, $path, 'sample text');
+
+        // WHEN
+        $callback = static function () use ($action, $input): void {
+            $action($input);
+        };
+
+        // THEN
+        expect($callback)->toThrow(OperationCancelledException::class, 'User quota exceeded');
+        expect(Storage::disk('local')->exists('cancelled_file.txt'))->toBeFalse();
+    });
+
+    it('propagates exception and prevents file creation when listener throws', function (): void {
+        // GIVEN
+        Event::listen(FileCreating::class, function (FileCreating $event): void {
+            throw new \RuntimeException('DB lock conflict');
+        });
+        $disk   = new Disk('local', 'local');
+        $action = resolve(CreateFileAction::class);
+        $path   = new Path('/aborted_file.txt');
+        $input  = new CreateFileInput($disk, $path, 'sample text');
+
+        // WHEN
+        $callback = static function () use ($action, $input): void {
+            $action($input);
+        };
+
+        // THEN
+        expect($callback)->toThrow(\RuntimeException::class, 'DB lock conflict');
+        expect(Storage::disk('local')->exists('aborted_file.txt'))->toBeFalse();
     });
 })->covers(CreateFileAction::class);

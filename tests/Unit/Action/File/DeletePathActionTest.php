@@ -10,8 +10,11 @@ use Kwaadpepper\LaravelStorageManager\Action\File\DeletePathInput;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleted;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleting;
 use Kwaadpepper\LaravelStorageManager\Event\FileDeleted;
+use Kwaadpepper\LaravelStorageManager\Event\FileDeleting;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationCancelledException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
@@ -126,5 +129,45 @@ describe('DeletePathAction', function (): void {
         // THEN
         expect($result)->not->toBeNull();
         expect($result->originalPath->value)->toBe('/trashed.txt');
+    });
+
+    it('dispatches FileDeleting and prevents file deletion when FileDeleting is cancelled', function (): void {
+        // GIVEN
+        Event::listen(FileDeleting::class, function (FileDeleting $event): void {
+            $event->cancel('File is locked by another process');
+        });
+        Storage::disk('local')->put('locked_file.txt', 'content');
+        $disk   = new Disk('local', 'local');
+        $action = resolve(DeletePathAction::class);
+        $input  = new DeletePathInput($disk, new Path('/locked_file.txt'));
+
+        // WHEN
+        $callback = static function () use ($action, $input): void {
+            $action($input);
+        };
+
+        // THEN
+        expect($callback)->toThrow(OperationCancelledException::class, 'File is locked by another process');
+        expect(Storage::disk('local')->exists('locked_file.txt'))->toBeTrue();
+    });
+
+    it('dispatches DirectoryDeleting and prevents directory deletion when DirectoryDeleting is cancelled', function (): void {
+        // GIVEN
+        Event::listen(DirectoryDeleting::class, function (DirectoryDeleting $event): void {
+            $event->cancel('Directory cannot be deleted');
+        });
+        Storage::disk('local')->makeDirectory('locked_dir');
+        $disk   = new Disk('local', 'local');
+        $action = resolve(DeletePathAction::class);
+        $input  = new DeletePathInput($disk, new Path('/locked_dir'));
+
+        // WHEN
+        $callback = static function () use ($action, $input): void {
+            $action($input);
+        };
+
+        // THEN
+        expect($callback)->toThrow(OperationCancelledException::class, 'Directory cannot be deleted');
+        expect(Storage::disk('local')->exists('locked_dir'))->toBeTrue();
     });
 })->covers(DeletePathAction::class);

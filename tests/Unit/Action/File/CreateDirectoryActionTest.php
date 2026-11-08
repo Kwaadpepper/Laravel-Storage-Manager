@@ -9,7 +9,9 @@ use Kwaadpepper\LaravelStorageManager\Action\File\CreateDirectoryAction;
 use Kwaadpepper\LaravelStorageManager\Action\File\CreateDirectoryInput;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreated;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreating;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationCancelledException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
@@ -56,5 +58,45 @@ describe('CreateDirectoryAction', function (): void {
 
         // THEN
         expect($callback)->toThrow(FileOperationException::class, FileOperationError::DIRECTORY_ALREADY_EXISTS->message());
+    });
+
+    it('dispatches DirectoryCreating before creating directory', function (): void {
+        // GIVEN
+        Event::fake([DirectoryCreating::class, DirectoryCreated::class]);
+        $disk   = new Disk('local', 'local');
+        $action = resolve(CreateDirectoryAction::class);
+        $path   = new Path('/new_folder');
+        $input  = new CreateDirectoryInput($disk, $path);
+
+        // WHEN
+        $action($input);
+
+        // THEN
+        expect(Storage::disk('local')->exists('new_folder'))->toBeTrue();
+        Event::assertDispatched(
+            DirectoryCreating::class,
+            fn (DirectoryCreating $event): bool => $event->disk === 'local' && $event->path === '/new_folder'
+        );
+        Event::assertDispatched(DirectoryCreated::class);
+    });
+
+    it('throws OperationCancelledException and prevents directory creation when DirectoryCreating is cancelled', function (): void {
+        // GIVEN
+        Event::listen(DirectoryCreating::class, function (DirectoryCreating $event): void {
+            $event->cancel('Directory creation forbidden');
+        });
+        $disk   = new Disk('local', 'local');
+        $action = resolve(CreateDirectoryAction::class);
+        $path   = new Path('/forbidden_folder');
+        $input  = new CreateDirectoryInput($disk, $path);
+
+        // WHEN
+        $callback = static function () use ($action, $input): void {
+            $action($input);
+        };
+
+        // THEN
+        expect($callback)->toThrow(OperationCancelledException::class, 'Directory creation forbidden');
+        expect(Storage::disk('local')->exists('forbidden_folder'))->toBeFalse();
     });
 })->covers(CreateDirectoryAction::class);

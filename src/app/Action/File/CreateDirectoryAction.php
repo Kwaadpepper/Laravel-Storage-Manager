@@ -9,6 +9,7 @@ use Kwaadpepper\LaravelStorageManager\Contract\Action;
 use Kwaadpepper\LaravelStorageManager\Contract\ActionInput;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreated;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryCreating;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
@@ -51,6 +52,14 @@ final readonly class CreateDirectoryAction implements Action
             ]);
             FileOperationException::throwWith(FileOperationError::DIRECTORY_ALREADY_EXISTS);
         }
+
+        $this->eventDispatcher->dispatch(
+            DirectoryCreating::class,
+            [
+                'disk' => $input->disk->name,
+                'path' => $input->path->value,
+            ]
+        );
 
         if ($this->storageGateway->makeDirectory($input->disk, $normalizedPath) === false) {
             $this->logger->error('Failed to create directory', [

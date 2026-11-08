@@ -10,6 +10,7 @@ use Kwaadpepper\LaravelStorageManager\Contract\Action;
 use Kwaadpepper\LaravelStorageManager\Contract\ActionInput;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
+use Kwaadpepper\LaravelStorageManager\Event\FileCreating;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
@@ -78,6 +79,15 @@ final readonly class CreateFileAction implements Action
             ]);
             FileOperationException::throwWith(FileOperationError::FILE_ALREADY_EXISTS);
         }
+
+        $this->eventDispatcher->dispatch(
+            FileCreating::class,
+            [
+                'disk' => $input->disk->name,
+                'path' => $input->path->value,
+                'size' => strlen($input->content),
+            ]
+        );
 
         if ($this->storageGateway->put($input->disk, $normalizedPath, $input->content) === false) {
             $this->logger->error('Failed to create file', [

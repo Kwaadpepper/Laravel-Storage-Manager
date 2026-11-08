@@ -11,6 +11,7 @@ use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Enum\UploadStatus;
 use Kwaadpepper\LaravelStorageManager\Event\FileCreated;
+use Kwaadpepper\LaravelStorageManager\Event\FileCreating;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\AssembleFailedException;
 use Kwaadpepper\LaravelStorageManager\Exception\Upload\MissingChunkException;
@@ -209,6 +210,15 @@ class UploadSessionService
             }
             $fileName = basename($finalDestination->value);
         }
+
+        $this->eventDispatcher->dispatch(
+            FileCreating::class,
+            [
+                'disk' => $disk->name,
+                'path' => $finalDestination->value,
+                'size' => $this->readMetadata($uploadId)?->totalSize,
+            ]
+        );
 
         $this->assembleAndTransfer(
             $uploadId,

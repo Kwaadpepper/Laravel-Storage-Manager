@@ -7,9 +7,12 @@ namespace Kwaadpepper\LaravelStorageManager\Service;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\ArchiveExtracted;
+use Kwaadpepper\LaravelStorageManager\Event\ArchiveExtracting;
 use Kwaadpepper\LaravelStorageManager\Event\ZipCreated;
+use Kwaadpepper\LaravelStorageManager\Event\ZipCreating;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
+use Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
@@ -50,6 +53,17 @@ readonly class ArchiveService
             'destination' => $destinationZip->value,
         ]);
         $this->assertCanZip($disk, $paths, $destinationZip);
+
+        /** @var class-string<\Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent<array{disk: string, paths: array<string>, destination: string}>> $eventClass */
+        $eventClass = ZipCreating::class;
+        $this->eventDispatcher->dispatch(
+            $eventClass,
+            [
+                'disk'        => $disk->name,
+                'paths'       => array_map(static fn (Path $p): string => $p->value, $paths),
+                'destination' => $destinationZip->value,
+            ]
+        );
 
         $tempZip = tempnam(sys_get_temp_dir(), 'sm_zip_');
         if ($tempZip === false) {
@@ -102,6 +116,15 @@ readonly class ArchiveService
             'destination' => $destinationDir->value,
         ]);
         $this->assertCanUnzip($disk, $archivePath);
+
+        $this->eventDispatcher->dispatch(
+            ArchiveExtracting::class,
+            [
+                'disk'        => $disk->name,
+                'archive'     => $archivePath->value,
+                'destination' => $destinationDir->value,
+            ]
+        );
 
         $tempZip = $this->copyArchiveToTemp($disk, $archivePath);
 

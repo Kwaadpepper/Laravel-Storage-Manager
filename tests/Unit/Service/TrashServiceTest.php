@@ -7,9 +7,14 @@ namespace Tests\Unit\Service;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
+use Kwaadpepper\LaravelStorageManager\Event\FileRestoring;
+use Kwaadpepper\LaravelStorageManager\Event\FileTrashing;
+use Kwaadpepper\LaravelStorageManager\Event\TrashEmptying;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationCancelledException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Service\TrashService;
@@ -412,5 +417,66 @@ describe('TrashService', function (): void {
 
         // THEN
         expect($action)->toThrow(FileOperationException::class);
+    });
+
+    it('throws OperationCancelledException and prevents moving to trash when FileTrashing is cancelled', function (): void {
+        // GIVEN
+        Event::listen(FileTrashing::class, function (FileTrashing $event): void {
+            $event->cancel('Trashing disallowed');
+        });
+        $storage = Storage::disk('local');
+        $storage->put('keep_safe.txt', 'do not trash');
+        $trashService = resolve(TrashService::class);
+        assert($trashService instanceof TrashService);
+        $disk = new Disk('local', 'local');
+
+        // WHEN
+        $action = fn (): mixed => $trashService->moveToTrash($disk, new Path('/keep_safe.txt'));
+
+        // THEN
+        expect($action)->toThrow(OperationCancelledException::class, 'Trashing disallowed');
+        $storage->assertExists('keep_safe.txt');
+    });
+
+    it('throws OperationCancelledException and prevents restore when FileRestoring is cancelled', function (): void {
+        // GIVEN
+        $storage = Storage::disk('local');
+        $storage->put('restore_file.txt', 'important data');
+        $trashService = resolve(TrashService::class);
+        assert($trashService instanceof TrashService);
+        $disk = new Disk('local', 'local');
+        $item = $trashService->moveToTrash($disk, new Path('/restore_file.txt'));
+
+        Event::listen(FileRestoring::class, function (FileRestoring $event): void {
+            $event->cancel('Restore disallowed');
+        });
+
+        // WHEN
+        $action = fn (): mixed => $trashService->restore($disk, $item->trashId);
+
+        // THEN
+        expect($action)->toThrow(OperationCancelledException::class, 'Restore disallowed');
+        $storage->assertMissing('restore_file.txt');
+    });
+
+    it('throws OperationCancelledException and prevents emptyTrash when TrashEmptying is cancelled', function (): void {
+        // GIVEN
+        $storage = Storage::disk('local');
+        $storage->put('trash_me.txt', 'data');
+        $trashService = resolve(TrashService::class);
+        assert($trashService instanceof TrashService);
+        $disk = new Disk('local', 'local');
+        $trashService->moveToTrash($disk, new Path('/trash_me.txt'));
+
+        Event::listen(TrashEmptying::class, function (TrashEmptying $event): void {
+            $event->cancel('Emptying trash is locked');
+        });
+
+        // WHEN
+        $action = fn (): mixed => $trashService->emptyTrash($disk);
+
+        // THEN
+        expect($action)->toThrow(OperationCancelledException::class, 'Emptying trash is locked');
+        expect($trashService->list($disk))->toHaveCount(1);
     });
 })->covers(TrashService::class);

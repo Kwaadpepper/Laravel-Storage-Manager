@@ -29,6 +29,7 @@ enum FileOperationError: int implements DomainErrorCode
     case IO_ERROR                      = 1018;
     case CONNECTION_ERROR              = 1019;
     case OPERATION_NOT_SUPPORTED       = 1020;
+    case OPERATION_CANCELLED           = 1021;
 
     /** @var array<int, string> */
     private const array MESSAGES = [
@@ -52,6 +53,7 @@ enum FileOperationError: int implements DomainErrorCode
         1018 => 'A storage I/O error occurred.',
         1019 => 'Failed to connect to the storage disk.',
         1020 => 'The requested operation is not supported by this storage driver.',
+        1021 => 'The operation was cancelled.',
     ];
 
     public function message(): string

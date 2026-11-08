@@ -7,12 +7,19 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\BulkRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\BulkRenaming;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryCopied;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryCopying;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryMoved;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryMoving;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryRenaming;
 use Kwaadpepper\LaravelStorageManager\Event\FileCopied;
+use Kwaadpepper\LaravelStorageManager\Event\FileCopying;
 use Kwaadpepper\LaravelStorageManager\Event\FileMoved;
+use Kwaadpepper\LaravelStorageManager\Event\FileMoving;
 use Kwaadpepper\LaravelStorageManager\Event\FileRenamed;
+use Kwaadpepper\LaravelStorageManager\Event\FileRenaming;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\Security\MimeTypeChecker;
@@ -68,6 +75,15 @@ readonly class FileTransferService
             );
         }
 
+        $this->eventDispatcher->dispatch(
+            $sourceIsDir ? DirectoryRenaming::class : FileRenaming::class,
+            [
+                'disk'     => $disk->name,
+                'old_path' => $source->value,
+                'new_path' => $destination->value,
+            ]
+        );
+
         $this->storageGateway->move($disk, $normalizedSource, $destination->value, $sourceIsDir);
 
         $this->logger->info('Item renamed successfully', [
@@ -110,6 +126,15 @@ readonly class FileTransferService
             ]);
         }
 
+        $this->eventDispatcher->dispatch(
+            $sourceIsDir ? DirectoryCopying::class : FileCopying::class,
+            [
+                'disk'        => $disk->name,
+                'source_path' => $source->value,
+                'target_path' => $destination->value,
+            ]
+        );
+
         $this->storageGateway->copy($disk, $source, $destination, $sourceIsDir);
 
         $this->logger->info('Item copied successfully', [
@@ -151,6 +176,15 @@ readonly class FileTransferService
                 'destination' => $destination->value,
             ]);
         }
+
+        $this->eventDispatcher->dispatch(
+            $sourceIsDir ? DirectoryMoving::class : FileMoving::class,
+            [
+                'disk'        => $disk->name,
+                'source_path' => $source->value,
+                'target_path' => $destination->value,
+            ]
+        );
 
         $this->storageGateway->move($disk, $normalizedSource, $destination->value, $sourceIsDir);
 
@@ -197,6 +231,21 @@ readonly class FileTransferService
                 break;
             }
         }
+
+        $renamesList = array_map(
+            static fn (array $p): array => [
+                'from' => (string) $p['from'],
+                'to'   => (string) $p['target'],
+            ],
+            $plan
+        );
+        $this->eventDispatcher->dispatch(
+            BulkRenaming::class,
+            [
+                'disk'    => $disk->name,
+                'renames' => $renamesList,
+            ]
+        );
 
         $result = $this->executeBulkRename($disk, $plan, $hasOverlap);
 

@@ -10,7 +10,9 @@ use Kwaadpepper\LaravelStorageManager\Contract\Action;
 use Kwaadpepper\LaravelStorageManager\Contract\ActionInput;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleted;
+use Kwaadpepper\LaravelStorageManager\Event\DirectoryDeleting;
 use Kwaadpepper\LaravelStorageManager\Event\FileDeleted;
+use Kwaadpepper\LaravelStorageManager\Event\FileDeleting;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
@@ -105,6 +107,15 @@ final readonly class DeletePathAction implements Action
             }
         }
 
+        $this->eventDispatcher->dispatch(
+            DirectoryDeleting::class,
+            [
+                'disk'  => $disk->name,
+                'path'  => $path->value,
+                'force' => $force,
+            ]
+        );
+
         if ($this->storageGateway->deleteDirectory($disk, $normalizedPath) === false) {
             $this->logger->error('Failed to delete directory', [
                 'disk' => $disk->name,
@@ -137,6 +148,15 @@ final readonly class DeletePathAction implements Action
             ]);
             FileOperationException::throwWith(FileOperationError::FILE_NOT_FOUND);
         }
+
+        $this->eventDispatcher->dispatch(
+            FileDeleting::class,
+            [
+                'disk'  => $disk->name,
+                'path'  => $path->value,
+                'force' => true,
+            ]
+        );
 
         if ($this->storageGateway->delete($disk, $normalizedPath) === false) {
             $this->logger->error('Failed to delete file', [

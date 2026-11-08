@@ -7,8 +7,11 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Event\ArchiveExtracted;
+use Kwaadpepper\LaravelStorageManager\Event\ArchiveExtracting;
 use Kwaadpepper\LaravelStorageManager\Event\ZipCreated;
+use Kwaadpepper\LaravelStorageManager\Event\ZipCreating;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationCancelledException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Service\ArchiveService;
@@ -97,5 +100,55 @@ describe('ArchiveService', function (): void {
 
         // THEN
         expect($action)->toThrow(FileOperationException::class, FileOperationError::INVALID_ARCHIVE->message());
+    });
+
+    it('throws OperationCancelledException and prevents zipping when ZipCreating is cancelled', function (): void {
+        // GIVEN
+        Event::listen(ZipCreating::class, function (ZipCreating $event): void {
+            $event->cancel('Archiving blocked');
+        });
+        Storage::disk('local')->put('file1.txt', 'Content 1');
+        $disk    = new Disk('local', 'local');
+        $service = resolve(ArchiveService::class);
+
+        // WHEN
+        $action = fn (): Path => $service->zip($disk, [new Path('/file1.txt')], new Path('/blocked.zip'));
+
+        // THEN
+        expect($action)->toThrow(OperationCancelledException::class, 'Archiving blocked');
+        expect(Storage::disk('local')->exists('blocked.zip'))->toBeFalse();
+    });
+
+    it('throws OperationCancelledException and prevents unzipping when ArchiveExtracting is cancelled', function (): void {
+        // GIVEN
+        $tempZip = tempnam(sys_get_temp_dir(), 'test_zip_');
+        assert(is_string($tempZip));
+        try {
+            $zip = new \ZipArchive();
+            $zip->open($tempZip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+            $zip->addFromString('data.txt', 'some data');
+            $zip->close();
+            Storage::disk('local')->put('archive.zip', (string) file_get_contents($tempZip));
+        } finally {
+            if (file_exists($tempZip)) {
+                @unlink($tempZip);
+            }
+        }
+
+        Event::listen(ArchiveExtracting::class, function (ArchiveExtracting $event): void {
+            $event->cancel('Extraction disallowed');
+        });
+
+        $disk    = new Disk('local', 'local');
+        $service = resolve(ArchiveService::class);
+
+        // WHEN
+        $action = function () use ($service, $disk): void {
+            $service->unzip($disk, new Path('/archive.zip'), new Path('/out_blocked'));
+        };
+
+        // THEN
+        expect($action)->toThrow(OperationCancelledException::class, 'Extraction disallowed');
+        expect(Storage::disk('local')->exists('out_blocked/data.txt'))->toBeFalse();
     });
 })->covers(ArchiveService::class);

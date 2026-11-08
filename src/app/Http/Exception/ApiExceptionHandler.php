@@ -6,7 +6,12 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Exception;
 
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
+use Kwaadpepper\LaravelStorageManager\Enum\GenericDomainError;
 use Kwaadpepper\LaravelStorageManager\Exception\DomainException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationCancelledException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationNotSupportedException;
+use Kwaadpepper\LaravelStorageManager\Exception\StorageConnectionException;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\DomainErrorDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\ErrorDto;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\FieldErrorsDto;
@@ -72,7 +77,7 @@ final class ApiExceptionHandler
         if (is_string($exceptionClass) && is_a($exceptionClass, DomainException::class, true)) {
             $apiResponse = ApiResponse::json(
                 new DomainErrorDto(
-                    $this->normalizeRenderedDomainErrorCode($content),
+                    $this->normalizeRenderedDomainErrorCode($content, $exceptionClass),
                     $this->normalizeRenderedDomainErrorMessage($content)
                 ),
                 ApiResponse::HTTP_UNPROCESSABLE_ENTITY
@@ -143,16 +148,65 @@ final class ApiExceptionHandler
     /**
      * @param  array<string, mixed>  $content
      */
-    private function normalizeRenderedDomainErrorCode(array $content): int
+    private function normalizeRenderedDomainErrorCode(array $content, ?string $exceptionClass = null): int
     {
-        $errors = $content['errors'] ?? [];
-        if (! is_array($errors)) {
-            return 0;
+        $code = $this->resolveCodeFromContent($content)
+            ?? $this->resolveCodeFromExceptionClass($exceptionClass);
+
+        if ($code !== null) {
+            return $code;
         }
 
-        $code = $errors['code'] ?? 0;
+        return $this->resolveCodeFromMessage($this->normalizeRenderedDomainErrorMessage($content));
+    }
 
-        return is_int($code) ? $code : 0;
+    /**
+     * @param  array<string, mixed>  $content
+     */
+    private function resolveCodeFromContent(array $content): ?int
+    {
+        $errors = $content['errors'] ?? [];
+        if (is_array($errors) && isset($errors['code']) && is_int($errors['code']) && $errors['code'] > 0) {
+            return $errors['code'];
+        }
+
+        $code = $content['code'] ?? null;
+        if (is_int($code) && $code > 0) {
+            return $code;
+        }
+
+        return null;
+    }
+
+    private function resolveCodeFromExceptionClass(?string $exceptionClass): ?int
+    {
+        if ($exceptionClass === null) {
+            return null;
+        }
+
+        return match (true) {
+            is_a($exceptionClass, OperationCancelledException::class, true)    => FileOperationError::OPERATION_CANCELLED->code(),
+            is_a($exceptionClass, StorageConnectionException::class, true)     => FileOperationError::CONNECTION_ERROR->code(),
+            is_a($exceptionClass, OperationNotSupportedException::class, true) => FileOperationError::OPERATION_NOT_SUPPORTED->code(),
+            default                                                            => null,
+        };
+    }
+
+    private function resolveCodeFromMessage(string $message): int
+    {
+        foreach (FileOperationError::cases() as $case) {
+            if ($case->message() === $message) {
+                return $case->code();
+            }
+        }
+
+        foreach (GenericDomainError::cases() as $case) {
+            if ($case->message() === $message) {
+                return $case->code();
+            }
+        }
+
+        return 0;
     }
 
     /**
