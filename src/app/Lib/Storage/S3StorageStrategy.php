@@ -141,10 +141,11 @@ readonly class S3StorageStrategy implements StorageDriverStrategy
 
     private function resolveTargetSubPath(string $itemPath, string $source, string $destination): string
     {
-        $normalized   = $this->pathNormalizer->normalizePath($itemPath);
-        $relativePath = substr($normalized, strlen('/' . $source) + 1);
+        $sourcePath = new Path($this->pathNormalizer->normalizePath($source));
+        $destPath   = new Path($this->pathNormalizer->normalizePath($destination));
+        $item       = new Path($this->pathNormalizer->normalizePath($itemPath));
 
-        return ltrim($destination . '/' . $relativePath, '/');
+        return $item->rebase($sourcePath, $destPath)->toRelative();
     }
 
     private function serverSideCopy(AwsS3V3Adapter $storage, string $source, string $destination): true | FileOperationException

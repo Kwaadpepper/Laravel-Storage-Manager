@@ -243,19 +243,20 @@ readonly class ArchiveService
 
         $baseDirName = basename($normPath);
         $zip->addEmptyDir($baseDirName);
+        $basePath = new Path($normPath);
 
         $allFiles = $this->storageGateway->allFiles($disk, $normPath);
         foreach ($allFiles as $file) {
-            $normFile = $this->pathNormalizer->normalizePath($file);
-            $relFile  = substr($normFile, strlen($normPath) + 1);
-            $content  = $this->storageGateway->readStream($disk, new Path($normFile))->getContents();
+            $filePath = new Path($this->pathNormalizer->normalizePath($file));
+            $relFile  = $filePath->relativeTo($basePath);
+            $content  = $this->storageGateway->readStream($disk, $filePath)->getContents();
             $zip->addFromString($baseDirName . '/' . $relFile, $content);
         }
 
         $allDirs = $this->storageGateway->allDirectories($disk, $normPath);
         foreach ($allDirs as $dir) {
-            $normDir = $this->pathNormalizer->normalizePath($dir);
-            $relDir  = substr($normDir, strlen($normPath) + 1);
+            $dirPath = new Path($this->pathNormalizer->normalizePath($dir));
+            $relDir  = $dirPath->relativeTo($basePath);
             $zip->addEmptyDir($baseDirName . '/' . $relDir);
         }
     }

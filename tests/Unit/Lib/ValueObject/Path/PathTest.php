@@ -216,7 +216,106 @@ describe('Path', function (): void {
         $a = new Path('/uploads/file.txt');
         $b = new Path('/uploads/other.txt');
 
-        // WHEN / THEN
-        expect($a->equals($b))->toBeFalse();
+        // WHEN
+        $result = $a->equals($b);
+
+        // THEN
+        expect($result)->toBeFalse();
+    });
+
+    it('determines if path starts with a prefix correctly', function (): void {
+        // GIVEN
+        $path       = new Path('/uploads/documents/report.pdf');
+        $root       = new Path('/');
+        $same       = new Path('/uploads/documents/report.pdf');
+        $parent     = new Path('/uploads');
+        $nested     = new Path('/uploads/documents');
+        $nonPrefix  = new Path('/uploads/doc');
+        $different  = new Path('/archive');
+
+        // WHEN
+        $matchesRoot      = $path->startsWith($root);
+        $matchesSame      = $path->startsWith($same);
+        $matchesParent    = $path->startsWith($parent);
+        $matchesNested    = $path->startsWith($nested);
+        $matchesNonPrefix = $path->startsWith($nonPrefix);
+        $matchesDiff      = $path->startsWith($different);
+
+        // THEN
+        expect($matchesRoot)->toBeTrue()
+            ->and($matchesSame)->toBeTrue()
+            ->and($matchesParent)->toBeTrue()
+            ->and($matchesNested)->toBeTrue()
+            ->and($matchesNonPrefix)->toBeFalse()
+            ->and($matchesDiff)->toBeFalse();
+    });
+
+    it('computes relative path correctly with relativeTo', function (): void {
+        // GIVEN
+        $path = new Path('/uploads/documents/report.pdf');
+        $base = new Path('/uploads');
+        $root = new Path('/');
+        $same = new Path('/uploads/documents/report.pdf');
+
+        // WHEN
+        $relToBase = $path->relativeTo($base);
+        $relToRoot = $path->relativeTo($root);
+        $relToSame = $path->relativeTo($same);
+
+        // THEN
+        expect($relToBase)->toBe('documents/report.pdf')
+            ->and($relToRoot)->toBe('uploads/documents/report.pdf')
+            ->and($relToSame)->toBe('');
+    });
+
+    it('throws InvalidArgumentException when calling relativeTo on non-parent base path', function (): void {
+        // GIVEN
+        $path    = new Path('/uploads/documents/report.pdf');
+        $outside = new Path('/archive');
+
+        // WHEN
+        $action = fn (): string => $path->relativeTo($outside);
+
+        // THEN
+        expect($action)->toThrow(\InvalidArgumentException::class, "Path '/uploads/documents/report.pdf' does not start with base path '/archive'.");
+    });
+
+    it('rebases a path to a target base directory with rebase', function (): void {
+        // GIVEN
+        $path       = new Path('/uploads/documents/report.pdf');
+        $sourceBase = new Path('/uploads');
+        $targetBase = new Path('/archive/2026');
+
+        // WHEN
+        $rebased = $path->rebase($sourceBase, $targetBase);
+
+        // THEN
+        expect($rebased->value)->toBe('/archive/2026/documents/report.pdf');
+    });
+
+    it('returns target base when rebasing identical path', function (): void {
+        // GIVEN
+        $path       = new Path('/uploads');
+        $sourceBase = new Path('/uploads');
+        $targetBase = new Path('/archive/backup');
+
+        // WHEN
+        $rebased = $path->rebase($sourceBase, $targetBase);
+
+        // THEN
+        expect($rebased->value)->toBe('/archive/backup');
+    });
+
+    it('rebases from root directory correctly', function (): void {
+        // GIVEN
+        $path       = new Path('/documents/report.pdf');
+        $sourceBase = new Path('/');
+        $targetBase = new Path('/backup');
+
+        // WHEN
+        $rebased = $path->rebase($sourceBase, $targetBase);
+
+        // THEN
+        expect($rebased->value)->toBe('/backup/documents/report.pdf');
     });
 });

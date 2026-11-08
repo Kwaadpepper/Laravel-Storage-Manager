@@ -72,12 +72,14 @@ readonly class RemoteStorageStrategy implements StorageDriverStrategy
                 return new FileOperationException(FileOperationError::UNKNOWN_ERROR);
             }
 
+            $sourcePath = new Path($this->pathNormalizer->normalizePath($source));
+            $destPath   = new Path($this->pathNormalizer->normalizePath($destination));
+
             /** @var list<string> $directories */
             $directories = $storage->allDirectories($source);
             foreach ($directories as $dir) {
-                $normalizedDir = $this->pathNormalizer->normalizePath($dir);
-                $relativePath  = substr($normalizedDir, strlen('/' . $source) + 1);
-                $targetDir     = ltrim($destination . '/' . $relativePath, '/');
+                $dirPath   = new Path($this->pathNormalizer->normalizePath($dir));
+                $targetDir = $dirPath->rebase($sourcePath, $destPath)->toRelative();
                 if ($storage->makeDirectory($targetDir) === false) {
                     $this->logger->error(sprintf('Failed to create remote subdirectory "%s" on disk "%s"', $targetDir, $disk->name));
 
@@ -88,10 +90,9 @@ readonly class RemoteStorageStrategy implements StorageDriverStrategy
             /** @var list<string> $files */
             $files = $storage->allFiles($source);
             foreach ($files as $file) {
-                $normalizedFile = $this->pathNormalizer->normalizePath($file);
-                $relativePath   = substr($normalizedFile, strlen('/' . $source) + 1);
-                $targetFile     = ltrim($destination . '/' . $relativePath, '/');
-                $moveResult     = $this->moveFile($disk, $file, $targetFile);
+                $filePath   = new Path($this->pathNormalizer->normalizePath($file));
+                $targetFile = $filePath->rebase($sourcePath, $destPath)->toRelative();
+                $moveResult = $this->moveFile($disk, $file, $targetFile);
                 if ($moveResult instanceof FileOperationException) {
                     return $moveResult;
                 }
@@ -151,12 +152,14 @@ readonly class RemoteStorageStrategy implements StorageDriverStrategy
                 return new FileOperationException(FileOperationError::UNKNOWN_ERROR);
             }
 
+            $sourcePath = new Path($this->pathNormalizer->normalizePath($source));
+            $destPath   = new Path($this->pathNormalizer->normalizePath($destination));
+
             /** @var list<string> $directories */
             $directories = $storage->allDirectories($source);
             foreach ($directories as $dir) {
-                $normalizedDir = $this->pathNormalizer->normalizePath($dir);
-                $relativePath  = substr($normalizedDir, strlen('/' . $source) + 1);
-                $targetDir     = ltrim($destination . '/' . $relativePath, '/');
+                $dirPath   = new Path($this->pathNormalizer->normalizePath($dir));
+                $targetDir = $dirPath->rebase($sourcePath, $destPath)->toRelative();
                 if ($storage->makeDirectory($targetDir) === false) {
                     $this->logger->error(sprintf('Failed to create remote subdirectory "%s" on disk "%s"', $targetDir, $disk->name));
 
@@ -167,9 +170,8 @@ readonly class RemoteStorageStrategy implements StorageDriverStrategy
             /** @var list<string> $files */
             $files = $storage->allFiles($source);
             foreach ($files as $file) {
-                $normalizedFile = $this->pathNormalizer->normalizePath($file);
-                $relativePath   = substr($normalizedFile, strlen('/' . $source) + 1);
-                $targetFilePath = ltrim($destination . '/' . $relativePath, '/');
+                $filePath       = new Path($this->pathNormalizer->normalizePath($file));
+                $targetFilePath = $filePath->rebase($sourcePath, $destPath)->toRelative();
                 $copyResult     = $this->copyFile($disk, $file, $targetFilePath);
                 if ($copyResult instanceof FileOperationException) {
                     return $copyResult;

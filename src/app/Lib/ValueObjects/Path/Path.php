@@ -84,6 +84,62 @@ class Path implements \Stringable, Equatable
         return $other instanceof self && $this->value === $other->value;
     }
 
+    /**
+     * Determine whether this path starts with the given path prefix, respecting segment boundaries.
+     */
+    public function startsWith(self $prefix): bool
+    {
+        if ($prefix->isRoot()) {
+            return true;
+        }
+
+        if ($this->value === $prefix->value) {
+            return true;
+        }
+
+        return str_starts_with($this->value, rtrim($prefix->value, '/') . '/');
+    }
+
+    /**
+     * Returns the relative path segment from the given base path (without leading slash).
+     *
+     * @throws \InvalidArgumentException When this path does not start with the given base path.
+     */
+    public function relativeTo(self $basePath): string
+    {
+        if (! $this->startsWith($basePath)) {
+            throw new \InvalidArgumentException("Path '{$this->value}' does not start with base path '{$basePath->value}'.");
+        }
+
+        if ($this->equals($basePath)) {
+            return '';
+        }
+
+        if ($basePath->isRoot()) {
+            return ltrim($this->value, '/');
+        }
+
+        $prefix = rtrim($basePath->value, '/') . '/';
+
+        return substr($this->value, strlen($prefix));
+    }
+
+    /**
+     * Rebases this path from a source base directory to a target base directory.
+     *
+     * @throws \InvalidArgumentException When this path is not within the source base path.
+     */
+    public function rebase(self $sourceBase, self $targetBase): self
+    {
+        $relative = $this->relativeTo($sourceBase);
+
+        if ($relative === '') {
+            return $targetBase;
+        }
+
+        return self::appendTo($targetBase, $relative);
+    }
+
     public function __toString(): string
     {
         return $this->value;
