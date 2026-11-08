@@ -68,7 +68,7 @@
 - [x] Events (upload, delete, rename, move...)
 - [x] Before / interceptable events (`FileCreating`, `FileDeleting`, `FileMoving` avec possibilité d'annulation)
 - [x] WYSIWYG & Standalone integrations (CKEditor 5, Tiptap, Standalone picker plugins provided)
-- [ ] Additional WYSIWYG integrations (CKEditor 4, TinyMCE 3 - 4 - 5)
+- [x] Additional WYSIWYG integrations (CKEditor 4, TinyMCE 5/6, alexusmai-compatible `fmSetLink` callback)
 - [x] File type scoping when opening via integration (`type=image|audio|video|archive`)
 - [ ] Multi-panel view (side by side)
 

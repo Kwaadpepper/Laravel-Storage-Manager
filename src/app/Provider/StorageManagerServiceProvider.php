@@ -71,6 +71,7 @@ class StorageManagerServiceProvider extends ServiceProvider
         $this->loadViews();
         $this->loadRoutes();
         $this->publishAssets();
+        $this->publishExamples();
 
         $this->app->make(AclManager::class)->registerDefaultGates($this->app->make(Gate::class));
 
@@ -558,6 +559,16 @@ class StorageManagerServiceProvider extends ServiceProvider
                 __DIR__ . '/../../../resources/css' => public_path('vendor/storage-manager/css'),
             ],
             'storage-manager:assets'
+        );
+    }
+
+    private function publishExamples(): void
+    {
+        $this->publishes(
+            [
+                __DIR__ . '/../../../examples/wysiwyg' => resource_path('views/vendor/storage-manager/examples'),
+            ],
+            'storage-manager:examples'
         );
     }
 }

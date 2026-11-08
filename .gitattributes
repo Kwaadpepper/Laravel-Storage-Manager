@@ -1,31 +1,54 @@
+# Set default line endings to LF
+* text=auto eol=lf
+*.php text eol=lf
+*.ts text eol=lf
+*.js text eol=lf
+*.vue text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.blade.php text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+
 # Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.svg text
+*.zip binary
+*.tar.gz binary
 bun.lockb binary
 
-# Ignore tests
+# Ignore tests & test configurations in export archives
 /tests/ export-ignore
-phpunit.xml export-ignore
-
-# Ignore TS sources
-/src/ts/ export-ignore
-
-# Ignore CSS sources
-/src/css/ export-ignore
-
-# Ignore dev files
-/.github/ export-ignore
-/.vscode/ export-ignore
-/.php-cs-fixer.dist.php export-ignore
-/phpstan.neon.dist export-ignore
-/.editorconfig export-ignore
-/.type-coverage-bootstrap.php export-ignore
+/.pest/ export-ignore
 /phpunit.xml export-ignore
-/pint.json export-ignore
+/.type-coverage-bootstrap.php export-ignore
 
+# Ignore frontend build sources in production archive (compiled assets are in resources/)
+/src/ts/ export-ignore
+/src/css/ export-ignore
 /tsconfig.json export-ignore
 /tsconfig.app.json export-ignore
 /tsconfig.node.json export-ignore
 /vite.config.ts export-ignore
 /eslint.config.js export-ignore
 /package.json export-ignore
-/package.json export-ignore
+/bun.lockb export-ignore
+/bun.lock export-ignore
 /package-lock.json export-ignore
+
+# Ignore development configurations & metadata
+/.github/ export-ignore
+/.vscode/ export-ignore
+/.editorconfig export-ignore
+/phpstan.neon.dist export-ignore
+/phpcs.xml export-ignore
+/pint.json export-ignore
+/TODO.md export-ignore
+/AGENTS.md export-ignore

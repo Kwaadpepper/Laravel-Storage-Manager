@@ -62,8 +62,9 @@ export const usePickerStore = defineStore('picker', () => {
     const hasPicker = params.has('picker') && params.get('picker') !== '0' && params.get('picker') !== 'false';
     const senderParam = params.get('sender');
     const hasSender = senderParam !== null && senderParam.trim() !== '';
+    const hasCkFunc = params.has('CKEditorFuncNum');
 
-    isPickerMode.value = Boolean(target) && (hasPicker || hasSender);
+    isPickerMode.value = Boolean(target) && (hasPicker || hasSender || hasCkFunc);
     sender.value = hasSender ? senderParam!.trim() : 'storage-manager';
 
     const typeParam = params.get('type')?.toLowerCase();
@@ -118,6 +119,38 @@ export const usePickerStore = defineStore('picker', () => {
     };
 
     target.postMessage(payload, origin);
+
+    if (globalThis.opener) {
+      const openerObj = globalThis.opener as unknown as {
+        fmSetLink?: (url: string, file?: PickerFilePayload) => void;
+        CKEDITOR?: {
+          tools?: {
+            callFunction?: (funcNum: string, url: string) => void;
+          };
+        };
+      };
+
+      if (typeof openerObj.fmSetLink === 'function') {
+        try {
+          openerObj.fmSetLink(resolvedUrl, filePayload);
+        } catch {
+          // Cross-origin fallback
+        }
+      }
+
+      const currentSearch = (typeof globalThis !== 'undefined' && globalThis.location?.search)
+        ? globalThis.location.search
+        : '';
+      const params = new URLSearchParams(currentSearch);
+      const ckFuncNum = params.get('CKEditorFuncNum');
+      if (ckFuncNum && typeof openerObj.CKEDITOR?.tools?.callFunction === 'function') {
+        try {
+          openerObj.CKEDITOR.tools.callFunction(ckFuncNum, resolvedUrl);
+        } catch {
+          // Cross-origin fallback
+        }
+      }
+    }
 
     if (globalThis.opener && typeof globalThis.close === 'function') {
       globalThis.close();

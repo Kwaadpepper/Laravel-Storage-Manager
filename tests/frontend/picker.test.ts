@@ -398,6 +398,85 @@ describe('PickerStore', () => {
       );
     });
 
+    it('calls fmSetLink directly on window.opener if defined (alexusmai compatible)', () => {
+      const fmSetLinkMock = mock(() => {});
+      const openerWithFm = {
+        postMessage: mock(() => {}),
+        fmSetLink: fmSetLinkMock,
+      };
+
+      globalThis.opener = openerWithFm as unknown as Window;
+      globalThis.location = {
+        origin: 'http://localhost:8000',
+        search: '?picker=1',
+      } as unknown as Location;
+
+      const store = usePickerStore();
+      store.init();
+
+      const file: TreeNodeFile = {
+        path: '/images/hero.jpg',
+        name: 'hero.jpg',
+        size: 5000,
+        extension: 'jpg',
+        visibility: 'public',
+        publicUrl: '/storage/hero.jpg',
+      };
+
+      store.selectFile(file);
+
+      expect(fmSetLinkMock).toHaveBeenCalledTimes(1);
+      expect(fmSetLinkMock).toHaveBeenCalledWith('http://localhost:8000/storage/hero.jpg', {
+        url: 'http://localhost:8000/storage/hero.jpg',
+        name: 'hero.jpg',
+        path: '/images/hero.jpg',
+        size: 5000,
+        extension: 'jpg',
+        mimeType: null,
+      });
+
+      restoreGlobals();
+    });
+
+    it('calls CKEDITOR.tools.callFunction when CKEditorFuncNum is provided', () => {
+      const callFunctionMock = mock(() => {});
+      const openerWithCK = {
+        postMessage: mock(() => {}),
+        CKEDITOR: {
+          tools: {
+            callFunction: callFunctionMock,
+          },
+        },
+      };
+
+      globalThis.opener = openerWithCK as unknown as Window;
+      globalThis.location = {
+        origin: 'http://localhost:8000',
+        search: '?CKEditorFuncNum=2',
+      } as unknown as Location;
+
+      const store = usePickerStore();
+      store.init();
+
+      expect(store.isPickerMode).toBe(true);
+
+      const file: TreeNodeFile = {
+        path: '/images/ck.png',
+        name: 'ck.png',
+        size: 2000,
+        extension: 'png',
+        visibility: 'public',
+        publicUrl: '/storage/ck.png',
+      };
+
+      store.selectFile(file);
+
+      expect(callFunctionMock).toHaveBeenCalledTimes(1);
+      expect(callFunctionMock).toHaveBeenCalledWith('2', 'http://localhost:8000/storage/ck.png');
+
+      restoreGlobals();
+    });
+
     it('does nothing when file cannot be selected', () => {
       const closeMock = mock(() => {});
       globalThis.close = closeMock as unknown as typeof globalThis.close;
