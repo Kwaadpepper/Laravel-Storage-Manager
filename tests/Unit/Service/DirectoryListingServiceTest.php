@@ -10,7 +10,6 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Pagination\PageNumber;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Pagination\PageSize;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Pagination\Pagination;
 use Kwaadpepper\LaravelStorageManager\Service\DirectoryListingService;
-use SortDirection;
 
 describe('DirectoryListingService', function (): void {
     beforeEach(function (): void {
@@ -141,7 +140,7 @@ describe('DirectoryListingService', function (): void {
             '/',
             Pagination::ofPage(new PageNumber(1), new PageSize(10)),
             FileSortField::Size,
-            SortDirection::Descending
+            \SortDirection::Descending
         );
 
         // THEN

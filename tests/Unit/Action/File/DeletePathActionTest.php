@@ -170,4 +170,22 @@ describe('DeletePathAction', function (): void {
         expect($callback)->toThrow(OperationCancelledException::class, 'Directory cannot be deleted');
         expect(Storage::disk('local')->exists('locked_dir'))->toBeTrue();
     });
+
+    it('permanently deletes file directly when disk trash is false even if global trash is enabled', function (): void {
+        // GIVEN
+        Config::set('storage-manager.trash.enabled', true);
+        \App::forgetInstance(StorageManagerConfig::class);
+        Storage::disk('local')->put('skip_trash.txt', 'permanent');
+        $disk   = new Disk('local', 'local', trash: false);
+        $action = resolve(DeletePathAction::class);
+        $input  = new DeletePathInput($disk, new Path('/skip_trash.txt'));
+
+        // WHEN
+        $result = $action($input);
+
+        // THEN
+        expect($result)->toBeNull();
+        expect(Storage::disk('local')->exists('skip_trash.txt'))->toBeFalse();
+        expect(Storage::disk('local')->exists('.trash/files'))->toBeFalse();
+    });
 })->covers(DeletePathAction::class);

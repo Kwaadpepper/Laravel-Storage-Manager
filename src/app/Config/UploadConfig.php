@@ -30,7 +30,8 @@ final readonly class UploadConfig
         public string $tempPath,
         public DuplicatePolicy $duplicatePolicy,
         public bool $sanitizeFilenames,
-        public array $allowedExtensions
+        public array $allowedExtensions,
+        public ?int $maxFileSize = null,
     ) {
     }
 

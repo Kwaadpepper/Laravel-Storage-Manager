@@ -178,10 +178,10 @@ class UploadSessionService
         $disk->assertWritable();
 
         if ($this->config->upload->sanitizeFilenames) {
-            $fileName = $this->pathSanitizer->sanitizeFileName($fileName);
+            $fileName = $this->pathSanitizer->sanitizeFileName($fileName, true, $disk->filenamePolicy);
         }
 
-        $policy             = $requestedPolicy ?? $this->config->upload->duplicatePolicy;
+        $policy             = $requestedPolicy ?? $disk->duplicatePolicy ?? $this->config->upload->duplicatePolicy;
         $desiredDestination = Path::appendTo($destinationDir, $fileName);
 
         if (! $this->storageGateway->exists($disk, $desiredDestination)) {

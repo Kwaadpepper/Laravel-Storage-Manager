@@ -14,32 +14,26 @@ class StatsConfigFactory
      */
     public function build(array $config): StatsConfig
     {
-        $enabled = Arr::boolean($config, 'stats.enabled', true);
-
-        $statsCacheDuration = Arr::get($config, 'stats.cache_duration', 60);
-        $statsCacheDuration = is_int($statsCacheDuration) && $statsCacheDuration >= 0 ? $statsCacheDuration : 60;
+        $enabled                  = Arr::boolean($config, 'stats.enabled', true);
+        $statsCacheDuration       = Arr::integer($config, 'stats.cache_duration', 60);
+        $realtimeRemoteUsage      = Arr::boolean($config, 'stats.realtime_remote_usage', false);
+        $usageCacheDuration       = Arr::integer($config, 'stats.usage_cache_duration', 86400);
+        $scheduleUsageCalculation = Arr::boolean($config, 'stats.schedule_usage_calculation', true);
 
         $rawQuotas = Arr::array($config, 'stats.quotas', []);
         $quotas    = [];
         foreach ($rawQuotas as $diskName => $quota) {
-            if (is_string($diskName) && is_int($quota) && $quota > 0) {
-                $quotas[$diskName] = $quota;
+            if (is_string($diskName) && is_numeric($quota) && (int) $quota > 0) {
+                $quotas[$diskName] = (int) $quota;
             }
         }
 
-        $realtimeRemoteUsage = Arr::boolean($config, 'stats.realtime_remote_usage', false);
-
-        $usageCacheDuration = Arr::get($config, 'stats.usage_cache_duration', 86400);
-        $usageCacheDuration = is_int($usageCacheDuration) && $usageCacheDuration >= 0 ? $usageCacheDuration : 86400;
-
-        $scheduleUsageCalculation = Arr::boolean($config, 'stats.schedule_usage_calculation', true);
-
         return new StatsConfig(
             $enabled,
-            $statsCacheDuration,
+            $statsCacheDuration >= 0 ? $statsCacheDuration : 60,
             $quotas,
             $realtimeRemoteUsage,
-            $usageCacheDuration,
+            $usageCacheDuration >= 0 ? $usageCacheDuration : 86400,
             $scheduleUsageCalculation
         );
     }

@@ -1,15 +1,20 @@
 import { getApiClient } from '@ts/clients';
-import { diskStatsSchema } from '@ts/schemas';
+import { DiskConfig, diskStatsSchema } from '@ts/schemas';
 import { useConfigStore } from '@ts/stores/config-store';
 import { Disk, DiskStats } from '@ts/types';
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 export const useDiskStore = defineStore('disk', () => {
   const currentDisk = ref<Disk | null>(null);
   const stats = ref<DiskStats | null>(null);
   const isLoadingStats = ref<boolean>(false);
   const statsError = ref<string | null>(null);
+
+  const currentDiskConfig = computed<DiskConfig | undefined>(() => {
+    const configStore = useConfigStore();
+    return currentDisk.value ? configStore.getDiskConfig(currentDisk.value) : undefined;
+  });
 
   function setCurrentDisk(disk: Disk): void {
     currentDisk.value = disk;
@@ -77,6 +82,7 @@ export const useDiskStore = defineStore('disk', () => {
 
   return {
     currentDisk,
+    currentDiskConfig,
     stats,
     isLoadingStats,
     statsError,

@@ -1,6 +1,19 @@
 import { Disk } from '@ts/types';
 import * as z from 'zod/v4';
 
+export const diskConfigSchema = z.object({
+  name: z.string(),
+  driver: z.string().optional(),
+  readOnly: z.boolean().default(false),
+  supportsTrash: z.boolean().default(true),
+  allowedExtensions: z.array(z.string()).optional(),
+  maxFileSize: z.number().nullable().optional(),
+  filenamePolicy: z.enum(['strict', 'permissive']).default('strict'),
+  duplicatePolicy: z.enum(['overwrite', 'auto_rename', 'error']).optional(),
+});
+
+export type DiskConfig = z.infer<typeof diskConfigSchema>;
+
 export const appConfigSchema = z.object({
   cspNonce: z.string().nullable().optional(),
   locale: z.string().default('en'),
@@ -18,6 +31,7 @@ export const appConfigSchema = z.object({
     })
   ),
   disks: z.record(z.string(), z.string()).transform((disksMap) => Object.values(disksMap) as Disk[]),
+  disksConfig: z.record(z.string(), diskConfigSchema).optional().default({}),
   readOnlyDisks: z.array(z.string()).transform((arr) => arr as Disk[]),
   allowedExtensions: z.array(z.string()).default([]),
   chunkMinSize: z.number(),

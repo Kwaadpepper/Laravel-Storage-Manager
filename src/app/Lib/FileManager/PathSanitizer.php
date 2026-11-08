@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 
+use Kwaadpepper\LaravelStorageManager\Enum\FilenamePolicy;
 use Kwaadpepper\LaravelStorageManager\Exception\PathSanitizationException;
 
 /**
@@ -12,63 +13,64 @@ use Kwaadpepper\LaravelStorageManager\Exception\PathSanitizationException;
  */
 class PathSanitizer
 {
-    /** Chars forbidden by most file systems */
-    public const string ILLEGAL_CHARS = '/[<>:"\/\\\\|?*\x00-\x1F\x7F]/u';
-
     private const string WHITESPACE_REGEX = '/\s+/';
 
-    public function isValidName(mixed $name): bool
+    public function isValidName(mixed $name, FilenamePolicy $policy = FilenamePolicy::STRICT): bool
     {
         if (! is_string($name)) {
             return false;
         }
 
         $trimmed = trim($name);
-        if ($trimmed === '') {
+        if (
+            $trimmed === '' || in_array($trimmed, ['.', '..'], true) || strlen($name) > 255
+        ) {
             return false;
         }
 
-        if (in_array($trimmed, ['.', '..'], true)) {
-            return false;
+        return ! preg_match($policy->illegalCharsRegex(), $name);
+    }
+
+    public function isValidFileName(mixed $name, FilenamePolicy $policy = FilenamePolicy::STRICT): bool
+    {
+        return $this->isValidName($name, $policy);
+    }
+
+    public function isValidDirectoryName(mixed $name, FilenamePolicy $policy = FilenamePolicy::STRICT): bool
+    {
+        return $this->isValidName($name, $policy);
+    }
+
+    public function sanitizeDirectoryName(
+        string $directoryName,
+        bool $beautify = true,
+        FilenamePolicy $policy = FilenamePolicy::STRICT
+    ): string {
+        if ($policy === FilenamePolicy::STRICT) {
+            $directoryName = str_replace(':', '-', $directoryName);
         }
 
-        if (strlen($name) > 255) {
-            return false;
-        }
-
-        return ! preg_match(self::ILLEGAL_CHARS, $name);
-    }
-
-    public function isValidFileName(mixed $name): bool
-    {
-        return $this->isValidName($name);
-    }
-
-    public function isValidDirectoryName(mixed $name): bool
-    {
-        return $this->isValidName($name);
-    }
-
-    public function sanitizeDirectoryName(string $directoryName, bool $beautify = true): string
-    {
-        // Replace illegal characters with a single space instead of removing or using hyphens
-        $sanitized = preg_replace(self::ILLEGAL_CHARS, ' ', $directoryName)
+        $sanitized = preg_replace($policy->illegalCharsRegex(), ' ', $directoryName)
           ?? throw new PathSanitizationException('Failed to sanitize directory name.');
         $sanitized = preg_replace(self::WHITESPACE_REGEX, ' ', $sanitized)
           ?? throw new PathSanitizationException('Failed to normalize whitespace in directory name.');
-        // Normalize whitespace but preserve spaces
         $sanitized = trim($sanitized);
 
         return $beautify ? $this->beautify($sanitized) : $sanitized;
     }
 
-    public function sanitizeFileName(string $filename, bool $beautify = true): string
-    {
-        // Replace illegal characters with a space to avoid aggressive hyphenation
-        $filename = preg_replace(self::ILLEGAL_CHARS, ' ', $filename)
+    public function sanitizeFileName(
+        string $filename,
+        bool $beautify = true,
+        FilenamePolicy $policy = FilenamePolicy::STRICT
+    ): string {
+        if ($policy === FilenamePolicy::STRICT) {
+            $filename = str_replace(':', '-', $filename);
+        }
+
+        $filename = preg_replace($policy->illegalCharsRegex(), ' ', $filename)
           ?? throw new PathSanitizationException('Failed to sanitize file name.');
 
-        // Normalize whitespace and remove leading dots (hidden files) but preserve case
         $filename = trim(preg_replace(self::WHITESPACE_REGEX, ' ', $filename)
           ?? throw new PathSanitizationException('Failed to normalize whitespace in file name.'));
         $filename = ltrim($filename, '.');
@@ -77,21 +79,17 @@ class PathSanitizer
             $filename = $this->beautify($filename);
         }
 
-        // Handle the 255-byte limit (not characters)
         return $this->truncateToBytes($filename, 255);
     }
 
     private function beautify(string $filename): string
     {
-        // Reduce multiple spaces to a single space but preserve case
         $filename = preg_replace(self::WHITESPACE_REGEX, ' ', $filename)
           ?? throw new PathSanitizationException('Failed to normalize whitespace in file name.');
 
-        // Convert sequences like '._.' or '-.-' around dots to a single dot where appropriate
         $filename = preg_replace(['/[-_]*\.[-_]*/', '/\.{2,}/'], '.', $filename)
           ?? throw new PathSanitizationException('Failed to beautify file name.');
 
-        // Trim surrounding spaces and any trailing dots
         return trim($filename, ' .-_');
     }
 

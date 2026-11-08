@@ -454,4 +454,57 @@ describe('StorageManagerConfig', function (): void {
         expect($action)
             ->toThrow(\UnexpectedValueException::class, "Invalid trash folder '.trash\\sub'. Trash folder cannot contain '..' or '\\'.");
     });
+
+    it('parses disks.configs and provides getDiskConfig per disk', function (): void {
+        // GIVEN
+        $config = StorageManagerConfig::fromArray(
+            [
+                'disks' => [
+                    'available' => ['s3_public', 'local'],
+                    'configs'   => [
+                        's3_public' => [
+                            'root'               => '/public-assets',
+                            'allowed_extensions' => ['jpg', 'png'],
+                            'trash'              => false,
+                            'max_file_size'      => 100 * 1024 * 1024,
+                            'filename_policy'    => 'permissive',
+                            'read_only'          => true,
+                            'quota'              => 10 * 1024 * 1024,
+                            'duplicate_policy'   => 'overwrite',
+                        ],
+                    ],
+                ],
+            ],
+            [],
+            [
+                's3_public' => ['driver' => 's3'],
+                'local'     => ['driver' => 'local'],
+            ]
+        );
+
+        // WHEN
+        $s3Disk    = $config->disks->getDisk('s3_public');
+        $localDisk = $config->disks->getDisk('local');
+        $disksMap  = $config->disks->getDisksMap();
+
+        // THEN
+        expect($s3Disk)->not->toBeNull();
+        expect($s3Disk->name)->toBe('s3_public');
+        expect($s3Disk->root)->toBe('/public-assets');
+        expect($s3Disk->allowedExtensions)->toBe(['jpg', 'png']);
+        expect($s3Disk->trash)->toBeFalse();
+        expect($s3Disk->maxFileSize)->toBe(100 * 1024 * 1024);
+        expect($s3Disk->filenamePolicy->value)->toBe('permissive');
+        expect($s3Disk->readOnly)->toBeTrue();
+        expect($s3Disk->quota)->toBe(10 * 1024 * 1024);
+        expect($s3Disk->duplicatePolicy?->value)->toBe('overwrite');
+
+        expect($localDisk)->not->toBeNull();
+        expect($localDisk->name)->toBe('local');
+        expect($localDisk->trash)->toBeTrue();
+        expect($localDisk->filenamePolicy->value)->toBe('strict');
+
+        expect($disksMap['s3_public']->readOnly)->toBeTrue();
+        expect($disksMap['local']->readOnly)->toBeFalse();
+    });
 })->covers(StorageManagerConfig::class);

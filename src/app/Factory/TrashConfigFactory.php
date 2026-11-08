@@ -14,14 +14,11 @@ class TrashConfigFactory
      */
     public function build(array $config): TrashConfig
     {
-        $enabled = Arr::boolean($config, 'trash.enabled', true);
+        $enabled       = Arr::boolean($config, 'trash.enabled', true);
+        $folder        = Arr::string($config, 'trash.folder', '.trash');
+        $folder        = $folder !== '' ? $folder : '.trash';
+        $retentionDays = Arr::integer($config, 'trash.retention_days', 30);
 
-        $folder = Arr::get($config, 'trash.folder', '.trash');
-        $folder = is_string($folder) && $folder !== '' ? $folder : '.trash';
-
-        $retentionDays = Arr::get($config, 'trash.retention_days', 30);
-        $retentionDays = is_int($retentionDays) && $retentionDays >= 0 ? $retentionDays : 30;
-
-        return new TrashConfig($enabled, $folder, $retentionDays);
+        return new TrashConfig($enabled, $folder, $retentionDays >= 0 ? $retentionDays : 30);
     }
 }

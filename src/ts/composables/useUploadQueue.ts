@@ -49,11 +49,22 @@ export function useUploadQueue() {
     disk: string,
     duplicatePolicy?: 'overwrite' | 'auto_rename' | 'error'
   ): void {
-    const allowed = configStore.allowedExtensions.map((ext) =>
+    const targetDiskConfig = configStore.getDiskConfig(disk);
+    const diskAllowed = targetDiskConfig?.allowedExtensions ?? configStore.allowedExtensions;
+    const allowed = diskAllowed.map((ext) =>
       ext.toLowerCase().replace(/^\./, '').trim()
     );
+    const maxFileSize = targetDiskConfig?.maxFileSize;
 
     files.forEach((file) => {
+      if (maxFileSize && maxFileSize > 0 && file.size > maxFileSize) {
+        toastStore.pushToast({
+          message: `File "${file.name}" exceeds maximum allowed size for disk "${disk}".`,
+          type: 'error',
+        });
+        return;
+      }
+
       const ext = file.name.includes('.')
         ? (file.name.split('.').pop()?.toLowerCase().trim() ?? '')
         : '';
@@ -123,6 +134,7 @@ export function useUploadQueue() {
           fileName: item.fileName,
           totalSize: item.totalSize,
           totalChunks: Math.ceil(item.totalSize / adaptiveChunkSize),
+          disk: item.disk,
         },
         uploadInitSchema
       );

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Service;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Support\Arr;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Event\DiskSelected;
 use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskStatsDto;
@@ -37,18 +36,12 @@ class DiskService
      */
     public function getDiskNamesList(): array
     {
-        return array_values(array_map(
-            fn (Disk $disk): string => $disk->name,
-            $this->getConfiguredDisks()
-        ));
+        return array_keys($this->getConfiguredDisks());
     }
 
     public function getDisk(string $name): Disk
     {
-        return Arr::first(
-            $this->getConfiguredDisks(),
-            fn (Disk $disk): bool => $disk->name === $name
-        ) ?? throw new \InvalidArgumentException(
+        return $this->config->disks->getDisk($name) ?? throw new \InvalidArgumentException(
             "Disk with name '{$name}' not found."
         );
     }
@@ -128,7 +121,7 @@ class DiskService
 
     private function computeDiskStats(Disk $disk): DiskStatsDto
     {
-        $quota = $this->config->stats->getDiskQuota($disk->name);
+        $quota = $disk->quota ?? $this->config->stats->getDiskQuota($disk->name);
 
         if ($quota !== null) {
             $cacheKey = "sm_disk_usage_{$disk->name}";

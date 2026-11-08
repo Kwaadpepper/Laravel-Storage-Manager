@@ -152,6 +152,21 @@ describe('FileTransferService', function (): void {
             );
         });
 
+        it('sanitizes colon to hyphen when destination disk policy is strict', function (): void {
+            // GIVEN
+            Storage::disk('local')->put('backup:2026.sql', 'data');
+            Storage::disk('local')->makeDirectory('target');
+            $disk    = new Disk('local', 'local');
+            $service = resolve(FileTransferService::class);
+
+            // WHEN
+            $result = $service->copy($disk, new Path('/backup:2026.sql'), new Path('/target'));
+
+            // THEN
+            expect($result->value)->toBe('/target/backup-2026.sql');
+            expect(Storage::disk('local')->exists('target/backup-2026.sql'))->toBeTrue();
+        });
+
         it('copies a directory and dispatches DirectoryCopied', function (): void {
             // GIVEN
             Event::fake([DirectoryCopied::class]);

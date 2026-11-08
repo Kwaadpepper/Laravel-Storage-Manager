@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Kwaadpepper\LaravelStorageManager\Enum\FilenamePolicy;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
 
 describe('PathSanitizer', function (): void {
@@ -112,5 +113,35 @@ describe('PathSanitizer', function (): void {
         // THEN
         expect($valid)->toBeTrue();
         expect($invalid)->toBeFalse();
+    });
+
+    it('supports permissive policy allowing colon in file and directory names', function (): void {
+        // GIVEN
+        $sanitizer = new PathSanitizer();
+
+        // WHEN
+        $validStrictFile      = $sanitizer->isValidFileName('backup:2026.sql', FilenamePolicy::STRICT);
+        $validPermissiveFile  = $sanitizer->isValidFileName('backup:2026.sql', FilenamePolicy::PERMISSIVE);
+        $validStrictDir       = $sanitizer->isValidDirectoryName('dir:name', FilenamePolicy::STRICT);
+        $validPermissiveDir   = $sanitizer->isValidDirectoryName('dir:name', FilenamePolicy::PERMISSIVE);
+
+        // THEN
+        expect($validStrictFile)->toBeFalse();
+        expect($validPermissiveFile)->toBeTrue();
+        expect($validStrictDir)->toBeFalse();
+        expect($validPermissiveDir)->toBeTrue();
+    });
+
+    it('sanitizes colon to hyphen in strict mode but preserves colon in permissive mode', function (): void {
+        // GIVEN
+        $sanitizer = new PathSanitizer();
+
+        // WHEN
+        $strictSanitized     = $sanitizer->sanitizeFileName('backup:2026.sql', true, FilenamePolicy::STRICT);
+        $permissiveSanitized = $sanitizer->sanitizeFileName('backup:2026.sql', true, FilenamePolicy::PERMISSIVE);
+
+        // THEN
+        expect($strictSanitized)->toBe('backup-2026.sql');
+        expect($permissiveSanitized)->toBe('backup:2026.sql');
     });
 })->covers(PathSanitizer::class);

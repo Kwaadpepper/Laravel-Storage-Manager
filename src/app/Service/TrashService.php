@@ -40,9 +40,14 @@ class TrashService
     ) {
     }
 
+    public function isTrashEnabled(Disk $disk): bool
+    {
+        return $this->config->trash->enabled && $disk->trash;
+    }
+
     public function moveToTrash(Disk $disk, Path $path): TrashedItem
     {
-        if (! $this->config->trash->enabled) {
+        if (! $this->isTrashEnabled($disk)) {
             $this->logger->warning('Rejected moveToTrash: trash is disabled', ['disk' => $disk->name, 'path' => $path->value]);
             FileOperationException::throwWith(FileOperationError::TRASH_DISABLED);
         }
@@ -57,7 +62,7 @@ class TrashService
 
         $isDir = $this->storageGateway->resolveIsDirectory($disk, $path);
 
-        $this->assertNotInTrashFolder($normalizedPath);
+        $this->assertNotInTrashFolder($normalizedPath, $disk);
 
         $size      = $this->calculateItemSize($disk, $normalizedPath, $isDir);
         $trashId   = (string) Str::orderedUuid();
@@ -108,7 +113,11 @@ class TrashService
      */
     public function list(Disk $disk): array
     {
-        $metaDir = $this->getTrashMetaDir();
+        if (! $this->isTrashEnabled($disk)) {
+            return [];
+        }
+
+        $metaDir = $this->getTrashMetaDir($disk);
         $this->logger->debug('Scanning trash items', ['disk' => $disk->name, 'metaDir' => $metaDir]);
 
         if (! $this->storageGateway->exists($disk, $this->toPath($metaDir))) {
@@ -140,7 +149,7 @@ class TrashService
             }
 
             $trashId = basename($metaFile, '.json');
-            $lockRel = $this->getTrashLockPath($trashId);
+            $lockRel = $this->getTrashLockPath($trashId, $disk);
             if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
                 $this->logger->debug('Trash item is locked', ['disk' => $disk->name, 'trashId' => $trashId]);
                 $lockContent    = $this->storageGateway->get($disk, $lockRel);
@@ -168,7 +177,7 @@ class TrashService
     public function getItem(Disk $disk, string $trashId): ?TrashedItem
     {
         $this->logger->debug('Getting trash item', ['disk' => $disk->name, 'trashId' => $trashId]);
-        $metaPath = $this->getTrashMetaDir() . '/' . $trashId . '.json';
+        $metaPath = $this->getTrashMetaDir($disk) . '/' . $trashId . '.json';
 
         if (! $this->storageGateway->exists($disk, $this->toPath($metaPath))) {
             return null;
@@ -189,7 +198,7 @@ class TrashService
             return null;
         }
 
-        $lockRel = $this->getTrashLockPath($trashId);
+        $lockRel = $this->getTrashLockPath($trashId, $disk);
         if ($this->storageGateway->exists($disk, $this->toPath($lockRel))) {
             $this->logger->debug('Trash item is locked', ['disk' => $disk->name, 'trashId' => $trashId]);
             $lockContent    = $this->storageGateway->get($disk, $lockRel);
@@ -204,10 +213,15 @@ class TrashService
 
     public function restore(Disk $disk, string $trashId): Path
     {
+        if (! $this->isTrashEnabled($disk)) {
+            $this->logger->warning('Cannot restore: trash is disabled for disk', ['disk' => $disk->name]);
+            FileOperationException::throwWith(FileOperationError::TRASH_DISABLED);
+        }
+
         $disk->assertWritable();
         $this->logger->info('Starting restore for trash item', ['disk' => $disk->name, 'trashId' => $trashId]);
 
-        $lockRel = $this->getTrashLockPath($trashId);
+        $lockRel = $this->getTrashLockPath($trashId, $disk);
 
         if ($this->isItemLocked($disk, $trashId)) {
             $this->logger->warning('Cannot restore: trash item is locked', ['disk' => $disk->name, 'trashId' => $trashId]);
@@ -220,7 +234,7 @@ class TrashService
             FileOperationException::throwWith(FileOperationError::TRASH_ITEM_NOT_FOUND);
         }
 
-        $storedRel = $this->getTrashFilesDir() . '/' . $trashId . '_' . $item->name;
+        $storedRel = $this->getTrashFilesDir($disk) . '/' . $trashId . '_' . $item->name;
         $isDir     = $item->type === 'directory';
 
         $exists = $this->storageGateway->exists($disk, $this->toPath($storedRel));
@@ -265,7 +279,7 @@ class TrashService
 
             $this->storageGateway->move($disk, $storedRel, $targetPath->value, $isDir);
 
-            $metaRel = $this->getTrashMetaDir() . '/' . $trashId . '.json';
+            $metaRel = $this->getTrashMetaDir($disk) . '/' . $trashId . '.json';
             $this->storageGateway->delete($disk, $metaRel);
 
             $this->logger->info('Trash item restored successfully', [
@@ -289,10 +303,15 @@ class TrashService
 
     public function purge(Disk $disk, string $trashId): void
     {
+        if (! $this->isTrashEnabled($disk)) {
+            $this->logger->warning('Cannot purge: trash is disabled for disk', ['disk' => $disk->name]);
+            FileOperationException::throwWith(FileOperationError::TRASH_DISABLED);
+        }
+
         $disk->assertWritable();
         $this->logger->info('Starting purge for trash item', ['disk' => $disk->name, 'trashId' => $trashId]);
 
-        $lockRel = $this->getTrashLockPath($trashId);
+        $lockRel = $this->getTrashLockPath($trashId, $disk);
 
         if ($this->isItemLocked($disk, $trashId)) {
             $this->logger->warning('Cannot purge: trash item is locked', ['disk' => $disk->name, 'trashId' => $trashId]);
@@ -309,7 +328,7 @@ class TrashService
         $this->storageGateway->put($disk, $lockRel, 'purging');
 
         try {
-            $storedRel = $this->getTrashFilesDir() . '/' . $trashId . '_' . $item->name;
+            $storedRel = $this->getTrashFilesDir($disk) . '/' . $trashId . '_' . $item->name;
             if ($item->type === 'directory') {
                 if ($this->storageGateway->isDirectory($disk, $this->toPath($storedRel))) {
                     $this->storageGateway->deleteDirectory($disk, $storedRel);
@@ -320,7 +339,7 @@ class TrashService
                 }
             }
 
-            $metaRel = $this->getTrashMetaDir() . '/' . $trashId . '.json';
+            $metaRel = $this->getTrashMetaDir($disk) . '/' . $trashId . '.json';
             if ($this->storageGateway->exists($disk, $this->toPath($metaRel))) {
                 $this->storageGateway->delete($disk, $metaRel);
             }
@@ -335,10 +354,15 @@ class TrashService
 
     public function emptyTrash(Disk $disk): int
     {
+        if (! $this->isTrashEnabled($disk)) {
+            $this->logger->warning('Cannot emptyTrash: trash is disabled for disk', ['disk' => $disk->name]);
+            FileOperationException::throwWith(FileOperationError::TRASH_DISABLED);
+        }
+
         $disk->assertWritable();
         $this->logger->info('Starting emptyTrash for disk', ['disk' => $disk->name]);
 
-        $metaDir = $this->getTrashMetaDir();
+        $metaDir = $this->getTrashMetaDir($disk);
 
         if ($this->storageGateway->exists($disk, $this->toPath($metaDir))) {
             /** @var list<string> $metaFiles */
@@ -354,7 +378,7 @@ class TrashService
         $items = $this->list($disk);
         $count = count($items);
 
-        $filesDir = $this->getTrashFilesDir();
+        $filesDir = $this->getTrashFilesDir($disk);
 
         $this->eventDispatcher->dispatch(
             TrashEmptying::class,
@@ -381,29 +405,33 @@ class TrashService
         return $count;
     }
 
-    private function getTrashLockPath(string $trashId): string
+    private function getTrashLockPath(string $trashId, ?Disk $disk = null): string
     {
-        return $this->getTrashMetaDir() . '/' . $trashId . '.lock';
+        return $this->getTrashMetaDir($disk) . '/' . $trashId . '.lock';
     }
 
     private function isItemLocked(Disk $disk, string $trashId): bool
     {
-        return $this->storageGateway->exists($disk, $this->toPath($this->getTrashLockPath($trashId)));
+        return $this->storageGateway->exists($disk, $this->toPath($this->getTrashLockPath($trashId, $disk)));
     }
 
     public function pruneExpired(?Disk $disk = null, ?int $retentionDays = null): int
     {
-        $days = $retentionDays ?? $this->config->trash->retentionDays;
-        if ($days <= 0) {
-            return 0;
-        }
-
-        $cutoff = CarbonImmutable::now()->subDays($days);
         $disks  = $disk !== null ? [$disk] : array_values($this->config->disks->getDisksMap());
         $purged = 0;
 
         foreach ($disks as $d) {
-            $items = $this->list($d);
+            if (! $this->isTrashEnabled($d)) {
+                continue;
+            }
+
+            $days = $retentionDays ?? $d->trashRetentionDays;
+            if ($days <= 0) {
+                continue;
+            }
+
+            $cutoff = CarbonImmutable::now()->subDays($days);
+            $items  = $this->list($d);
             foreach ($items as $item) {
                 if ($item->deletedAt->lessThan($cutoff)) {
                     $this->purge($d, $item->trashId);
@@ -415,24 +443,28 @@ class TrashService
         return $purged;
     }
 
-    public function getTrashBaseFolder(): string
+    public function getTrashBaseFolder(?Disk $disk = null): string
     {
-        return '/' . trim($this->config->trash->folder, '/');
+        $folder = $disk !== null
+            ? $disk->trashFolder
+            : $this->config->trash->folder;
+
+        return '/' . trim($folder, '/');
     }
 
-    public function getTrashFilesDir(): string
+    public function getTrashFilesDir(?Disk $disk = null): string
     {
-        return trim($this->getTrashBaseFolder() . '/files', '/');
+        return trim($this->getTrashBaseFolder($disk) . '/files', '/');
     }
 
-    public function getTrashMetaDir(): string
+    public function getTrashMetaDir(?Disk $disk = null): string
     {
-        return trim($this->getTrashBaseFolder() . '/meta', '/');
+        return trim($this->getTrashBaseFolder($disk) . '/meta', '/');
     }
 
-    private function assertNotInTrashFolder(string $normalizedPath): void
+    private function assertNotInTrashFolder(string $normalizedPath, ?Disk $disk = null): void
     {
-        $trashFolder = $this->getTrashBaseFolder();
+        $trashFolder = $this->getTrashBaseFolder($disk);
         if ($normalizedPath === $trashFolder || str_starts_with($normalizedPath, $trashFolder . '/')) {
             FileOperationException::throwWith(FileOperationError::INVALID_PATH);
         }
@@ -443,8 +475,8 @@ class TrashService
      */
     private function ensureTrashDirectoriesExist(Disk $disk): array
     {
-        $filesDir = $this->getTrashFilesDir();
-        $metaDir  = $this->getTrashMetaDir();
+        $filesDir = $this->getTrashFilesDir($disk);
+        $metaDir  = $this->getTrashMetaDir($disk);
 
         if (! $this->storageGateway->exists($disk, $this->toPath($filesDir))) {
             $this->storageGateway->makeDirectory($disk, $filesDir);

@@ -57,7 +57,7 @@ final readonly class DeletePathAction implements Action
             'force' => $input->force,
         ]);
 
-        if ($this->config->trash->enabled && ! $input->force) {
+        if ($this->config->trash->enabled && $input->disk->trash && ! $input->force) {
             return $this->trashService->moveToTrash($input->disk, $input->path);
         }
 

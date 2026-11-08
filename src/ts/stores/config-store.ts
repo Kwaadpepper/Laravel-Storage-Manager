@@ -1,4 +1,4 @@
-import { AppConfig } from '@ts/schemas';
+import { AppConfig, DiskConfig } from '@ts/schemas';
 import { Disk } from '@ts/types';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
@@ -28,6 +28,7 @@ export const useConfigStore = defineStore('config', () => {
   const appDescription = ref('');
   const appAuthors = ref<AppAuthor[]>([]);
   const disks = ref<Disk[]>([]);
+  const disksConfig = ref<Record<string, DiskConfig>>({});
   const readOnlyDisks = ref<Disk[]>([]);
   const allowedExtensions = ref<string[]>([]);
   const routes = ref<RoutesConfig>({
@@ -58,6 +59,7 @@ export const useConfigStore = defineStore('config', () => {
     appDescription.value = config.appDescription;
     appAuthors.value = config.appAuthors;
     disks.value = config.disks;
+    disksConfig.value = config.disksConfig ?? {};
     readOnlyDisks.value = config.readOnlyDisks;
     allowedExtensions.value = config.allowedExtensions ?? [];
     routes.value = config.routes;
@@ -69,6 +71,10 @@ export const useConfigStore = defineStore('config', () => {
     supportsThumbnails.value = config.supportsThumbnails ?? true;
     supportsDiskStats.value = config.supportsDiskStats ?? true;
     supportsTrash.value = config.supportsTrash ?? true;
+  }
+
+  function getDiskConfig(disk: string): DiskConfig | undefined {
+    return disksConfig.value[disk];
   }
 
   return {
@@ -83,6 +89,7 @@ export const useConfigStore = defineStore('config', () => {
     appDescription,
     appAuthors,
     disks,
+    disksConfig,
     readOnlyDisks,
     allowedExtensions,
     routes,
@@ -95,6 +102,7 @@ export const useConfigStore = defineStore('config', () => {
     supportsDiskStats,
     supportsTrash,
     initialize,
+    getDiskConfig,
   };
 });
 

@@ -110,6 +110,21 @@ describe('TrashService', function (): void {
         expect($action)->toThrow(FileOperationException::class);
     });
 
+    it('throws when trash is disabled on disk', function (): void {
+        // GIVEN
+        $storage = Storage::disk('local');
+        $storage->put('test.txt', 'abc');
+        $trashService = resolve(TrashService::class);
+        assert($trashService instanceof TrashService);
+        $disk = new Disk('local', 'local', trash: false);
+
+        // WHEN
+        $action = fn (): mixed => $trashService->moveToTrash($disk, new Path('/test.txt'));
+
+        // THEN
+        expect($action)->toThrow(FileOperationException::class);
+    });
+
     it('throws when trying to trash root path or inside trash folder', function (): void {
         // GIVEN
         $trashService = resolve(TrashService::class);

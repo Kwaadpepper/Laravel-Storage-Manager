@@ -1,6 +1,6 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import { useFileManager, useEventQueue, useTrash, useNavigation } from '@ts/composables';
-import { ModalState, useConfigStore, useFileManagerStore, useToastStore, useUiStore } from '@ts/stores';
+import { ModalState, useConfigStore, useDiskStore, useFileManagerStore, useToastStore, useUiStore } from '@ts/stores';
 import type { Path } from '@ts/types';
 
 export interface DeleteViewModel {
@@ -21,10 +21,13 @@ export function useDeleteViewModel(): DeleteViewModel {
   const { refreshCurrentPath } = useNavigation();
   const uiStore = useUiStore();
   const configStore = useConfigStore();
+  const diskStore = useDiskStore();
   const fileManagerStore = useFileManagerStore();
 
   const permanentDelete = ref(false);
-  const supportsTrash = computed(() => configStore.supportsTrash);
+  const supportsTrash = computed(
+    () => configStore.supportsTrash && (diskStore.currentDiskConfig?.supportsTrash ?? true)
+  );
 
   const selectedPaths = computed(() => Object.keys(fileManagerStore.selectedNodes) as Path[]);
   const itemCount = computed(() => selectedPaths.value.length);
@@ -42,7 +45,7 @@ export function useDeleteViewModel(): DeleteViewModel {
   function submit(): void {
     if (itemCount.value === 0) return;
 
-    const force = permanentDelete.value || !configStore.supportsTrash;
+    const force = permanentDelete.value || !supportsTrash.value;
     const itemName = singleItemName.value;
     const count = itemCount.value;
     const trashedIds: string[] = [];

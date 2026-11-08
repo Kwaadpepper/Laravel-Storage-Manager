@@ -40,6 +40,7 @@ readonly class FileTransferService
         private StorageManagerConfig $config,
         private EventDispatcher $eventDispatcher,
         private LoggerInterface $logger,
+        private PathSanitizer $pathSanitizer,
     ) {
     }
 
@@ -114,7 +115,33 @@ readonly class FileTransferService
         $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
         $sourceIsDir      = $this->storageGateway->resolveIsDirectory($disk, $source);
 
-        $basename    = basename($normalizedSource);
+        $basename = basename($normalizedSource);
+        $policy   = $disk->filenamePolicy;
+
+        if ($sourceIsDir) {
+            if (! $this->pathSanitizer->isValidDirectoryName($basename, $policy)) {
+                $sanitized = $this->pathSanitizer->sanitizeDirectoryName($basename, true, $policy);
+                $this->logger->warning('Directory name was sanitized to conform with target disk filename policy', [
+                    'disk'      => $disk->name,
+                    'original'  => $basename,
+                    'sanitized' => $sanitized,
+                    'policy'    => $policy->value,
+                ]);
+                $basename = $sanitized;
+            }
+        } else {
+            if (! $this->pathSanitizer->isValidFileName($basename, $policy)) {
+                $sanitized = $this->pathSanitizer->sanitizeFileName($basename, true, $policy);
+                $this->logger->warning('File name was sanitized to conform with target disk filename policy', [
+                    'disk'      => $disk->name,
+                    'original'  => $basename,
+                    'sanitized' => $sanitized,
+                    'policy'    => $policy->value,
+                ]);
+                $basename = $sanitized;
+            }
+        }
+
         $desired     = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
         $destination = $this->pathConflictResolver->resolveAvailablePath($disk, $desired, '%s (copy%s)%s');
 
@@ -165,7 +192,33 @@ readonly class FileTransferService
         $normalizedSource = $this->pathNormalizer->normalizePath($source->value);
         $sourceIsDir      = $this->storageGateway->resolveIsDirectory($disk, $source);
 
-        $basename    = basename($normalizedSource);
+        $basename = basename($normalizedSource);
+        $policy   = $disk->filenamePolicy;
+
+        if ($sourceIsDir) {
+            if (! $this->pathSanitizer->isValidDirectoryName($basename, $policy)) {
+                $sanitized = $this->pathSanitizer->sanitizeDirectoryName($basename, true, $policy);
+                $this->logger->warning('Directory name was sanitized to conform with target disk filename policy', [
+                    'disk'      => $disk->name,
+                    'original'  => $basename,
+                    'sanitized' => $sanitized,
+                    'policy'    => $policy->value,
+                ]);
+                $basename = $sanitized;
+            }
+        } else {
+            if (! $this->pathSanitizer->isValidFileName($basename, $policy)) {
+                $sanitized = $this->pathSanitizer->sanitizeFileName($basename, true, $policy);
+                $this->logger->warning('File name was sanitized to conform with target disk filename policy', [
+                    'disk'      => $disk->name,
+                    'original'  => $basename,
+                    'sanitized' => $sanitized,
+                    'policy'    => $policy->value,
+                ]);
+                $basename = $sanitized;
+            }
+        }
+
         $desired     = Path::appendTo($destinationDir, $this->pathNormalizer->normalizePath($basename));
         $destination = $this->pathConflictResolver->resolveAvailablePath($disk, $desired, '%s (copy%s)%s');
 
@@ -266,7 +319,7 @@ readonly class FileTransferService
         $oldExt = strtolower(pathinfo($source->value, PATHINFO_EXTENSION));
         $newExt = strtolower(pathinfo($destination->value, PATHINFO_EXTENSION));
 
-        if (! $this->config->upload->isExtensionAllowed($newExt)) {
+        if (! $disk->isExtensionAllowed($newExt, $this->config->upload)) {
             $this->logger->warning('Rejected validateFileRenameTarget: forbidden extension', [
                 'disk'        => $disk->name,
                 'source'      => $source->value,

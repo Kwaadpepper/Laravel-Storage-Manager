@@ -17,11 +17,13 @@ final readonly class DisksConfig
     /**
      * @param  list<string>  $available
      * @param  array<string, array<string, scalar|null>>  $filesystemsDisks
+     * @param  array<string, Disk>  $disks
      */
     public function __construct(
         public array $available,
         public ?string $default,
         array $filesystemsDisks = [],
+        public array $disks = [],
     ) {
         $validated = [];
         foreach ($filesystemsDisks as $diskName => $options) {
@@ -75,24 +77,18 @@ final readonly class DisksConfig
 
     public function getDefaultDisk(): ?Disk
     {
-        $disksConfig = $this->filesystemsDisks;
-
-        /** @var int|string|null $fallbackDefaultDiskName */
-        $fallbackDefaultDiskName = array_key_first($disksConfig);
-
-        $defaultDiskName = $this->default ?? (is_string($fallbackDefaultDiskName) ? $fallbackDefaultDiskName : null);
+        $defaultDiskName = $this->default ?? array_key_first($this->disks);
 
         if ($defaultDiskName === null || empty(mb_trim($defaultDiskName))) {
             return null;
         }
 
-        $disksMap = $this->getDisksMap();
+        return $this->disks[$defaultDiskName] ?? array_values($this->disks)[0] ?? null;
+    }
 
-        if (isset($disksMap[$defaultDiskName])) {
-            return $disksMap[$defaultDiskName];
-        }
-
-        return array_values($disksMap)[0] ?? null;
+    public function getDisk(string $diskName): ?Disk
+    {
+        return $this->disks[$diskName] ?? null;
     }
 
     /**
@@ -100,28 +96,6 @@ final readonly class DisksConfig
      */
     public function getDisksMap(): array
     {
-        $fsConfig = $this->filesystemsDisks;
-
-        return collect($this->available)
-            ->filter(fn (string $diskName): bool => Arr::has($fsConfig, $diskName))
-            ->mapWithKeys(
-                function (string $diskName) use ($fsConfig): array {
-                    $rawDriver      = Arr::get($fsConfig, "{$diskName}.driver");
-                    $driver         = is_string($rawDriver) ? $rawDriver : '';
-                    $resolvedDriver = $this->resolveDriver($diskName, $driver);
-
-                    return [
-                        $diskName => new Disk(
-                            driver: $resolvedDriver,
-                            name: $diskName,
-                            throw: Arr::boolean($fsConfig, "{$diskName}.throw", false),
-                            report: Arr::boolean($fsConfig, "{$diskName}.report", false),
-                            readOnly: Arr::boolean($fsConfig, "{$diskName}.read-only", false),
-                        ),
-                    ];
-                }
-            )
-            ->toBase()
-            ->all();
+        return $this->disks;
     }
 }

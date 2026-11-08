@@ -6,10 +6,16 @@ namespace Kwaadpepper\LaravelStorageManager\Rule;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Lang;
+use Kwaadpepper\LaravelStorageManager\Enum\FilenamePolicy;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
 
 class IsValidDirectoryName implements ValidationRule
 {
+    public function __construct(
+        private ?FilenamePolicy $policy = null
+    ) {
+    }
+
     /**
      * Run the validation rule.
      *
@@ -18,8 +24,9 @@ class IsValidDirectoryName implements ValidationRule
     public function validate(string $attribute, mixed $value, \Closure $fail): void
     {
         $sanitizer = resolve(PathSanitizer::class);
+        $policy    = $this->policy ?? FilenamePolicy::STRICT;
 
-        if (! $sanitizer->isValidDirectoryName($value)) {
+        if (! $sanitizer->isValidDirectoryName($value, $policy)) {
             $fail((string) Lang::get('storage-manager::storage-manager.validation.invalid_directory_name'));
         }
     }

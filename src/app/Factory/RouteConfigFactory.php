@@ -19,7 +19,14 @@ class RouteConfigFactory
         $rawPrefix = Arr::get($config, 'route.prefix', self::DEFAULT_PREFIX);
         $prefix    = is_string($rawPrefix) && trim($rawPrefix) !== '' ? $rawPrefix : self::DEFAULT_PREFIX;
 
-        $rawMiddleware = Arr::array($config, 'route.middleware', []);
+        $rawMiddleware = Arr::get($config, 'route.middleware', []);
+        if (is_string($rawMiddleware)) {
+            $rawMiddleware = explode(',', $rawMiddleware);
+        }
+        if (! is_array($rawMiddleware)) {
+            $rawMiddleware = [];
+        }
+
         /** @var list<string> $routeMiddleware */
         $routeMiddleware = array_values(array_filter(
             $rawMiddleware,

@@ -11,6 +11,7 @@ use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -116,12 +117,51 @@ class StorageManagerServiceProvider extends ServiceProvider
     {
         $this->registerTranslations();
         $this->registerConfig();
+        $this->registerScopedDisks();
         $this->registerAliases();
         $this->registerDependenciesInjection();
         $this->registerViewSharedData();
     }
 
-    private function registerDependenciesInjection(): void
+    private function registerScopedDisks(): void
+    {
+        $rawConfigs = Arr::wrap(Config::get('storage-manager.disks.configs', []));
+        if (empty($rawConfigs)) {
+            return;
+        }
+
+        $filesystemManager = $this->app->bound('filesystem') ? $this->app->make('filesystem') : null;
+
+        foreach ($rawConfigs as $diskName => $opts) {
+            if (! is_string($diskName) || ! is_array($opts)) {
+                continue;
+            }
+
+            $root = Arr::get($opts, 'root');
+            if (! is_string($root) || mb_trim($root) === '' || mb_trim($root) === '/') {
+                continue;
+            }
+
+            $prefix       = ltrim(mb_trim($root), '/');
+            $unscopedName = '__sm_unscoped_' . $diskName;
+            $origFsDisk   = Config::get("filesystems.disks.{$diskName}");
+
+            if (is_array($origFsDisk) && (! isset($origFsDisk['driver']) || $origFsDisk['driver'] !== 'scoped')) {
+                Config::set("filesystems.disks.{$unscopedName}", $origFsDisk);
+                Config::set("filesystems.disks.{$diskName}", [
+                    'driver' => 'scoped',
+                    'disk'   => $unscopedName,
+                    'prefix' => $prefix,
+                ]);
+
+                if ($filesystemManager instanceof FilesystemManager) {
+                    $filesystemManager->purge($diskName);
+                }
+            }
+        }
+    }
+
+    private function registerStorageManagerConfigSingleton(): void
     {
         $this->app->singleton(
             StorageManagerConfig::class,
@@ -149,6 +189,11 @@ class StorageManagerServiceProvider extends ServiceProvider
                 return $app->make(StorageManagerConfigFactory::class)->create($config, $staticConfig, $filesystemsDisks);
             }
         );
+    }
+
+    private function registerDependenciesInjection(): void
+    {
+        $this->registerStorageManagerConfigSingleton();
         $this->app->singleton(
             EventDispatcher::class,
             fn (): EventDispatcher => new EventDispatcher()
@@ -260,7 +305,8 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(MimeTypeChecker::class),
                 $app->make(StorageManagerConfig::class),
                 $app->make(LSMEventDispatcher::class),
-                $app->make(LoggerInterface::class)
+                $app->make(LoggerInterface::class),
+                $app->make(PathSanitizer::class)
             )
         );
         $this->app->singleton(
@@ -436,6 +482,19 @@ class StorageManagerServiceProvider extends ServiceProvider
                     'disks'               => Arr::map(
                         $storageManagerConfig->disks->getDisksMap(),
                         fn (Disk $_, string $diskName) => $diskName
+                    ),
+                    'disksConfig'         => Arr::map(
+                        $storageManagerConfig->disks->getDisksMap(),
+                        fn (Disk $disk): array => [
+                            'name'              => $disk->name,
+                            'driver'            => $disk->driver,
+                            'readOnly'          => $disk->readOnly,
+                            'supportsTrash'     => $storageManagerConfig->trash->enabled && $disk->trash,
+                            'allowedExtensions' => $disk->allowedExtensions ?? $storageManagerConfig->upload->allowedExtensions,
+                            'maxFileSize'       => $disk->maxFileSize       ?? $storageManagerConfig->upload->maxFileSize,
+                            'filenamePolicy'    => $disk->filenamePolicy->value,
+                            'duplicatePolicy'   => $disk->duplicatePolicy->value ?? $storageManagerConfig->upload->duplicatePolicy->value,
+                        ]
                     ),
                     'readOnlyDisks'       => array_keys(array_filter(
                         $storageManagerConfig->disks->getDisksMap(),

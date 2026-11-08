@@ -50,7 +50,13 @@ final class DiskController extends Controller
                 driver: $disk->driver,
                 name: $disk->name,
                 throw: $disk->throw,
-                report: $disk->report
+                report: $disk->report,
+                readOnly: $disk->readOnly,
+                trash: $disk->trash,
+                allowedExtensions: $disk->allowedExtensions,
+                maxFileSize: $disk->maxFileSize,
+                filenamePolicy: $disk->filenamePolicy->value,
+                duplicatePolicy: $disk->duplicatePolicy?->value,
             ),
             ApiResponse::HTTP_OK
         );

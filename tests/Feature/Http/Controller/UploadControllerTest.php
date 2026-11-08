@@ -276,8 +276,8 @@ describe('UploadController', function (): void {
 
         $content = $response->streamedContent();
         expect($content)->toContain('"status":"completed"');
-        expect($content)->toContain('"fileName":"test file .txt"');
-        expect(Storage::disk('local')->exists('test file .txt'))->toBeTrue();
+        expect($content)->toContain('"fileName":"test-file .txt"');
+        expect(Storage::disk('local')->exists('test-file .txt'))->toBeTrue();
     });
 
     it('applies auto_rename duplicate policy on complete', function (): void {
@@ -433,5 +433,57 @@ describe('UploadController', function (): void {
         expect($content)->toContain('"status":"error"');
         expect(Storage::disk('local')->exists('spoofed.jpg'))->toBeFalse();
         expect($sessionService->sessionExists($uploadId))->toBeFalse();
+    });
+
+    it('rejects init when file size exceeds disk max_file_size', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        Storage::fake('s3_limited');
+        Config::set('filesystems.disks.s3_limited', ['driver' => 's3']);
+        Config::set('storage-manager.disks.available', ['local', 's3_limited']);
+        Config::set('storage-manager.disks.configs.s3_limited', [
+            'max_file_size' => 500,
+        ]);
+        app()->forgetInstance(StorageManagerConfig::class);
+
+        $payload = [
+            'disk'        => 's3_limited',
+            'fileName'    => 'doc.pdf',
+            'totalSize'   => 600,
+            'totalChunks' => 1,
+        ];
+
+        // WHEN
+        $response = $this->postJson(route('storage-manager.api.fm.upload.init'), $payload);
+
+        // THEN
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['totalSize']);
+    });
+
+    it('rejects init when file extension is forbidden by disk allowed_extensions', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        Storage::fake('s3_media');
+        Config::set('filesystems.disks.s3_media', ['driver' => 's3']);
+        Config::set('storage-manager.disks.available', ['local', 's3_media']);
+        Config::set('storage-manager.disks.configs.s3_media', [
+            'allowed_extensions' => ['jpg', 'png'],
+        ]);
+        app()->forgetInstance(StorageManagerConfig::class);
+
+        $payload = [
+            'disk'        => 's3_media',
+            'fileName'    => 'video.mp4',
+            'totalSize'   => 1024,
+            'totalChunks' => 1,
+        ];
+
+        // WHEN
+        $response = $this->postJson(route('storage-manager.api.fm.upload.init'), $payload);
+
+        // THEN
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['fileName']);
     });
 });

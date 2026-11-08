@@ -12,7 +12,6 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Pagination\PageSize;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Pagination\Pagination;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Rule\IsValidPath;
-use SortDirection;
 
 class RequestWithPath extends RequestWithDisk
 {
@@ -74,10 +73,10 @@ class RequestWithPath extends RequestWithDisk
         return $sortBy !== '' ? FileSortField::tryFrom($sortBy) : null;
     }
 
-    public function getSortDirection(): SortDirection
+    public function getSortDirection(): \SortDirection
     {
         $order = strtolower($this->string('sort_order', 'asc')->value());
 
-        return $order === 'desc' ? SortDirection::Descending : SortDirection::Ascending;
+        return $order === 'desc' ? \SortDirection::Descending : \SortDirection::Ascending;
     }
 }

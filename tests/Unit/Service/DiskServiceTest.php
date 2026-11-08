@@ -180,4 +180,17 @@ describe('DiskService', function (): void {
         // THEN
         expect(Cache::has('sm_disk_usage_local'))->toBeFalse();
     });
+
+    it('computes stats using quota configured directly on Disk', function (): void {
+        // GIVEN
+        $diskService = resolve(DiskService::class);
+        $disk        = new Disk('local', 'local', quota: 2000000);
+
+        // WHEN
+        $stats = $diskService->getDiskStats($disk);
+
+        // THEN
+        expect($stats->mode)->toBe('quota');
+        expect($stats->total)->toBe(2000000);
+    });
 })->covers(DiskService::class);

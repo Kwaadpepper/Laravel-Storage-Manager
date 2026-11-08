@@ -21,6 +21,10 @@ class UploadConfigFactory
         $tempDisk = Arr::get($config, 'upload.temp_disk');
         $tempDisk = is_string($tempDisk) && $tempDisk !== '' ? $tempDisk : null;
 
+        $maxFileSize = Arr::has($config, 'upload.max_file_size') && Arr::integer($config, 'upload.max_file_size') > 0
+            ? Arr::integer($config, 'upload.max_file_size')
+            : null;
+
         return new UploadConfig(
             $min,
             $max,
@@ -28,7 +32,8 @@ class UploadConfigFactory
             $this->resolveTempPath($config),
             $this->resolveDuplicatePolicy($config),
             Arr::boolean($config, 'upload.sanitize_filenames', true),
-            $this->resolveAllowedExtensions($config)
+            $this->resolveAllowedExtensions($config),
+            $maxFileSize
         );
     }
 
@@ -39,13 +44,13 @@ class UploadConfigFactory
     private function resolveChunkSizes(array $config, int $phpMax): array
     {
         $rawMax = Arr::get($config, 'upload.chunk_max_size', 20 * 1024 * 1024);
-        $max    = is_int($rawMax) ? $rawMax : 20 * 1024 * 1024;
+        $max    = is_numeric($rawMax) ? (int) $rawMax : 20 * 1024 * 1024;
         if ($phpMax > 0 && $max > $phpMax) {
             $max = $phpMax;
         }
 
         $rawMin = Arr::get($config, 'upload.chunk_min_size', 2 * 1024 * 1024);
-        $min    = is_int($rawMin) ? $rawMin : 2 * 1024 * 1024;
+        $min    = is_numeric($rawMin) ? (int) $rawMin : 2 * 1024 * 1024;
         if ($phpMax > 0 && $min > $phpMax) {
             $min = $phpMax;
         }
@@ -89,8 +94,15 @@ class UploadConfigFactory
      */
     private function resolveAllowedExtensions(array $config): array
     {
-        $rawAllowed = Arr::array($config, 'upload.allowed_extensions', []);
-        $allowed    = [];
+        $rawAllowed = Arr::get($config, 'upload.allowed_extensions', []);
+        if (is_string($rawAllowed)) {
+            $rawAllowed = explode(',', $rawAllowed);
+        }
+        if (! is_array($rawAllowed)) {
+            $rawAllowed = [];
+        }
+
+        $allowed = [];
         foreach ($rawAllowed as $ext) {
             if (! is_string($ext)) {
                 continue;

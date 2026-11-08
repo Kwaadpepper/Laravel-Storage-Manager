@@ -19,7 +19,6 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeFile;
 use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
-use SortDirection;
 
 final readonly class DirectoryListingService
 {
@@ -103,7 +102,7 @@ final readonly class DirectoryListingService
         string $directory,
         Pagination $pagination,
         ?FileSortField $sortBy = null,
-        SortDirection $sortDirection = SortDirection::Ascending,
+        \SortDirection $sortDirection = \SortDirection::Ascending,
     ): PaginatedDirectoryContent {
         $normalizedDirectory = $this->pathNormalizer->normalizePath($directory);
         if ($this->isTrashPath($normalizedDirectory)) {
@@ -165,9 +164,9 @@ final readonly class DirectoryListingService
      * @param  FileAttributes[]  $files
      * @return FileAttributes[]
      */
-    private function sortFiles(array $files, ?FileSortField $sortBy, SortDirection $sortDirection): array
+    private function sortFiles(array $files, ?FileSortField $sortBy, \SortDirection $sortDirection): array
     {
-        $order = $sortDirection === SortDirection::Descending ? -1 : 1;
+        $order = $sortDirection === \SortDirection::Descending ? -1 : 1;
 
         usort($files, fn (FileAttributes $a, FileAttributes $b): int => $this->compareFiles($a, $b, $sortBy, $order));
 
