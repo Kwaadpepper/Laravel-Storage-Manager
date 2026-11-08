@@ -159,4 +159,127 @@ describe('RemoteStorageStrategy', function (): void {
         expect($listing)->not->toBeEmpty();
         expect($hasSubdirectories)->toBeTrue();
     });
+
+    it('performs basic file and directory management operations on remote', function (): void {
+        // GIVEN
+        $strategy = resolve(RemoteStorageStrategy::class);
+        $disk     = new Disk('ftp', 'ftp');
+
+        // WHEN
+        $putResult        = $strategy->put($disk, 'remote_put.txt', 'hello remote put');
+        $makeDirResult    = $strategy->makeDirectory($disk, 'remote_test_dir');
+        $deleteFileResult = $strategy->delete($disk, 'remote_put.txt');
+        $deleteDirResult  = $strategy->deleteDirectory($disk, 'remote_test_dir');
+
+        // THEN
+        expect($putResult)->toBeTrue();
+        expect($makeDirResult)->toBeTrue();
+        expect($deleteFileResult)->toBeTrue();
+        expect($deleteDirResult)->toBeTrue();
+    });
+
+    it('checks exists isDirectory and isFile accurately on remote', function (): void {
+        // GIVEN
+        Storage::disk('ftp')->put('remote_file.txt', 'sample remote');
+        Storage::disk('ftp')->makeDirectory('remote_dir_check');
+        $strategy = resolve(RemoteStorageStrategy::class);
+        $disk     = new Disk('ftp', 'ftp');
+        $rootPath = new Path('/');
+        $filePath = new Path('/remote_file.txt');
+        $dirPath  = new Path('/remote_dir_check');
+        $missing  = new Path('/missing_remote.txt');
+
+        // WHEN
+        $rootExists    = $strategy->exists($disk, $rootPath);
+        $fileExists    = $strategy->exists($disk, $filePath);
+        $dirExists     = $strategy->exists($disk, $dirPath);
+        $missingExists = $strategy->exists($disk, $missing);
+
+        $rootIsDir  = $strategy->isDirectory($disk, $rootPath);
+        $dirIsDir   = $strategy->isDirectory($disk, $dirPath);
+        $fileIsDir  = $strategy->isDirectory($disk, $filePath);
+
+        $rootIsFile = $strategy->isFile($disk, $rootPath);
+        $fileIsFile = $strategy->isFile($disk, $filePath);
+        $dirIsFile  = $strategy->isFile($disk, $dirPath);
+
+        // THEN
+        expect($rootExists)->toBeTrue();
+        expect($fileExists)->toBeTrue();
+        expect($dirExists)->toBeTrue();
+        expect($missingExists)->toBeFalse();
+
+        expect($rootIsDir)->toBeTrue();
+        expect($dirIsDir)->toBeTrue();
+        expect($fileIsDir)->toBeFalse();
+
+        expect($rootIsFile)->toBeFalse();
+        expect($fileIsFile)->toBeTrue();
+        expect($dirIsFile)->toBeFalse();
+    });
+
+    it('retrieves file size and directory listings on remote', function (): void {
+        // GIVEN
+        Storage::disk('ftp')->put('remote_listing/f1.txt', '1234');
+        Storage::disk('ftp')->put('remote_listing/sub/f2.txt', '5678');
+        $strategy = resolve(RemoteStorageStrategy::class);
+        $disk     = new Disk('ftp', 'ftp');
+
+        // WHEN
+        $size           = $strategy->size($disk, 'remote_listing/f1.txt');
+        $files          = $strategy->files($disk, 'remote_listing');
+        $dirs           = $strategy->directories($disk, 'remote_listing');
+        $allFiles       = $strategy->allFiles($disk, 'remote_listing');
+        $allDirectories = $strategy->allDirectories($disk, 'remote_listing');
+
+        // THEN
+        expect($size)->toBe(4);
+        expect($files)->toBeArray();
+        expect($dirs)->toBeArray();
+        expect($allFiles)->toBeArray();
+        expect($allDirectories)->toBeArray();
+    });
+
+    it('reads and writes streams correctly on remote', function (): void {
+        // GIVEN
+        Storage::disk('ftp')->put('remote_stream_src.txt', 'remote stream content');
+        $strategy = resolve(RemoteStorageStrategy::class);
+        $disk     = new Disk('ftp', 'ftp');
+        $srcPath  = new Path('/remote_stream_src.txt');
+        $destPath = new Path('/remote_stream_dest.txt');
+
+        // WHEN
+        $stream      = $strategy->readStream($disk, $srcPath);
+        $isResource  = is_resource($stream);
+        $writeResult = $isResource ? $strategy->writeStream($disk, $destPath, $stream) : false;
+        if ($isResource) {
+            fclose($stream);
+        }
+
+        // THEN
+        expect($isResource)->toBeTrue();
+        expect($writeResult)->toBeTrue();
+        expect($strategy->get($disk, 'remote_stream_dest.txt'))->toBe('remote stream content');
+    });
+
+    it('retrieves lastModified visibility mimeType and publicUrl on remote file', function (): void {
+        // GIVEN
+        Config::set('filesystems.disks.ftp.url', 'https://ftp.example.com');
+        Storage::disk('ftp')->put('remote_meta.txt', 'meta content');
+        $strategy = resolve(RemoteStorageStrategy::class);
+        $disk     = new Disk('ftp', 'ftp');
+        $filePath = new Path('/remote_meta.txt');
+
+        // WHEN
+        $lastModified = $strategy->lastModified($disk, $filePath);
+        $visibility   = $strategy->visibility($disk, $filePath);
+        $mime         = $strategy->mimeType($disk, $filePath);
+        $url          = $strategy->publicUrl($disk, $filePath);
+
+        // THEN
+        expect($lastModified)->toBeInt();
+        expect($visibility)->toBeString();
+        expect($mime)->toBeString();
+        expect($url)->toBeString();
+    });
 })->covers(RemoteStorageStrategy::class);

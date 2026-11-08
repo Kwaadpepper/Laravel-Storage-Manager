@@ -39,7 +39,8 @@
         "larastan/larastan": "^3.9",
         "ace-of-aces/intellipest": "^0.3.0",
         "pestphp/pest-plugin-arch": "^4.0",
-        "squizlabs/php_codesniffer": "^4.0"
+        "squizlabs/php_codesniffer": "^4.0",
+        "symfony/dependency-injection": "^7.0|^8.0"
     },
     "suggest": {
         "ext-zip": "Required to compress and extract zip archives",

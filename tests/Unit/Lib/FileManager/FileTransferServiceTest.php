@@ -89,6 +89,20 @@ describe('FileTransferService', function (): void {
             expect($action)->toThrow(FileOperationException::class, FileOperationError::FILE_ALREADY_EXISTS->message());
         });
 
+        it('throws DIRECTORY_ALREADY_EXISTS when destination directory already exists', function (): void {
+            // GIVEN
+            Storage::disk('local')->makeDirectory('dir1');
+            Storage::disk('local')->makeDirectory('dir2');
+            $disk    = new Disk('local', 'local');
+            $service = resolve(FileTransferService::class);
+
+            // WHEN
+            $action = fn (): Path => $service->rename($disk, new Path('/dir1'), 'dir2');
+
+            // THEN
+            expect($action)->toThrow(FileOperationException::class, FileOperationError::DIRECTORY_ALREADY_EXISTS->message());
+        });
+
         it('throws OperationCancelledException and prevents rename when FileRenaming is cancelled', function (): void {
             // GIVEN
             Event::listen(FileRenaming::class, function (FileRenaming $event): void {
@@ -165,6 +179,20 @@ describe('FileTransferService', function (): void {
             // THEN
             expect($result->value)->toBe('/target/backup-2026.sql');
             expect(Storage::disk('local')->exists('target/backup-2026.sql'))->toBeTrue();
+        });
+
+        it('sanitizes directory name during copy when policy requires it', function (): void {
+            // GIVEN
+            Storage::disk('local')->makeDirectory('backup:dir');
+            Storage::disk('local')->makeDirectory('target_dir_copy');
+            $disk    = new Disk('local', 'local');
+            $service = resolve(FileTransferService::class);
+
+            // WHEN
+            $result = $service->copy($disk, new Path('/backup:dir'), new Path('/target_dir_copy'));
+
+            // THEN
+            expect($result->value)->toBe('/target_dir_copy/backup-dir');
         });
 
         it('copies a directory and dispatches DirectoryCopied', function (): void {
@@ -275,6 +303,20 @@ describe('FileTransferService', function (): void {
             );
         });
 
+        it('sanitizes directory name during move when policy requires it', function (): void {
+            // GIVEN
+            Storage::disk('local')->makeDirectory('dirty:move');
+            Storage::disk('local')->makeDirectory('target_move_sanitized');
+            $disk    = new Disk('local', 'local');
+            $service = resolve(FileTransferService::class);
+
+            // WHEN
+            $result = $service->move($disk, new Path('/dirty:move'), new Path('/target_move_sanitized'));
+
+            // THEN
+            expect($result->value)->toBe('/target_move_sanitized/dirty-move');
+        });
+
         it('throws OperationCancelledException and prevents move when FileMoving is cancelled', function (): void {
             // GIVEN
             Event::listen(FileMoving::class, function (FileMoving $event): void {
@@ -355,6 +397,22 @@ describe('FileTransferService', function (): void {
 
             // THEN
             expect($action)->toThrow(FileOperationException::class, FileOperationError::FILE_ALREADY_EXISTS->message());
+        });
+
+        it('throws DIRECTORY_ALREADY_EXISTS when bulk rename target directory already exists on disk', function (): void {
+            // GIVEN
+            Storage::disk('local')->makeDirectory('d_source');
+            Storage::disk('local')->makeDirectory('d_existing');
+            $disk    = new Disk('local', 'local');
+            $service = resolve(FileTransferService::class);
+
+            // WHEN
+            $action = fn (): array => $service->bulkRename($disk, [
+                ['from' => new Path('/d_source'), 'to' => 'd_existing'],
+            ]);
+
+            // THEN
+            expect($action)->toThrow(FileOperationException::class, FileOperationError::DIRECTORY_ALREADY_EXISTS->message());
         });
 
         it('throws OperationCancelledException and prevents bulk rename when BulkRenaming is cancelled', function (): void {

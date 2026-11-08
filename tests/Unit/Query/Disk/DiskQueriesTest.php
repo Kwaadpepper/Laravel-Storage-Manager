@@ -20,10 +20,13 @@ describe('DiskQueries', function (): void {
         $query = new GetConfiguredDisksQuery($diskService);
 
         // WHEN
-        $result = $query(new GetConfiguredDisksInput());
+        $input  = new GetConfiguredDisksInput();
+        $result = $query($input);
 
         // THEN
         expect($result)->toBe(['local', 's3']);
+        expect($input->getDisk())->toBeNull();
+        expect($input->getPath())->toBeNull();
     });
 
     it('selects a disk via SelectDiskQuery', function (): void {
@@ -34,10 +37,13 @@ describe('DiskQueries', function (): void {
         $query = new SelectDiskQuery($diskService);
 
         // WHEN
-        $result = $query(new SelectDiskInput($disk));
+        $input  = new SelectDiskInput($disk);
+        $result = $query($input);
 
         // THEN
         expect($result->name)->toBe('local');
+        expect($input->getDisk())->toBe($disk);
+        expect($input->getPath())->toBeNull();
     });
 
     it('returns disk stats and clears cache when fresh via GetDiskStatsQuery', function (): void {
@@ -60,10 +66,13 @@ describe('DiskQueries', function (): void {
         $query = new GetDiskStatsQuery($diskService);
 
         // WHEN
-        $result = $query(new GetDiskStatsInput($disk, fresh: true));
+        $input  = new GetDiskStatsInput($disk, fresh: true);
+        $result = $query($input);
 
         // THEN
         expect($result->free)->toBe(100);
         expect($result->total)->toBe(300);
+        expect($input->getDisk())->toBe($disk);
+        expect($input->getPath())->toBeNull();
     });
-})->covers(GetConfiguredDisksQuery::class, SelectDiskQuery::class, GetDiskStatsQuery::class);
+})->covers(GetConfiguredDisksQuery::class, SelectDiskQuery::class, GetDiskStatsQuery::class, SelectDiskInput::class, GetConfiguredDisksInput::class, GetDiskStatsInput::class);

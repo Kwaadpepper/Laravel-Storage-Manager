@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FileMetadataExtractor;
+use Kwaadpepper\LaravelStorageManager\Lib\FileManager\FilePropertyExtractor;
+use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\DirectoryPathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathVisibility;
 
@@ -213,5 +216,119 @@ describe('FileMetadataExtractorTest', function (): void {
         expect($white0)->toBe('Auto');
         expect($white1)->toBe('Manual');
         expect($date)->toBe('2024-06-15 14:32:10');
+    });
+
+    it('calculates aspect ratios for standard, simplified, and edge cases', function (): void {
+        // GIVEN
+        $extractor = resolve(FileMetadataExtractor::class);
+        $ref       = new \ReflectionClass($extractor);
+        $method    = $ref->getMethod('calculateAspectRatio');
+        $method->setAccessible(true);
+
+        // WHEN
+        $ratioZero   = $method->invoke($extractor, 0, 100);
+        $ratio16x9   = $method->invoke($extractor, 1920, 1080);
+        $ratio4x3    = $method->invoke($extractor, 800, 600);
+        $ratio1x1    = $method->invoke($extractor, 500, 500);
+        $ratioCustom = $method->invoke($extractor, 400, 500);
+        $ratioLarge  = $method->invoke($extractor, 3000, 1000);
+        $ratio21x9   = $method->invoke($extractor, 2350, 1000);
+
+        // THEN
+        expect($ratioZero)->toBe('1:1');
+        expect($ratio16x9)->toBe('16:9');
+        expect($ratio4x3)->toBe('4:3');
+        expect($ratio1x1)->toBe('1:1');
+        expect($ratioCustom)->toBe('4:5');
+        expect($ratioLarge)->toBe('3:1');
+        expect($ratio21x9)->toBe('21:9');
+    });
+
+    it('filters raw exif data ignoring oversized strings and non-scalars', function (): void {
+        // GIVEN
+        $extractor = resolve(FileMetadataExtractor::class);
+        $ref       = new \ReflectionClass($extractor);
+        $method    = $ref->getMethod('filterRawExif');
+        $method->setAccessible(true);
+
+        $flatData = [
+            'Model'        => 'Canon EOS',
+            'ISO'          => 400,
+            'IgnoredArray' => ['nested' => 'val'],
+            'IgnoredLong'  => str_repeat('A', 600),
+            'Exposure'     => 0.02,
+        ];
+
+        // WHEN
+        $filtered = $method->invoke($extractor, $flatData);
+
+        // THEN
+        expect($filtered)->toBeArray();
+        expect($filtered)->toHaveKey('Model');
+        expect($filtered)->toHaveKey('ISO');
+        expect($filtered)->toHaveKey('Exposure');
+        expect($filtered)->not->toHaveKey('IgnoredArray');
+        expect($filtered)->not->toHaveKey('IgnoredLong');
+    });
+
+    it('builds structured exif from flat data', function (): void {
+        // GIVEN
+        $extractor = resolve(FileMetadataExtractor::class);
+        $ref       = new \ReflectionClass($extractor);
+        $method    = $ref->getMethod('buildStructuredExif');
+        $method->setAccessible(true);
+
+        $flatData = [
+            'Make'             => 'Nikon',
+            'Model'            => 'Z6',
+            'LensModel'        => 'NIKKOR Z 24-70mm',
+            'Software'         => 'Firmware 3.0',
+            'Artist'           => 'Photographer',
+            'Copyright'        => '2026',
+            'FNumber'          => '56/10',
+            'ISOSpeedRatings'  => [800],
+            'DateTimeOriginal' => '2026:01:01 12:00:00',
+            'MeteringMode'     => 5,
+        ];
+
+        // WHEN
+        $structured = $method->invoke($extractor, $flatData);
+
+        // THEN
+        expect($structured['make'])->toBe('Nikon');
+        expect($structured['model'])->toBe('Z6');
+        expect($structured['lens'])->toBe('NIKKOR Z 24-70mm');
+        expect($structured['software'])->toBe('Firmware 3.0');
+        expect($structured['artist'])->toBe('Photographer');
+        expect($structured['copyright'])->toBe('2026');
+        expect($structured['aperture'])->toBe('f/5.6');
+        expect($structured['iso'])->toBe(800);
+        expect($structured['meteringMode'])->toBe('Pattern');
+        expect($structured['dateTaken'])->toBe('2026-01-01 12:00:00');
+    });
+
+    it('throws LogicException when attempting to extract metadata for a directory path', function (): void {
+        // GIVEN
+        $diskName = 'dir_meta_disk';
+        $path     = new Path('/some_directory');
+        $disk     = new Disk(driver: 'local', name: $diskName, throw: false, report: false);
+
+        $filePropertyExtractor = \Mockery::mock(FilePropertyExtractor::class);
+        $filePropertyExtractor->shouldReceive('fileProperties')
+            ->once()
+            ->andReturn(new DirectoryPathProperties(
+                $path,
+                'some_directory',
+                '/',
+                new \DateTimeImmutable(),
+                PathVisibility::PUBLIC
+            ));
+        $extractor = new FileMetadataExtractor($filePropertyExtractor, resolve(StorageGateway::class));
+
+        // WHEN
+        $action = fn (): mixed => $extractor->extract($disk, $path);
+
+        // THEN
+        expect($action)->toThrow(\LogicException::class, "Expected FilePathProperties for '/some_directory'.");
     });
 })->covers(FileMetadataExtractor::class);

@@ -24,23 +24,28 @@ describe('FileQueries', function (): void {
         // GIVEN
         Storage::disk('local')->put('exists.txt', 'yes');
         $disk  = new Disk('local', 'local');
+        $path  = new Path('/exists.txt');
         $query = resolve(CheckPathExistsQuery::class);
+        $input = new CheckPathExistsInput($disk, $path);
 
         // WHEN
-        $existsTrue  = $query(new CheckPathExistsInput($disk, new Path('/exists.txt')));
+        $existsTrue  = $query($input);
         $existsFalse = $query(new CheckPathExistsInput($disk, new Path('/not_exists.txt')));
 
         // THEN
         expect($existsTrue)->toBeTrue();
         expect($existsFalse)->toBeFalse();
+        expect($input->getDisk())->toBe($disk);
+        expect($input->getPath())->toBe($path);
     });
 
     it('retrieves path properties for a file via GetPathPropertiesQuery', function (): void {
         // GIVEN
         Storage::disk('local')->put('info.txt', 'sample');
         $disk  = new Disk('local', 'local');
+        $path  = new Path('/info.txt');
         $query = resolve(GetPathPropertiesQuery::class);
-        $input = new GetPathPropertiesInput($disk, new Path('/info.txt'));
+        $input = new GetPathPropertiesInput($disk, $path);
 
         // WHEN
         $properties = $query($input);
@@ -48,6 +53,8 @@ describe('FileQueries', function (): void {
         // THEN
         expect($properties->basename)->toBe('info.txt');
         expect($properties->size)->toBe(6);
+        expect($input->getDisk())->toBe($disk);
+        expect($input->getPath())->toBe($path);
     });
 
     it('retrieves path properties for a directory via GetPathPropertiesQuery', function (): void {
@@ -64,4 +71,4 @@ describe('FileQueries', function (): void {
         expect($properties->basename)->toBe('sub_dir');
         expect($properties->isDirectory)->toBeTrue();
     });
-})->covers(CheckPathExistsQuery::class, GetPathPropertiesQuery::class);
+})->covers(CheckPathExistsQuery::class, GetPathPropertiesQuery::class, CheckPathExistsInput::class, GetPathPropertiesInput::class);

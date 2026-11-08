@@ -42,11 +42,26 @@ describe('DeletePathAction', function (): void {
 
         // THEN
         expect($result)->toBeNull();
+        expect($input->getDisk())->toBe($disk);
+        expect($input->getPath())->toBe($input->path);
         expect(Storage::disk('local')->exists('file_to_delete.txt'))->toBeFalse();
         Event::assertDispatched(
             FileDeleted::class,
             fn (FileDeleted $event): bool => $event->path === '/file_to_delete.txt'
         );
+    });
+
+    it('throws FileOperationException when deleting nonexistent file', function (): void {
+        // GIVEN
+        $disk   = new Disk('local', 'local');
+        $action = resolve(DeletePathAction::class);
+        $input  = new DeletePathInput($disk, new Path('/nonexistent.txt'));
+
+        // WHEN
+        $callback = fn (): mixed => $action($input);
+
+        // THEN
+        expect($callback)->toThrow(FileOperationException::class, FileOperationError::FILE_NOT_FOUND->message());
     });
 
     it('deletes an empty directory and dispatches DirectoryDeleted', function (): void {
@@ -188,4 +203,4 @@ describe('DeletePathAction', function (): void {
         expect(Storage::disk('local')->exists('skip_trash.txt'))->toBeFalse();
         expect(Storage::disk('local')->exists('.trash/files'))->toBeFalse();
     });
-})->covers(DeletePathAction::class);
+})->covers(DeletePathAction::class, DeletePathInput::class);

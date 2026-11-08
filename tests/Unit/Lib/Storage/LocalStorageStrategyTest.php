@@ -164,4 +164,108 @@ describe('LocalStorageStrategy', function (): void {
         expect($hasSubdirs)->toBeTrue();
         expect($emptySubdirs)->toBeFalse();
     });
+
+    it('performs basic file and directory management operations', function (): void {
+        // GIVEN
+        $strategy = resolve(LocalStorageStrategy::class);
+        $disk     = new Disk('local', 'local');
+
+        // WHEN
+        $putResult        = $strategy->put($disk, 'test_put.txt', 'hello put');
+        $makeDirResult    = $strategy->makeDirectory($disk, 'test_dir');
+        $deleteFileResult = $strategy->delete($disk, 'test_put.txt');
+        $deleteDirResult  = $strategy->deleteDirectory($disk, 'test_dir');
+
+        // THEN
+        expect($putResult)->toBeTrue();
+        expect($makeDirResult)->toBeTrue();
+        expect($deleteFileResult)->toBeTrue();
+        expect($deleteDirResult)->toBeTrue();
+    });
+
+    it('checks exists isDirectory and isFile accurately', function (): void {
+        // GIVEN
+        Storage::disk('local')->put('file_check.txt', 'sample');
+        Storage::disk('local')->makeDirectory('dir_check');
+        $strategy = resolve(LocalStorageStrategy::class);
+        $disk     = new Disk('local', 'local');
+        $rootPath = new Path('/');
+        $filePath = new Path('/file_check.txt');
+        $dirPath  = new Path('/dir_check');
+        $missing  = new Path('/missing.txt');
+
+        // WHEN
+        $rootExists    = $strategy->exists($disk, $rootPath);
+        $fileExists    = $strategy->exists($disk, $filePath);
+        $dirExists     = $strategy->exists($disk, $dirPath);
+        $missingExists = $strategy->exists($disk, $missing);
+
+        $rootIsDir     = $strategy->isDirectory($disk, $rootPath);
+        $dirIsDir      = $strategy->isDirectory($disk, $dirPath);
+        $fileIsDir     = $strategy->isDirectory($disk, $filePath);
+
+        $rootIsFile    = $strategy->isFile($disk, $rootPath);
+        $fileIsFile    = $strategy->isFile($disk, $filePath);
+        $dirIsFile     = $strategy->isFile($disk, $dirPath);
+
+        // THEN
+        expect($rootExists)->toBeTrue();
+        expect($fileExists)->toBeTrue();
+        expect($dirExists)->toBeTrue();
+        expect($missingExists)->toBeFalse();
+
+        expect($rootIsDir)->toBeTrue();
+        expect($dirIsDir)->toBeTrue();
+        expect($fileIsDir)->toBeFalse();
+
+        expect($rootIsFile)->toBeFalse();
+        expect($fileIsFile)->toBeTrue();
+        expect($dirIsFile)->toBeFalse();
+    });
+
+    it('retrieves file size and directory listings', function (): void {
+        // GIVEN
+        Storage::disk('local')->put('listing_dir/f1.txt', '1234');
+        Storage::disk('local')->put('listing_dir/sub/f2.txt', '5678');
+        $strategy = resolve(LocalStorageStrategy::class);
+        $disk     = new Disk('local', 'local');
+
+        // WHEN
+        $size           = $strategy->size($disk, 'listing_dir/f1.txt');
+        $files          = $strategy->files($disk, 'listing_dir');
+        $dirs           = $strategy->directories($disk, 'listing_dir');
+        $allFiles       = $strategy->allFiles($disk, 'listing_dir');
+        $allDirectories = $strategy->allDirectories($disk, 'listing_dir');
+        $localPath      = $strategy->localPath($disk, 'listing_dir/f1.txt');
+
+        // THEN
+        expect($size)->toBe(4);
+        expect($files)->toBeArray();
+        expect($dirs)->toBeArray();
+        expect($allFiles)->toBeArray();
+        expect($allDirectories)->toBeArray();
+        expect($localPath)->toBeString();
+    });
+
+    it('reads and writes streams correctly', function (): void {
+        // GIVEN
+        Storage::disk('local')->put('stream_src.txt', 'stream content test');
+        $strategy  = resolve(LocalStorageStrategy::class);
+        $disk      = new Disk('local', 'local');
+        $srcPath   = new Path('/stream_src.txt');
+        $destPath  = new Path('/stream_dest.txt');
+
+        // WHEN
+        $stream      = $strategy->readStream($disk, $srcPath);
+        $isResource  = is_resource($stream);
+        $writeResult = $isResource ? $strategy->writeStream($disk, $destPath, $stream) : false;
+        if ($isResource) {
+            fclose($stream);
+        }
+
+        // THEN
+        expect($isResource)->toBeTrue();
+        expect($writeResult)->toBeTrue();
+        expect($strategy->get($disk, 'stream_dest.txt'))->toBe('stream content test');
+    });
 })->covers(LocalStorageStrategy::class);
