@@ -35,5 +35,6 @@ abstract class TestCase extends OrchestraTestCase
         $app['config']->set('storage-manager.disks.default', 'local');
         $app['config']->set('storage-manager.disks.available', ['local']);
         $app['config']->set('storage-manager.auth.enabled', false);
+        $app['config']->set('storage-manager.auth.allow_by_default', true);
     }
 }

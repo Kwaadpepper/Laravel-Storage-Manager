@@ -318,9 +318,10 @@ class UploadSessionService
         $this->assembleChunks($uploadId, $totalChunks, $assembledFilePath, $onProgress);
 
         $extension = strtolower(pathinfo($finalDestination->value, PATHINFO_EXTENSION));
-        if (! $this->config->upload->isExtensionAllowed($extension)) {
+        if (! $disk->isExtensionAllowed($extension, $this->config->upload)) {
             $this->logger->error('Forbidden extension on upload assembly', [
                 'uploadId'    => $uploadId->value,
+                'disk'        => $disk->name,
                 'destination' => $finalDestination->value,
                 'extension'   => $extension,
             ]);

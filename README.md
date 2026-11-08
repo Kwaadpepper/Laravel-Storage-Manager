@@ -249,6 +249,12 @@ In `config/storage-manager.php`, you can customize:
 
 ```php
 return [
+    'auth' => [
+        'enabled' => true,
+        'guard' => 'web',
+        'allow_by_default' => false,
+    ],
+
     'route' => [
         'prefix' => 'storage-manager',
         'middleware' => ['web', 'auth'],
@@ -292,6 +298,8 @@ return [
     ],
 ];
 ```
+
+> **Authorization hardening:** with `allow_by_default=false` (default), every Storage Manager ability must be explicitly authorized by your app (via `Gate::define(...)` / policies). Set `allow_by_default=true` only if you intentionally accept permissive fallback authorization.
 
 ---
 

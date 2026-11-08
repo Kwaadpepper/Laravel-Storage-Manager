@@ -27,7 +27,7 @@ final readonly class AclManager
             return false;
         }
 
-        return true;
+        return $this->config->auth->allowByDefault;
     }
 
     public function registerDefaultGates(Gate $gate): void

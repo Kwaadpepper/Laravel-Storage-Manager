@@ -486,4 +486,35 @@ describe('UploadController', function (): void {
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['fileName']);
     });
+
+    it('rejects complete when file extension is forbidden by disk allowed_extensions', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        Storage::fake('s3_media');
+        Config::set('filesystems.disks.s3_media', ['driver' => 's3']);
+        Config::set('storage-manager.disks.available', ['local', 's3_media']);
+        Config::set('storage-manager.disks.configs.s3_media', [
+            'allowed_extensions' => ['jpg', 'png'],
+        ]);
+        app()->forgetInstance(StorageManagerConfig::class);
+
+        $uploadId       = UploadId::generate();
+        $sessionService = resolve(UploadSessionService::class);
+        $sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'allowed.jpg', 1, 10, CarbonImmutable::now()));
+
+        $payload = [
+            'upload_id'   => $uploadId->value,
+            'fileName'    => 'archive.zip',
+            'totalChunks' => 1,
+            'disk'        => 's3_media',
+            'path'        => '/',
+        ];
+
+        // WHEN
+        $response = $this->postJson(route('storage-manager.api.fm.upload.complete'), $payload);
+
+        // THEN
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['fileName']);
+    });
 });

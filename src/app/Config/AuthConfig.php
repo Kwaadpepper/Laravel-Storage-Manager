@@ -8,7 +8,8 @@ final readonly class AuthConfig
 {
     public function __construct(
         public bool $enabled,
-        public string $guard
+        public string $guard,
+        public bool $allowByDefault,
     ) {
     }
 }

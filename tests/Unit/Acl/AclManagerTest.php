@@ -14,8 +14,10 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 
 describe('AclManager', function (): void {
-    it('allows when auth is disabled and disk is writable', function (): void {
+    it('allows when allow_by_default is enabled and disk is writable', function (): void {
         // GIVEN
+        Config::set('storage-manager.auth.allow_by_default', true);
+        App::forgetInstance(StorageManagerConfig::class);
         $config     = resolve(StorageManagerConfig::class);
         $aclManager = new AclManager($config);
         $disk       = new Disk('local', 'local', readOnly: false);
@@ -30,6 +32,8 @@ describe('AclManager', function (): void {
 
     it('denies mutations on readonly disks', function (): void {
         // GIVEN
+        Config::set('storage-manager.auth.allow_by_default', true);
+        App::forgetInstance(StorageManagerConfig::class);
         $config     = resolve(StorageManagerConfig::class);
         $aclManager = new AclManager($config);
         $disk       = new Disk('readonly_disk', 'local', readOnly: true);
@@ -44,6 +48,8 @@ describe('AclManager', function (): void {
 
     it('allows read queries on readonly disks', function (): void {
         // GIVEN
+        Config::set('storage-manager.auth.allow_by_default', true);
+        App::forgetInstance(StorageManagerConfig::class);
         $config     = resolve(StorageManagerConfig::class);
         $aclManager = new AclManager($config);
         $disk       = new Disk('readonly_disk', 'local', readOnly: true);
@@ -59,6 +65,7 @@ describe('AclManager', function (): void {
     it('denies when auth is enabled and user is null', function (): void {
         // GIVEN
         Config::set('storage-manager.auth.enabled', true);
+        Config::set('storage-manager.auth.allow_by_default', true);
         App::forgetInstance(StorageManagerConfig::class);
         $config     = resolve(StorageManagerConfig::class);
         $aclManager = new AclManager($config);
@@ -71,9 +78,27 @@ describe('AclManager', function (): void {
         expect($allowed)->toBeFalse();
     });
 
-    it('allows when auth is enabled and user is authenticated', function (): void {
+    it('denies authenticated users when allow_by_default is disabled', function (): void {
         // GIVEN
         Config::set('storage-manager.auth.enabled', true);
+        Config::set('storage-manager.auth.allow_by_default', false);
+        App::forgetInstance(StorageManagerConfig::class);
+        $config     = resolve(StorageManagerConfig::class);
+        $aclManager = new AclManager($config);
+        $user       = \Mockery::mock(Authenticatable::class);
+        $disk       = new Disk('local', 'local');
+
+        // WHEN
+        $allowed = $aclManager->allows(SmAbility::VIEW, $user, $disk);
+
+        // THEN
+        expect($allowed)->toBeFalse();
+    });
+
+    it('allows authenticated users when allow_by_default is enabled', function (): void {
+        // GIVEN
+        Config::set('storage-manager.auth.enabled', true);
+        Config::set('storage-manager.auth.allow_by_default', true);
         App::forgetInstance(StorageManagerConfig::class);
         $config     = resolve(StorageManagerConfig::class);
         $aclManager = new AclManager($config);
