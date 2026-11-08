@@ -75,11 +75,7 @@ final readonly class GetPathTreeQuery implements Query
                 throw new \LogicException("Expected file properties for path '{$filePath}', got directory properties.");
             }
 
-            try {
-                $publicUrl = $this->storageGateway->publicUrl($input->disk, $filePath);
-            } catch (\Throwable) {
-                $publicUrl = null;
-            }
+            $publicUrl = $this->storageGateway->publicUrl($input->disk, $filePath);
 
             return new PathTreeFile(
                 $filePath,

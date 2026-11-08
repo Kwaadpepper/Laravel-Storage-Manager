@@ -10,8 +10,8 @@ use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 /** @extends DomainException<FileOperationError> */
 class FileOperationException extends DomainException implements ShouldntReport
 {
-    public static function throwWith(FileOperationError $error): never
+    public static function throwWith(FileOperationError $error, ?\Throwable $previous = null): never
     {
-        throw new self($error);
+        throw new self($error, $previous);
     }
 }

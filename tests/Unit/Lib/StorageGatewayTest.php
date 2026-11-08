@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Exception\StorageConnectionException;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
@@ -492,5 +493,156 @@ describe('StorageGateway', function (): void {
         // THEN
         expect($localStats->mode)->toBeIn(['partition', 'folder']);
         expect($s3Stats->mode)->toBe('unlimited');
+    });
+
+    it('returns null on lastModified and visibility for virtual directory when driver does not support directory metadata', function (): void {
+        // GIVEN
+        Storage::fake('s3');
+        Storage::disk('s3')->makeDirectory('s3_dir');
+        $gateway = resolve(StorageGateway::class);
+        $s3Disk  = new Disk('s3', 's3');
+        $dirPath = new Path('/s3_dir');
+
+        // WHEN
+        $lastModified = $gateway->lastModified($s3Disk, $dirPath);
+        $visibility   = $gateway->visibility($s3Disk, $dirPath);
+
+        // THEN
+        expect($lastModified)->toBeNull();
+        expect($visibility)->toBeNull();
+    });
+
+    it('returns null on publicUrl when driver does not support public urls', function (): void {
+        // GIVEN
+        Storage::fake('ftp');
+        Config::set('filesystems.disks.ftp.url', null);
+        $gateway = resolve(StorageGateway::class);
+        $ftpDisk = new Disk('ftp', 'ftp');
+        $path    = new Path('/file.txt');
+
+        // WHEN
+        $url = $gateway->publicUrl($ftpDisk, $path);
+
+        // THEN
+        expect($url)->toBeNull();
+    });
+
+    it('delegates supportsPublicUrl to resolved strategy', function (): void {
+        // GIVEN
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+        $s3Disk    = new Disk('s3', 's3');
+        $ftpDisk   = new Disk('ftp', 'ftp');
+        Config::set('filesystems.disks.ftp.url', null);
+
+        // WHEN
+        $localSupported = $gateway->supportsPublicUrl($localDisk);
+        $s3Supported    = $gateway->supportsPublicUrl($s3Disk);
+        $ftpSupported   = $gateway->supportsPublicUrl($ftpDisk);
+
+        // THEN
+        expect($localSupported)->toBeTrue();
+        expect($s3Supported)->toBeTrue();
+        expect($ftpSupported)->toBeFalse();
+    });
+
+    it('returns null on mimeType for directory path', function (): void {
+        // GIVEN
+        Storage::disk('local')->makeDirectory('mime_dir');
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+        $dirPath   = new Path('/mime_dir');
+
+        // WHEN
+        $mime = $gateway->mimeType($localDisk, $dirPath);
+
+        // THEN
+        expect($mime)->toBeNull();
+    });
+
+    it('propagates PERMISSION_DENIED on get when storage throws 403 forbidden', function (): void {
+        // GIVEN
+        $adapter = \Mockery::mock(FilesystemAdapter::class);
+        $adapter->shouldReceive('get')
+            ->with('forbidden.txt')
+            ->andThrow(new class ('Access Denied') extends \RuntimeException
+            {
+                public function getStatusCode(): int
+                {
+                    return 403;
+                }
+            });
+        Storage::set('local', $adapter);
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+
+        // WHEN
+        $action = fn (): ?string => $gateway->get($localDisk, 'forbidden.txt');
+
+        // THEN
+        expect($action)->toThrow(FileOperationException::class, FileOperationError::PERMISSION_DENIED->message());
+    });
+
+    it('propagates StorageConnectionException on get when storage connection fails', function (): void {
+        // GIVEN
+        $adapter = \Mockery::mock(FilesystemAdapter::class);
+        $adapter->shouldReceive('get')
+            ->with('timeout.txt')
+            ->andThrow(new \RuntimeException('Connection timed out'));
+        Storage::set('local', $adapter);
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+
+        // WHEN
+        $action = fn (): ?string => $gateway->get($localDisk, 'timeout.txt');
+
+        // THEN
+        expect($action)->toThrow(StorageConnectionException::class, FileOperationError::CONNECTION_ERROR->message());
+    });
+
+    it('propagates StorageConnectionException on lastModified, visibility, and mimeType when network times out on file', function (): void {
+        // GIVEN
+        $adapter = \Mockery::mock(FilesystemAdapter::class);
+        $adapter->shouldReceive('directoryExists')
+            ->andReturn(false);
+        $adapter->shouldReceive('lastModified')
+            ->with('timeout.txt')
+            ->andThrow(new \RuntimeException('Connection timed out'));
+        $adapter->shouldReceive('getVisibility')
+            ->with('timeout.txt')
+            ->andThrow(new \RuntimeException('Connection timed out'));
+        $adapter->shouldReceive('mimeType')
+            ->with('timeout.txt')
+            ->andThrow(new \RuntimeException('Connection timed out'));
+        Storage::set('local', $adapter);
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+        $path      = new Path('/timeout.txt');
+
+        // WHEN
+        $lastModifiedAction = fn (): ?int => $gateway->lastModified($localDisk, $path);
+        $visibilityAction   = fn (): ?string => $gateway->visibility($localDisk, $path);
+        $mimeTypeAction     = fn (): ?string => $gateway->mimeType($localDisk, $path);
+
+        // THEN
+        expect($lastModifiedAction)->toThrow(StorageConnectionException::class);
+        expect($visibilityAction)->toThrow(StorageConnectionException::class);
+        expect($mimeTypeAction)->toThrow(StorageConnectionException::class);
+    });
+
+    it('propagates StorageConnectionException on calculateDiskUsedBytes when listing fails', function (): void {
+        // GIVEN
+        $adapter = \Mockery::mock(FilesystemAdapter::class);
+        $adapter->shouldReceive('getDriver')
+            ->andThrow(new \RuntimeException('Connection timed out'));
+        Storage::set('local', $adapter);
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+
+        // WHEN
+        $action = fn (): int => $gateway->calculateDiskUsedBytes($localDisk);
+
+        // THEN
+        expect($action)->toThrow(StorageConnectionException::class);
     });
 })->covers(StorageGateway::class);

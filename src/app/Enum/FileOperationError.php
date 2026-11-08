@@ -26,6 +26,9 @@ enum FileOperationError: int implements DomainErrorCode
     case TRASH_ITEM_LOCKED             = 1015;
     case FORBIDDEN_FILE_EXTENSION      = 1016;
     case FORBIDDEN_FILE_MIME           = 1017;
+    case IO_ERROR                      = 1018;
+    case CONNECTION_ERROR              = 1019;
+    case OPERATION_NOT_SUPPORTED       = 1020;
 
     /** @var array<int, string> */
     private const array MESSAGES = [
@@ -46,6 +49,9 @@ enum FileOperationError: int implements DomainErrorCode
         1015 => 'The trashed item is currently being processed.',
         1016 => 'The file extension is not allowed.',
         1017 => 'The file content does not match its extension or is forbidden.',
+        1018 => 'A storage I/O error occurred.',
+        1019 => 'Failed to connect to the storage disk.',
+        1020 => 'The requested operation is not supported by this storage driver.',
     ];
 
     public function message(): string

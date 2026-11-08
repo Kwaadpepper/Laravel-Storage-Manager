@@ -42,6 +42,9 @@ return [
         1015 => 'L\'élément de la corbeille est en cours de traitement.',
         1016 => 'L\'extension de fichier n\'est pas autorisée.',
         1017 => 'Le contenu du fichier ne correspond pas à son extension ou est interdit.',
+        1018 => 'Une erreur d\'E/S de stockage est survenue.',
+        1019 => 'Échec de la connexion au disque de stockage.',
+        1020 => 'L\'opération demandée n\'est pas prise en charge par ce disque.',
     ],
     'ui' => [
         'missing_assets'               => 'Attention : Les assets ne sont pas publiés. Veuillez exécuter `php artisan vendor:publish --tag=storage-manager:assets`.',

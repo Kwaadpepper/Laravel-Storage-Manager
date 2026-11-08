@@ -42,6 +42,9 @@ return [
         1015 => 'The trashed item is currently being processed.',
         1016 => 'The file extension is not allowed.',
         1017 => 'The file content does not match its extension or is forbidden.',
+        1018 => 'A storage I/O error occurred.',
+        1019 => 'Failed to connect to the storage disk.',
+        1020 => 'The requested operation is not supported by this storage driver.',
     ],
     'ui' => [
         'missing_assets'               => 'Warning: Assets not published. Please run `php artisan vendor:publish --tag=storage-manager:assets`.',

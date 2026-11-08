@@ -9,6 +9,8 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
+use Kwaadpepper\LaravelStorageManager\Exception\OperationNotSupportedException;
+use Kwaadpepper\LaravelStorageManager\Exception\StorageConnectionException;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\Storage\LocalStorageStrategy;
 use Kwaadpepper\LaravelStorageManager\Lib\Storage\RemoteStorageStrategy;
@@ -40,23 +42,32 @@ readonly class StorageGateway
         return $this->filesystemFactory->disk($disk->name);
     }
 
+    /**
+     * @throws FileOperationException
+     * @throws StorageConnectionException
+     */
     public function get(Disk $disk, string $path): ?string
     {
         $relPath = ltrim($this->pathNormalizer->normalizePath($path), '/');
         $this->logger->debug('Reading file contents from disk', ['disk' => $disk->name, 'path' => $relPath]);
-        try {
-            $content = $this->disk($disk)->get($relPath);
 
-            return is_string($content) ? $content : null;
-        } catch (\Throwable $e) {
-            $this->logger->warning('Failed to read file from disk', [
+        $result = $this->strategyFor($disk)->get($disk, $relPath);
+
+        if ($result instanceof FileOperationException) {
+            if ($result->getDomainErrorCode() === FileOperationError::FILE_NOT_FOUND) {
+                return null;
+            }
+
+            $this->logger->error('Failed to read file from disk', [
                 'disk'      => $disk->name,
                 'path'      => $relPath,
-                'exception' => $e,
+                'exception' => $result,
             ]);
 
-            return null;
+            throw $result;
         }
+
+        return $result;
     }
 
     /**
@@ -157,20 +168,31 @@ readonly class StorageGateway
         return $directories;
     }
 
+    /**
+     * @throws FileOperationException
+     * @throws StorageConnectionException
+     */
     public function publicUrl(Disk $disk, Path $path): ?string
     {
         $this->logger->debug('Getting public URL for path', ['disk' => $disk->name, 'path' => $path->value]);
-        try {
-            return $this->disk($disk)->url($path->toRelative());
-        } catch (\Throwable $e) {
-            $this->logger->warning('Failed to get public URL for path', [
-                'disk'      => $disk->name,
-                'path'      => $path->value,
-                'exception' => $e,
-            ]);
 
+        $result = $this->strategyFor($disk)->publicUrl($disk, $path);
+
+        if ($result instanceof OperationNotSupportedException) {
             return null;
         }
+
+        if ($result instanceof FileOperationException) {
+            $this->logger->error('Failed to get public URL for path', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'exception' => $result,
+            ]);
+
+            throw $result;
+        }
+
+        return $result;
     }
 
     public function localPath(Disk $disk, string $path = ''): ?string
@@ -193,56 +215,97 @@ readonly class StorageGateway
         return (int) $this->disk($disk)->size($relPath);
     }
 
+    /**
+     * @throws FileOperationException
+     * @throws StorageConnectionException
+     */
     public function lastModified(Disk $disk, Path $path): ?int
     {
         $this->logger->debug('Getting last modified for path', ['disk' => $disk->name, 'path' => $path->value]);
-        try {
-            return $this->disk($disk)->lastModified($path->toRelative());
-        } catch (\Throwable $e) {
-            $this->logger->warning('Failed to get last modified timestamp', [
-                'disk'      => $disk->name,
-                'path'      => $path->value,
-                'exception' => $e,
-            ]);
 
+        $result = $this->strategyFor($disk)->lastModified($disk, $path);
+
+        if ($result instanceof OperationNotSupportedException) {
             return null;
         }
+
+        if ($result instanceof FileOperationException) {
+            if ($result->getDomainErrorCode() === FileOperationError::FILE_NOT_FOUND) {
+                return null;
+            }
+
+            $this->logger->error('Failed to get last modified timestamp', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'exception' => $result,
+            ]);
+
+            throw $result;
+        }
+
+        return $result;
     }
 
+    /**
+     * @throws FileOperationException
+     * @throws StorageConnectionException
+     */
     public function visibility(Disk $disk, Path $path): ?string
     {
         $this->logger->debug('Getting visibility for path', ['disk' => $disk->name, 'path' => $path->value]);
-        try {
-            $v = $this->disk($disk)->getVisibility($path->toRelative());
 
-            return is_string($v) ? $v : null;
-        } catch (\Throwable $e) {
-            $this->logger->warning('Failed to get visibility', [
-                'disk'      => $disk->name,
-                'path'      => $path->value,
-                'exception' => $e,
-            ]);
+        $result = $this->strategyFor($disk)->visibility($disk, $path);
 
+        if ($result instanceof OperationNotSupportedException) {
             return null;
         }
+
+        if ($result instanceof FileOperationException) {
+            if ($result->getDomainErrorCode() === FileOperationError::FILE_NOT_FOUND) {
+                return null;
+            }
+
+            $this->logger->error('Failed to get visibility', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'exception' => $result,
+            ]);
+
+            throw $result;
+        }
+
+        return $result;
     }
 
+    /**
+     * @throws FileOperationException
+     * @throws StorageConnectionException
+     */
     public function mimeType(Disk $disk, Path $path): ?string
     {
         $this->logger->debug('Getting mime type for path', ['disk' => $disk->name, 'path' => $path->value]);
-        try {
-            $m = $this->disk($disk)->mimeType($path->toRelative());
 
-            return is_string($m) ? $m : null;
-        } catch (\Throwable $e) {
-            $this->logger->warning('Failed to get mime type', [
-                'disk'      => $disk->name,
-                'path'      => $path->value,
-                'exception' => $e,
-            ]);
+        $result = $this->strategyFor($disk)->mimeType($disk, $path);
 
+        if ($result instanceof OperationNotSupportedException) {
             return null;
         }
+
+        if ($result instanceof FileOperationException) {
+            if ($result->getDomainErrorCode() === FileOperationError::FILE_NOT_FOUND) {
+                return null;
+            }
+
+            $this->logger->error('Failed to get mime type', [
+                'disk'      => $disk->name,
+                'path'      => $path->value,
+                'exception' => $result,
+            ]);
+
+            throw $result;
+        }
+
+        return $result;
     }
 
     /**
@@ -420,15 +483,26 @@ readonly class StorageGateway
 
         $strategy = $this->strategyFor($disk);
 
-        if ($isDirectory) {
-            $strategy->moveDirectory($disk, $srcRel, $destRel);
-            $this->logger->info('Directory moved successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
+        $result = $isDirectory
+            ? $strategy->moveDirectory($disk, $srcRel, $destRel)
+            : $strategy->moveFile($disk, $srcRel, $destRel);
 
-            return;
+        if ($result instanceof FileOperationException) {
+            $this->logger->error('Failed to move path', [
+                'disk'        => $disk->name,
+                'source'      => $srcRel,
+                'destination' => $destRel,
+                'exception'   => $result,
+            ]);
+
+            throw $result;
         }
 
-        $strategy->moveFile($disk, $srcRel, $destRel);
-        $this->logger->info('File moved successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
+        $this->logger->info($isDirectory ? 'Directory moved successfully' : 'File moved successfully', [
+            'disk'        => $disk->name,
+            'source'      => $srcRel,
+            'destination' => $destRel,
+        ]);
     }
 
     /**
@@ -447,15 +521,26 @@ readonly class StorageGateway
 
         $strategy = $this->strategyFor($disk);
 
-        if ($isDirectory) {
-            $strategy->copyDirectory($disk, $srcRel, $destRel);
-            $this->logger->info('Directory copied successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
+        $result = $isDirectory
+            ? $strategy->copyDirectory($disk, $srcRel, $destRel)
+            : $strategy->copyFile($disk, $srcRel, $destRel);
 
-            return;
+        if ($result instanceof FileOperationException) {
+            $this->logger->error('Failed to copy path', [
+                'disk'        => $disk->name,
+                'source'      => $srcRel,
+                'destination' => $destRel,
+                'exception'   => $result,
+            ]);
+
+            throw $result;
         }
 
-        $strategy->copyFile($disk, $srcRel, $destRel);
-        $this->logger->info('File copied successfully', ['disk' => $disk->name, 'source' => $srcRel, 'destination' => $destRel]);
+        $this->logger->info($isDirectory ? 'Directory copied successfully' : 'File copied successfully', [
+            'disk'        => $disk->name,
+            'source'      => $srcRel,
+            'destination' => $destRel,
+        ]);
     }
 
     /**
@@ -501,14 +586,48 @@ readonly class StorageGateway
         return $this->strategyFor($disk)->supportsDirectoryMetadata($disk);
     }
 
-    public function calculateDiskUsedBytes(Disk $disk): int
+    public function supportsPublicUrl(Disk $disk): bool
     {
-        return $this->strategyFor($disk)->calculateDiskUsedBytes($disk);
+        return $this->strategyFor($disk)->supportsPublicUrl($disk);
     }
 
+    /**
+     * @throws FileOperationException
+     * @throws StorageConnectionException
+     */
+    public function calculateDiskUsedBytes(Disk $disk): int
+    {
+        $result = $this->strategyFor($disk)->calculateDiskUsedBytes($disk);
+
+        if ($result instanceof FileOperationException) {
+            $this->logger->error('Failed to calculate disk used bytes', [
+                'disk'      => $disk->name,
+                'exception' => $result,
+            ]);
+
+            throw $result;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @throws FileOperationException
+     */
     public function getDiskStats(Disk $disk): DiskStorageStats
     {
-        return $this->strategyFor($disk)->getDiskStats($disk);
+        $result = $this->strategyFor($disk)->getDiskStats($disk);
+
+        if ($result instanceof FileOperationException) {
+            $this->logger->error('Failed to get disk stats', [
+                'disk'      => $disk->name,
+                'exception' => $result,
+            ]);
+
+            throw $result;
+        }
+
+        return $result;
     }
 
     private function strategyFor(Disk $disk): StorageDriverStrategy
