@@ -114,16 +114,16 @@ function onResetClick(): void {
 </script>
 
 <template>
-  <div class="flex items-center gap-1 relative">
+  <div class="flex items-center gap-1 relative w-full sm:w-auto">
     <form
-      class="join flex items-center"
+      class="join flex items-center w-full sm:w-auto"
       @submit="onSearch"
     >
       <input
         v-model="localQuery"
         type="text"
         :placeholder="t('search_placeholder')"
-        class="input input-bordered input-sm join-item w-40 md:w-64"
+        class="input input-bordered input-sm join-item w-28 sm:w-36 md:w-48 lg:w-56 xl:w-64 flex-1 sm:flex-none"
       >
       <details
         ref="dropdownRef"
@@ -138,7 +138,7 @@ function onResetClick(): void {
             :class="localExt || localMinSize || localMaxSize ? 'text-primary' : ''"
           />
         </summary>
-        <ul class="dropdown-content z-[100] menu p-4 shadow bg-base-100 rounded-box w-[22rem] mt-1">
+        <ul class="dropdown-content z-[100] menu p-4 shadow bg-base-100 rounded-box w-80 sm:w-[22rem] max-w-[calc(100vw-2rem)] mt-1">
           <h3 class="font-bold mb-3">
             {{ t('advanced_filters') }}
           </h3>
