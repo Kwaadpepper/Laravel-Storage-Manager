@@ -12,7 +12,7 @@ import {
   treeResponseSchema,
 } from '@ts/schemas';
 import { useDiskStore, type DiskStore } from '@ts/stores';
-import { FileMetadata, Path, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
+import { FileMetadata, PaginationMeta, Path, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
 
 export type CreateDirectoryValidationField = 'directoryName';
 export type CreateFileValidationField = 'fileName';
@@ -48,13 +48,33 @@ export function useFileManager(injectedApiClient?: ApiClient, injectedDiskStore?
     return getClient().get(`${prefix}/init`);
   }
 
-  async function listFiles(path: Path): Promise<{
+  async function listFiles(
+    path: Path,
+    page: number = 1,
+    perPage: number = 50,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc'
+  ): Promise<{
     directories: TreeNodeDirectory[];
     files: TreeNodeFile[];
+    pagination?: PaginationMeta;
   }> {
+    const params = new URLSearchParams({
+      disk: getDisk(),
+      path,
+      page: String(page),
+      per_page: String(perPage),
+    });
+    if (sortBy) {
+      params.set('sort_by', sortBy);
+    }
+    if (sortOrder) {
+      params.set('sort_order', sortOrder);
+    }
+
     return getClient()
       .get(
-        `${prefix}/tree?disk=${encodeURIComponent(getDisk())}&path=${encodeURIComponent(path)}`,
+        `${prefix}/content?${params.toString()}`,
         treeResponseSchema
       )
       .then((data) => ({
@@ -72,6 +92,7 @@ export function useFileManager(injectedApiClient?: ApiClient, injectedDiskStore?
           visibility: file.visibility,
           publicUrl: file.publicUrl,
         })),
+        pagination: data.pagination,
       }));
   }
 
@@ -382,8 +403,14 @@ export class FileManagerService {
     return this.impl.initialize();
   }
 
-  listFiles(path: Path) {
-    return this.impl.listFiles(path);
+  listFiles(
+    path: Path,
+    page: number = 1,
+    perPage: number = 50,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc'
+  ) {
+    return this.impl.listFiles(path, page, perPage, sortBy, sortOrder);
   }
 
   search(

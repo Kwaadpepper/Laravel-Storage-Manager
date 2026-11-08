@@ -1,4 +1,4 @@
-import { Path, rootPath, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
+import { PaginationMeta, Path, rootPath, TreeNodeDirectory, TreeNodeFile } from '@ts/types';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
@@ -16,6 +16,8 @@ export const useFileManagerStore = defineStore('fileManager', () => {
   const currentBaseName = computed(() => computeBaseName(currentPath.value));
   const directoryNodes = ref<TreeNodeDirectory[]>([]);
   const fileNodes = ref<TreeNodeFile[]>([]);
+  const pagination = ref<PaginationMeta | null>(null);
+  const isLoadingMore = ref(false);
   const selectedNodes = ref<Record<Path, TreeNodeDirectory | TreeNodeFile>>({});
   const canNavigatePrevious = ref(false);
   const canNavigateNext = ref(false);
@@ -25,14 +27,29 @@ export const useFileManagerStore = defineStore('fileManager', () => {
     currentPath.value = path;
     currentSearchParams.value = searchParams;
     selectedNodes.value = {};
+    pagination.value = null;
   }
 
-  function setFileNodes(nodes: TreeNodeFile[]): void {
+  function setFileNodes(nodes: TreeNodeFile[], meta?: PaginationMeta | null): void {
     fileNodes.value = nodes;
+    pagination.value = meta ?? null;
+  }
+
+  function appendFileNodes(nodes: TreeNodeFile[], meta?: PaginationMeta | null): void {
+    fileNodes.value = [...fileNodes.value, ...nodes];
+    pagination.value = meta ?? null;
   }
 
   function setDirectoryNodes(nodes: TreeNodeDirectory[]): void {
     directoryNodes.value = nodes;
+  }
+
+  function setIsLoadingMore(loading: boolean): void {
+    isLoadingMore.value = loading;
+  }
+
+  function setPagination(meta: PaginationMeta | null): void {
+    pagination.value = meta;
   }
 
   function selectNodes(...nodes: (TreeNodeFile | TreeNodeDirectory)[]): void {
@@ -59,13 +76,18 @@ export const useFileManagerStore = defineStore('fileManager', () => {
     currentBaseName,
     directoryNodes,
     fileNodes,
+    pagination,
+    isLoadingMore,
     selectedNodes,
     canNavigatePrevious,
     canNavigateNext,
     canNavigateUp,
     setCurrentPath,
     setFileNodes,
+    appendFileNodes,
     setDirectoryNodes,
+    setIsLoadingMore,
+    setPagination,
     selectNodes,
     setNavigationCapabilities,
   };

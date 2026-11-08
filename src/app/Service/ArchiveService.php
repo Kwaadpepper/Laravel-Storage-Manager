@@ -54,7 +54,7 @@ readonly class ArchiveService
         ]);
         $this->assertCanZip($disk, $paths, $destinationZip);
 
-        /** @var class-string<\Kwaadpepper\LaravelStorageManager\Lib\Event\SmEvent<array{disk: string, paths: array<string>, destination: string}>> $eventClass */
+        /** @var class-string<SmEvent<array{disk: string, paths: array<string>, destination: string}>> $eventClass */
         $eventClass = ZipCreating::class;
         $this->eventDispatcher->dispatch(
             $eventClass,

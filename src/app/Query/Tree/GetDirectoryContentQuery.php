@@ -8,13 +8,12 @@ use Kwaadpepper\LaravelStorageManager\Acl\SmAbility;
 use Kwaadpepper\LaravelStorageManager\Contract\Query;
 use Kwaadpepper\LaravelStorageManager\Contract\QueryInput;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathList as PathContent;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PaginatedDirectoryContent;
 use Kwaadpepper\LaravelStorageManager\Service\DirectoryListingService;
 use Psr\Log\LoggerInterface;
 
 /**
- * @implements Query<GetDirectoryContentInput, PathContent>
+ * @implements Query<GetDirectoryContentInput, PaginatedDirectoryContent>
  */
 final readonly class GetDirectoryContentQuery implements Query
 {
@@ -33,23 +32,24 @@ final readonly class GetDirectoryContentQuery implements Query
     /**
      * @param  GetDirectoryContentInput  $input
      */
-    public function __invoke(QueryInput $input): PathContent
+    public function __invoke(QueryInput $input): PaginatedDirectoryContent
     {
         $directory = $this->pathNormalizer->normalizePath($input->path ? $input->path->value : '/');
-        $this->logger->debug('Getting directory content', ['disk' => $input->disk->name, 'directory' => $directory]);
+        $this->logger->debug('Getting directory content', [
+            'disk'          => $input->disk->name,
+            'directory'     => $directory,
+            'page'          => $input->pagination->pageNumber()->value,
+            'perPage'       => $input->pagination->pageSize()->value,
+            'sortBy'        => $input->sortBy?->value,
+            'sortDirection' => $input->sortDirection->name,
+        ]);
 
-        if ($this->directoryListingService->isTrashPath($directory)) {
-            return new PathContent([], []);
-        }
-
-        $entries = $this->directoryListingService->listCleanEntries($input->disk, $directory);
-
-        $files       = array_map(fn (string $file): Path => new Path($file), $entries['files']);
-        $directories = array_map(fn (string $dir): Path => new Path($dir), $entries['directories']);
-
-        return new PathContent(
-            array_values($files),
-            array_values($directories),
+        return $this->directoryListingService->paginateCleanContents(
+            $input->disk,
+            $directory,
+            $input->pagination,
+            $input->sortBy,
+            $input->sortDirection
         );
     }
 }

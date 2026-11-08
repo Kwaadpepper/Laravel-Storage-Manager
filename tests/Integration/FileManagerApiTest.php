@@ -68,7 +68,9 @@ describe('content listing', function () use (&$disk): void {
         // THEN
         $response->assertSuccessful()
             ->assertJsonPath('data.files', [])
-            ->assertJsonPath('data.directories', []);
+            ->assertJsonPath('data.directories', [])
+            ->assertJsonPath('data.pagination.totalFiles', 0)
+            ->assertJsonPath('data.pagination.hasMore', false);
     });
 
     it('lists files and directories after creation', function () use (&$disk): void {
@@ -85,18 +87,26 @@ describe('content listing', function () use (&$disk): void {
 
         // THEN
         $response->assertSuccessful();
-        $data = $response->json('data');
-        expect($data['directories'])->toContain('/photos');
-        expect($data['files'])->toContain('/readme.md');
+        $directories = $response->json('data.directories');
+        $files       = $response->json('data.files');
+        expect(array_column($directories, 'path'))->toContain('/photos');
+        expect(array_column($files, 'path'))->toContain('/readme.md');
+        expect($response->json('data.pagination.totalFiles'))->toBe(1);
+        expect($response->json('data.pagination.hasMore'))->toBeFalse();
     });
 
-    it('returns directory tree with nested sub-directories', function () use (&$disk): void {
+    it('returns nested sub-directories and handles pagination', function () use (&$disk): void {
         // GIVEN
         $disk->makeDirectory('projects');
         $disk->makeDirectory('projects/laravel');
-        $route = route('storage-manager.api.fm.tree', [
-            'path' => '/',
-            'disk' => 'local',
+        $disk->put('file1.txt', '1');
+        $disk->put('file2.txt', '2');
+        $disk->put('file3.txt', '3');
+        $route = route('storage-manager.api.fm.content', [
+            'path'     => '/',
+            'disk'     => 'local',
+            'page'     => 1,
+            'per_page' => 2,
         ]);
 
         // WHEN
@@ -105,9 +115,14 @@ describe('content listing', function () use (&$disk): void {
         // THEN
         $response->assertSuccessful();
         $directories = $response->json('data.directories');
+        $files       = $response->json('data.files');
         expect($directories)->toBeArray()->not->toBeEmpty();
         expect($directories[0]['path'])->toBe('/projects');
         expect($directories[0]['hasSubDirectories'])->toBeTrue();
+        expect($files)->toHaveCount(2);
+        expect($response->json('data.pagination.totalFiles'))->toBe(3);
+        expect($response->json('data.pagination.totalPages'))->toBe(2);
+        expect($response->json('data.pagination.hasMore'))->toBeTrue();
     });
 });
 

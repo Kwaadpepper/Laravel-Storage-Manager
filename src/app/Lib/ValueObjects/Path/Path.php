@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path;
 
+use Kwaadpepper\LaravelStorageManager\Contract\Equatable;
 use Kwaadpepper\LaravelStorageManager\Exception\IllegalDomainStateException;
 
-class Path implements \Stringable
+class Path implements \Stringable, Equatable
 {
     public function __construct(
         public readonly string $value
@@ -78,9 +79,9 @@ class Path implements \Stringable
         return strtolower(pathinfo($this->value, PATHINFO_EXTENSION));
     }
 
-    public function equals(self $other): bool
+    public function equals(mixed $other): bool
     {
-        return $this->value === $other->value;
+        return $other instanceof self && $this->value === $other->value;
     }
 
     public function __toString(): string

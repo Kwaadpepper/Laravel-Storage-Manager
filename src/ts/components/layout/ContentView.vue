@@ -116,6 +116,11 @@ function handleSort(column: SortColumn): void {
     sortColumn.value = column;
     sortDirection.value = 'asc';
   }
+
+  if (!isSearchMode.value) {
+    const backendSortBy = sortColumn.value === 'type' ? 'extension' : (sortColumn.value ?? undefined);
+    navigation.setSort(backendSortBy, sortDirection.value ?? undefined);
+  }
 }
 
 const bgAnchorName = computed(() => toAnchorName(`bg-${fileManagerStore.currentPath}`));
@@ -405,14 +410,54 @@ function setupSelection(container: HTMLElement) {
   return selection;
 }
 
+const listSentinelRef = ref<HTMLDivElement | null>(null);
+const tilesSentinelRef = ref<HTMLDivElement | null>(null);
+let listObserver: IntersectionObserver | null = null;
+let tilesObserver: IntersectionObserver | null = null;
+
+function setupObserver(
+  el: HTMLElement,
+  wrapper: HTMLElement | null,
+  onIntersect: () => void
+): IntersectionObserver {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        onIntersect();
+      }
+    },
+    {
+      root: wrapper,
+      rootMargin: '200px',
+      threshold: 0.1,
+    }
+  );
+  observer.observe(el);
+  return observer;
+}
+
 watch(
-  [listWrapperRef, tilesWrapperRef],
-  ([listWrapper, tilesWrapper]) => {
+  [listWrapperRef, tilesWrapperRef, listSentinelRef, tilesSentinelRef],
+  ([listWrapper, tilesWrapper, listSentinel, tilesSentinel]) => {
     if (listWrapper && !listSelection) {
       listSelection = setupSelection(listWrapper);
     }
     if (tilesWrapper && !tilesSelection) {
       tilesSelection = setupSelection(tilesWrapper);
+    }
+    if (listSentinel && listWrapper && !listObserver) {
+      listObserver = setupObserver(listSentinel, listWrapper, () => {
+        if (!isSearchMode.value && fileManagerStore.pagination?.hasMore) {
+          navigation.loadMoreFiles();
+        }
+      });
+    }
+    if (tilesSentinel && tilesWrapper && !tilesObserver) {
+      tilesObserver = setupObserver(tilesSentinel, tilesWrapper, () => {
+        if (!isSearchMode.value && fileManagerStore.pagination?.hasMore) {
+          navigation.loadMoreFiles();
+        }
+      });
     }
   },
   { flush: 'post' }
@@ -423,6 +468,10 @@ onUnmounted(() => {
   tilesSelection?.destroy();
   listSelection = null;
   tilesSelection = null;
+  listObserver?.disconnect();
+  tilesObserver?.disconnect();
+  listObserver = null;
+  tilesObserver = null;
 });
 </script>
 
@@ -506,6 +555,16 @@ onUnmounted(() => {
         </div>
 
         <div
+          ref="listSentinelRef"
+          class="w-full py-4 flex justify-center items-center"
+        >
+          <span
+            v-if="fileManagerStore.isLoadingMore"
+            class="loading loading-spinner loading-md text-primary"
+          />
+        </div>
+
+        <div
           v-if="isEmpty"
           class="flex flex-col items-center justify-center py-16 text-base-content/40 pointer-events-none"
         >
@@ -572,6 +631,16 @@ onUnmounted(() => {
             @click="(e) => handleItemClick(item, i, e)"
             @dblclick="() => handleItemDoubleClick(item)"
             @contextmenu="() => handleItemContextMenu(item)"
+          />
+        </div>
+
+        <div
+          ref="tilesSentinelRef"
+          class="w-full py-4 flex justify-center items-center"
+        >
+          <span
+            v-if="fileManagerStore.isLoadingMore"
+            class="loading loading-spinner loading-md text-primary"
           />
         </div>
       </div>

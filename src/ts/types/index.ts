@@ -8,3 +8,4 @@ export * from './domain/tree-node-file.type';
 export * from './domain/tree-node.type';
 export * from './domain/file-metadata.type';
 export * from './domain/trash.type';
+export * from './domain/pagination-meta.type';

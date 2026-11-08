@@ -44,6 +44,8 @@ let navigationIndex: number = -1;
 const loadingPaths = new Set<string>();
 const eventListeners: { [event in NavigationEvent]?: (() => void)[] } = {};
 let popStateInitialized = false;
+let activeSortBy: string | undefined = undefined;
+let activeSortOrder: 'asc' | 'desc' | undefined = undefined;
 
 function initPopState(
   diskStore: DiskStore,
@@ -122,7 +124,9 @@ async function fetchAndApply(
   fileManagerStore: FileManagerStore,
   treeStore: TreeStore,
   fileManager: ReturnType<typeof useFileManager>,
-  data?: PreloadedData
+  data?: PreloadedData,
+  sortBy?: string,
+  sortOrder?: 'asc' | 'desc'
 ): Promise<void> {
   if (path === '/:search') {
     fileManagerStore.setDirectoryNodes([]);
@@ -130,9 +134,12 @@ async function fetchAndApply(
     return;
   }
 
-  const { directories, files } = data ?? (await fileManager.listFiles(path));
+  const { directories, files, pagination } =
+    data
+      ? { ...data, pagination: undefined }
+      : (await fileManager.listFiles(path, 1, 50, sortBy, sortOrder));
   fileManagerStore.setDirectoryNodes(directories);
-  fileManagerStore.setFileNodes(files);
+  fileManagerStore.setFileNodes(files, pagination);
   treeStore.setNodeChildren(path, directories);
   treeStore.expandAncestors(path);
   loadAncestorsForTree(path, treeStore, fileManager);
@@ -176,7 +183,7 @@ function commitNavigation(
   updateNavigationCapabilities(fileManagerStore);
   updateDocumentTitle(path, diskStore, configStore);
   emit(event);
-  fetchAndApply(path, fileManagerStore, treeStore, fileManager).catch(() => {
+  fetchAndApply(path, fileManagerStore, treeStore, fileManager, undefined, activeSortBy, activeSortOrder).catch(() => {
     throw new NavigationError(`Error navigating to path: ${path}`);
   });
 }
@@ -212,7 +219,7 @@ export function useNavigation() {
     updateNavigationCapabilities(fileManagerStore);
     updateDocumentTitle(path, diskStore, configStore);
     emit(NavigationEvent.NavigateTo);
-    fetchAndApply(path, fileManagerStore, treeStore, fileManager, preloadedData).catch(() => {
+    fetchAndApply(path, fileManagerStore, treeStore, fileManager, preloadedData, activeSortBy, activeSortOrder).catch(() => {
       throw new NavigationError(`Error navigating to path: ${path}`);
     });
   }
@@ -232,7 +239,7 @@ export function useNavigation() {
     updateNavigationCapabilities(fileManagerStore);
     updateDocumentTitle(root, diskStore, configStore);
     emit(NavigationEvent.NavigateTo);
-    fetchAndApply(root, fileManagerStore, treeStore, fileManager).catch(() => {
+    fetchAndApply(root, fileManagerStore, treeStore, fileManager, undefined, activeSortBy, activeSortOrder).catch(() => {
       throw new NavigationError('Error navigating to root after disk switch');
     });
   }
@@ -295,10 +302,58 @@ export function useNavigation() {
   async function refreshCurrentPath(): Promise<void> {
     const currentPath = fileManagerStore.currentPath;
     try {
-      await fetchAndApply(currentPath, fileManagerStore, treeStore, fileManager);
+      await fetchAndApply(
+        currentPath,
+        fileManagerStore,
+        treeStore,
+        fileManager,
+        undefined,
+        activeSortBy,
+        activeSortOrder
+      );
     } catch {
       throw new NavigationError(`Error refreshing path: ${currentPath}`);
     }
+  }
+
+  async function loadMoreFiles(): Promise<void> {
+    if (fileManagerStore.isLoadingMore) return;
+    const pagination = fileManagerStore.pagination;
+    if (!pagination || !pagination.hasMore) return;
+
+    const currentPath = fileManagerStore.currentPath;
+    if (currentPath === '/:search') return;
+
+    fileManagerStore.setIsLoadingMore(true);
+    try {
+      const nextPage = pagination.currentPage + 1;
+      const { files, pagination: newMeta } = await fileManager.listFiles(
+        currentPath,
+        nextPage,
+        pagination.perPage,
+        activeSortBy,
+        activeSortOrder
+      );
+      fileManagerStore.appendFileNodes(files, newMeta);
+    } catch {
+      /* silent */
+    } finally {
+      fileManagerStore.setIsLoadingMore(false);
+    }
+  }
+
+  async function setSort(sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<void> {
+    activeSortBy = sortBy;
+    activeSortOrder = sortOrder;
+    await fetchAndApply(
+      fileManagerStore.currentPath,
+      fileManagerStore,
+      treeStore,
+      fileManager,
+      undefined,
+      activeSortBy,
+      activeSortOrder
+    );
   }
 
   function loadTreeNode(path: Path): void {
@@ -332,6 +387,8 @@ export function useNavigation() {
     navigateNext,
     navigatePrevious,
     refreshCurrentPath,
+    loadMoreFiles,
+    setSort,
     loadTreeNode,
     on,
   };
@@ -393,6 +450,14 @@ export class NavigationService {
 
   public refreshCurrentPath(): Promise<void> {
     return this.nav.refreshCurrentPath();
+  }
+
+  public loadMoreFiles(): Promise<void> {
+    return this.nav.loadMoreFiles();
+  }
+
+  public setSort(sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<void> {
+    return this.nav.setSort(sortBy, sortOrder);
   }
 
   public loadTreeNode(path: Path) {
