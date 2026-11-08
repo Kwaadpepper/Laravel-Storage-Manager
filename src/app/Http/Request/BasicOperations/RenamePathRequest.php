@@ -19,10 +19,8 @@ class RenamePathRequest extends RequestWithPath
     public function prepareForValidation(): void
     {
         parent::prepareForValidation();
-        $this->pathSanitizer = resolve(PathSanitizer::class);
-
-        $disk                 = $this->getDisk();
-        $this->filenamePolicy = $disk->filenamePolicy;
+        $this->pathSanitizer  = resolve(PathSanitizer::class);
+        $this->filenamePolicy = $this->getDisk()->filenamePolicy;
 
         $to = $this->string('to')->value();
 

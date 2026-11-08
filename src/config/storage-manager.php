@@ -22,6 +22,7 @@ return [
         'temp_path'          => env('STORAGE_MANAGER_UPLOAD_TEMP_PATH', null),
         'duplicate_policy'   => env('STORAGE_MANAGER_UPLOAD_DUPLICATE_POLICY', 'auto_rename'),
         'sanitize_filenames' => env('STORAGE_MANAGER_UPLOAD_SANITIZE_FILENAMES', true),
+        'lock_driver'        => env('STORAGE_MANAGER_UPLOAD_LOCK_DRIVER', 'auto'),
         'allowed_extensions' => env(
             'STORAGE_MANAGER_ALLOWED_EXTENSIONS',
             'jpg,jpeg,png,gif,webp,avif,pdf,mp4,webm,mp3,wav,ogg,txt,csv,doc,docx,xls,xlsx,zip'

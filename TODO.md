@@ -21,7 +21,7 @@
 - [x] Filename sanitization on upload (strip special chars, configurable)
 - [ ] Temporary signed download link (with configurable expiration)
 - [x] Copy file path / public URL to clipboard
-- [ ] Upload concurrency lock (atomic locks on status.json during parallel chunk uploads)
+- [x] Upload concurrency lock (atomic locks on status.json during parallel chunk uploads)
 
 ## Navigation & UX
 

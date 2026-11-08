@@ -81,7 +81,8 @@ class UploadProgressFilter extends php_user_filter
             );
             file_put_contents(
                 $this->statusFilePath,
-                json_encode($status->toArray(), JSON_THROW_ON_ERROR)
+                json_encode($status->toArray(), JSON_THROW_ON_ERROR),
+                LOCK_EX
             );
         }
     }

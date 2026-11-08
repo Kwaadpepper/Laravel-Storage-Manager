@@ -43,6 +43,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\Storage\RemoteStorageStrategy;
 use Kwaadpepper\LaravelStorageManager\Lib\Storage\S3StorageStrategy;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadPathResolver;
+use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionLock;
 use Kwaadpepper\LaravelStorageManager\Lib\Upload\UploadSessionService;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Upload\UploadId;
@@ -348,6 +349,15 @@ class StorageManagerServiceProvider extends ServiceProvider
             )
         );
         $this->app->singleton(
+            UploadSessionLock::class,
+            fn (Application $app): UploadSessionLock => new UploadSessionLock(
+                $app->make(UploadPathResolver::class),
+                $app->make(StorageManagerConfig::class),
+                $app->make(CacheRepository::class),
+                $app->make(LoggerInterface::class)
+            )
+        );
+        $this->app->singleton(
             UploadSessionService::class,
             fn (Application $app): UploadSessionService => new UploadSessionService(
                 $app->make(UploadPathResolver::class),
@@ -357,7 +367,8 @@ class StorageManagerServiceProvider extends ServiceProvider
                 $app->make(PathSanitizer::class),
                 $app->make(PathConflictResolver::class),
                 $app->make(LSMEventDispatcher::class),
-                $app->make(LoggerInterface::class)
+                $app->make(LoggerInterface::class),
+                $app->make(UploadSessionLock::class)
             )
         );
         $this->app->singleton(

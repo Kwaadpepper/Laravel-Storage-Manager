@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Config;
 
 use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
+use Kwaadpepper\LaravelStorageManager\Enum\UploadLockDriver;
 
 final readonly class UploadConfig
 {
@@ -32,6 +33,7 @@ final readonly class UploadConfig
         public bool $sanitizeFilenames,
         public array $allowedExtensions,
         public ?int $maxFileSize = null,
+        public UploadLockDriver $lockDriver = UploadLockDriver::AUTO,
     ) {
     }
 

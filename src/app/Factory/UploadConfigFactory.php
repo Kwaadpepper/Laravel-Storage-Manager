@@ -7,6 +7,7 @@ namespace Kwaadpepper\LaravelStorageManager\Factory;
 use Illuminate\Support\Arr;
 use Kwaadpepper\LaravelStorageManager\Config\UploadConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\DuplicatePolicy;
+use Kwaadpepper\LaravelStorageManager\Enum\UploadLockDriver;
 
 class UploadConfigFactory
 {
@@ -25,6 +26,11 @@ class UploadConfigFactory
             ? Arr::integer($config, 'upload.max_file_size')
             : null;
 
+        $lockDriverVal = Arr::get($config, 'upload.lock_driver');
+        $lockDriver    = is_string($lockDriverVal)
+            ? UploadLockDriver::tryFrom($lockDriverVal) ?? UploadLockDriver::AUTO
+            : UploadLockDriver::AUTO;
+
         return new UploadConfig(
             $min,
             $max,
@@ -33,7 +39,8 @@ class UploadConfigFactory
             $this->resolveDuplicatePolicy($config),
             Arr::boolean($config, 'upload.sanitize_filenames', true),
             $this->resolveAllowedExtensions($config),
-            $maxFileSize
+            $maxFileSize,
+            $lockDriver
         );
     }
 

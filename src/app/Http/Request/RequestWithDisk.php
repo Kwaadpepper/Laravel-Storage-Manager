@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Request;
 
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Service\DiskService;
 
@@ -42,8 +43,14 @@ abstract class RequestWithDisk extends ApiRequest
 
     public function getDisk(): Disk
     {
-        return $this->diskService->getDisk(
-            $this->string('disk')->value()
-        );
+        $diskName = $this->string('disk')->value();
+
+        try {
+            return $this->diskService->getDisk($diskName);
+        } catch (\InvalidArgumentException) {
+            throw ValidationException::withMessages([
+                'disk' => [(string) Lang::get('validation.in', ['attribute' => 'disk'])],
+            ]);
+        }
     }
 }

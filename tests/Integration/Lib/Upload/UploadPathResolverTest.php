@@ -55,6 +55,7 @@ describe('UploadPathResolver', function (): void {
         $uploadDir         = $pathResolver->getUploadDir($uploadId);
         $metadataPath      = $pathResolver->getMetadataPath($uploadId);
         $statusPath        = $pathResolver->getStatusPath($uploadId);
+        $lockPath          = $pathResolver->getLockPath($uploadId);
         $chunkPath         = $pathResolver->getChunkPath($uploadId, 5);
         $assembledFilePath = $pathResolver->getAssembledFilePath($uploadId);
 
@@ -63,6 +64,7 @@ describe('UploadPathResolver', function (): void {
         expect($uploadDir)->toBe($basePath . '/' . $uploadId->value);
         expect($metadataPath)->toBe($basePath . '/' . $uploadId->value . '/metadata.json');
         expect($statusPath)->toBe($basePath . '/' . $uploadId->value . '/status.json');
+        expect($lockPath)->toBe($basePath . '/' . $uploadId->value . '/status.lock');
         expect($chunkPath)->toBe($basePath . '/' . $uploadId->value . '/chunk_5');
         expect($assembledFilePath)->toBe($basePath . '/' . $uploadId->value . '/assembled_file');
     });

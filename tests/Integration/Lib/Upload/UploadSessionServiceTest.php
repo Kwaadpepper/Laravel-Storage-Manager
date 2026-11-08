@@ -45,10 +45,10 @@ describe('UploadSessionService', function (): void {
         expect($savedMetadata->uploadId->value)->toBe($uploadId->value);
     });
 
-    it('stores a chunk successfully', function (): void {
+    it('stores a chunk successfully and updates progress', function (): void {
         // GIVEN
         $uploadId = UploadId::generate();
-        $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 1, 100, CarbonImmutable::now()));
+        $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 100, CarbonImmutable::now()));
         $file = UploadedFile::fake()->createWithContent('chunk.part', 'dummy content');
 
         // WHEN
@@ -56,6 +56,10 @@ describe('UploadSessionService', function (): void {
 
         // THEN
         expect($this->sessionService->chunkExists($uploadId, 0))->toBeTrue();
+        $status = $this->sessionService->readStatus($uploadId);
+        expect($status)->not->toBeNull();
+        expect($status->status)->toBe(UploadStatus::WAITING);
+        expect($status->progress)->toBe(50);
     });
 
     it('reads and writes status correctly', function (): void {
@@ -167,11 +171,47 @@ describe('UploadSessionService', function (): void {
 
         // THEN
         expect($action)->toThrow(FileOperationException::class);
-
-        // AND the session is cleaned up
         expect($this->sessionService->sessionExists($uploadId))->toBeFalse();
-
-        // AND the original file is untouched
         expect(Storage::disk('final_disk')->get('test.txt'))->toBe('existing content');
     });
-});
+
+    it('updates status monotonically during concurrent chunk uploads', function (): void {
+        // GIVEN
+        $uploadId = UploadId::generate();
+        $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'multi.txt', 4, 400, CarbonImmutable::now()));
+
+        $chunks = [
+            2 => UploadedFile::fake()->createWithContent('chunk2.part', 'chunk 2'),
+            0 => UploadedFile::fake()->createWithContent('chunk0.part', 'chunk 0'),
+            3 => UploadedFile::fake()->createWithContent('chunk3.part', 'chunk 3'),
+            1 => UploadedFile::fake()->createWithContent('chunk1.part', 'chunk 1'),
+        ];
+
+        // WHEN
+        foreach ($chunks as $index => $file) {
+            $this->sessionService->storeChunk($uploadId, $index, $file);
+        }
+
+        // THEN
+        $status = $this->sessionService->readStatus($uploadId);
+        expect($status)->not->toBeNull();
+        expect($status->status)->toBe(UploadStatus::WAITING);
+        expect($status->progress)->toBe(100);
+    });
+
+    it('does not overwrite non-waiting status during late chunk progress update', function (): void {
+        // GIVEN
+        $uploadId = UploadId::generate();
+        $this->sessionService->createSession($uploadId, new UploadMetadata($uploadId, 'test.txt', 2, 200, CarbonImmutable::now()));
+        $this->sessionService->writeStatus($uploadId, UploadStatus::ASSEMBLING, 50);
+
+        // WHEN
+        $this->sessionService->updateChunkProgress($uploadId);
+
+        // THEN
+        $status = $this->sessionService->readStatus($uploadId);
+        expect($status)->not->toBeNull();
+        expect($status->status)->toBe(UploadStatus::ASSEMBLING);
+        expect($status->progress)->toBe(50);
+    });
+})->covers(UploadSessionService::class);

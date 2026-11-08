@@ -16,6 +16,8 @@ class UploadPathResolver
 
     private const string STATUS_FILE = 'status.json';
 
+    private const string LOCK_FILE = 'status.lock';
+
     private const string ASSEMBLED_FILE = 'assembled_file';
 
     public function __construct(
@@ -59,6 +61,11 @@ class UploadPathResolver
     public function getStatusPath(UploadId $uploadId): string
     {
         return $this->getUploadDir($uploadId) . '/' . self::STATUS_FILE;
+    }
+
+    public function getLockPath(UploadId $uploadId): string
+    {
+        return $this->getUploadDir($uploadId) . '/' . self::LOCK_FILE;
     }
 
     public function getChunkPath(UploadId $uploadId, int $chunkIndex): string

@@ -43,6 +43,7 @@ class UploadSessionService
         private readonly PathConflictResolver $pathConflictResolver,
         private readonly EventDispatcher $eventDispatcher,
         private readonly LoggerInterface $logger,
+        private readonly UploadSessionLock $sessionLock,
     ) {
     }
 
@@ -90,6 +91,37 @@ class UploadSessionService
             $file,
             'chunk_' . $chunkIndex
         );
+
+        $this->updateChunkProgress($uploadId);
+    }
+
+    public function updateChunkProgress(UploadId $uploadId): void
+    {
+        $this->sessionLock->acquire($uploadId, function () use ($uploadId): void {
+            $metadata = $this->readMetadata($uploadId);
+            if (! $metadata instanceof UploadMetadata || $metadata->totalChunks <= 0) {
+                return;
+            }
+
+            $currentStatus = $this->readStatus($uploadId);
+            if ($currentStatus !== null && $currentStatus->status !== UploadStatus::WAITING) {
+                return;
+            }
+
+            $disk     = $this->pathResolver->getDisk();
+            $dir      = $this->pathResolver->getUploadDir($uploadId);
+            $files    = $disk->files($dir);
+            $chunks   = array_filter(
+                $files,
+                static fn (string $f): bool => str_starts_with(basename($f), 'chunk_')
+            );
+            $count            = count($chunks);
+            $progress         = min(100, (int) round(($count / $metadata->totalChunks) * 100));
+            $existingProgress = $currentStatus instanceof UploadSessionStatus ? $currentStatus->progress : 0;
+            $progress         = max($existingProgress, $progress);
+
+            $this->performWriteStatus($uploadId, UploadStatus::WAITING, $progress);
+        });
     }
 
     public function chunkExists(UploadId $uploadId, int $chunkIndex): bool
@@ -119,12 +151,25 @@ class UploadSessionService
 
     public function writeStatus(UploadId $uploadId, UploadStatus $status, int $progress): void
     {
+        $this->sessionLock->acquire($uploadId, function () use ($uploadId, $status, $progress): void {
+            $this->performWriteStatus($uploadId, $status, $progress);
+        });
+    }
+
+    private function performWriteStatus(UploadId $uploadId, UploadStatus $status, int $progress): void
+    {
         $disk          = $this->pathResolver->getDisk();
         $sessionStatus = new UploadSessionStatus($status, $progress);
-        $disk->put(
-            $this->pathResolver->getStatusPath($uploadId),
-            json_encode($sessionStatus->toArray(), JSON_THROW_ON_ERROR)
-        );
+        $path          = $this->pathResolver->getStatusPath($uploadId);
+        $tempPath      = $path . '.tmp.' . bin2hex(random_bytes(4));
+        $content       = json_encode($sessionStatus->toArray(), JSON_THROW_ON_ERROR);
+
+        try {
+            $disk->put($tempPath, $content);
+            $disk->move($tempPath, $path);
+        } catch (\Throwable) {
+            $disk->put($path, $content);
+        }
     }
 
     public function deleteSession(UploadId $uploadId): void
