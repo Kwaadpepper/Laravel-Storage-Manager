@@ -143,4 +143,20 @@ describe('RemoteStorageStrategy', function (): void {
         expect(Storage::disk('ftp')->exists('f_moved.txt'))->toBeTrue();
         expect(Storage::disk('ftp')->exists('ftp_dir_moved/f.txt'))->toBeTrue();
     });
+
+    it('lists directory contents with attributes and reports optimistic subdirectories', function (): void {
+        // GIVEN
+        Storage::disk('ftp')->put('remote_folder/file.txt', 'remote content');
+        $strategy = resolve(RemoteStorageStrategy::class);
+        $disk     = new Disk('ftp', 'ftp');
+
+        // WHEN
+        $listing           = $strategy->listContents($disk, 'remote_folder');
+        $hasSubdirectories = $strategy->hasSubdirectories($disk, 'remote_folder');
+
+        // THEN
+        expect($listing)->toBeArray();
+        expect($listing)->not->toBeEmpty();
+        expect($hasSubdirectories)->toBeTrue();
+    });
 })->covers(RemoteStorageStrategy::class);

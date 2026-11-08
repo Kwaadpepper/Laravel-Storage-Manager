@@ -25,6 +25,16 @@ final class Disk
         }
     }
 
+    public function isLocal(): bool
+    {
+        return $this->driver === 'local';
+    }
+
+    public function isRemote(): bool
+    {
+        return $this->driver !== 'local';
+    }
+
     /**
      * @throws FileOperationException
      */

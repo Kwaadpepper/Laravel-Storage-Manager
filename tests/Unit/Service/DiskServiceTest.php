@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
@@ -133,5 +134,50 @@ describe('DiskService', function (): void {
 
         // THEN
         expect(true)->toBeTrue();
+    });
+
+    it('returns cached used bytes when available in calculateDiskUsedBytes', function (): void {
+        // GIVEN
+        Cache::put('sm_disk_usage_s3', 42000, 3600);
+        $diskService = resolve(DiskService::class);
+        $disk        = new Disk('s3', 's3');
+
+        // WHEN
+        $bytes = $diskService->calculateDiskUsedBytes($disk);
+
+        // THEN
+        expect($bytes)->toBe(42000);
+    });
+
+    it('safely falls back to unlimited mode on remote disk with quota when usage is not cached and realtime usage is disabled', function (): void {
+        // GIVEN
+        Cache::forget('sm_disk_usage_s3');
+        Config::set('storage-manager.stats.quotas.s3', 500000);
+        Config::set('storage-manager.stats.realtime_remote_usage', false);
+        App::forgetInstance(StorageManagerConfig::class);
+        App::forgetInstance(DiskService::class);
+        $diskService = resolve(DiskService::class);
+        $disk        = new Disk('s3', 's3');
+
+        // WHEN
+        $stats = $diskService->getDiskStats($disk);
+
+        // THEN
+        expect($stats->mode)->toBe('unlimited');
+        expect($stats->used)->toBeNull();
+        expect($stats->total)->toBe(500000);
+    });
+
+    it('clears disk usage cache via clearDiskUsageCache', function (): void {
+        // GIVEN
+        Cache::put('sm_disk_usage_local', 1234, 3600);
+        $diskService = resolve(DiskService::class);
+        $disk        = new Disk('local', 'local');
+
+        // WHEN
+        $diskService->clearDiskUsageCache($disk);
+
+        // THEN
+        expect(Cache::has('sm_disk_usage_local'))->toBeFalse();
     });
 })->covers(DiskService::class);

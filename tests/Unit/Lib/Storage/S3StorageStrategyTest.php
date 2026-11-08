@@ -123,4 +123,21 @@ describe('S3StorageStrategy', function (): void {
         expect(Storage::disk('s3')->exists('s3_moved.txt'))->toBeTrue();
         expect(Storage::disk('s3')->exists('s3_dir_moved/f.txt'))->toBeTrue();
     });
+
+    it('lists directory contents with attributes in batch and reports optimistic subdirectories', function (): void {
+        // GIVEN
+        Storage::disk('s3')->put('folder/sample.txt', 'sample s3 content');
+        Storage::disk('s3')->makeDirectory('folder/sub');
+        $strategy = resolve(S3StorageStrategy::class);
+        $disk     = new Disk('s3', 's3');
+
+        // WHEN
+        $listing           = $strategy->listContents($disk, 'folder');
+        $hasSubdirectories = $strategy->hasSubdirectories($disk, 'folder/sub');
+
+        // THEN
+        expect($listing)->toBeArray();
+        expect($listing)->not->toBeEmpty();
+        expect($hasSubdirectories)->toBeTrue();
+    });
 })->covers(S3StorageStrategy::class);

@@ -49,4 +49,23 @@ describe('GetPathTreeQuery', function (): void {
         expect($result->directories[0]->path->value)->toBe('/sub');
         expect($result->files[0]->path->value)->toBe('/file.txt');
     });
+
+    it('populates file and directory properties from batch listing without individual queries', function (): void {
+        // GIVEN
+        Storage::disk('local')->put('photos/beach.png', str_repeat('P', 256));
+        Storage::disk('local')->makeDirectory('photos/vacation');
+        $disk   = new Disk('local', 'local');
+        $query  = resolve(GetPathTreeQuery::class);
+        $input  = new GetPathTreeInput($disk, new Path('/photos'));
+
+        // WHEN
+        $result = $query($input);
+
+        // THEN
+        expect($result->directories)->toHaveCount(1);
+        expect($result->files)->toHaveCount(1);
+        expect($result->files[0]->size)->toBe(256);
+        expect($result->files[0]->extension)->toBe('png');
+        expect($result->directories[0]->path->value)->toBe('/photos/vacation');
+    });
 })->covers(GetPathTreeQuery::class);

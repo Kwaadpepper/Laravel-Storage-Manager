@@ -27,6 +27,20 @@ class StatsConfigFactory
             }
         }
 
-        return new StatsConfig($enabled, $statsCacheDuration, $quotas);
+        $realtimeRemoteUsage = Arr::boolean($config, 'stats.realtime_remote_usage', false);
+
+        $usageCacheDuration = Arr::get($config, 'stats.usage_cache_duration', 86400);
+        $usageCacheDuration = is_int($usageCacheDuration) && $usageCacheDuration >= 0 ? $usageCacheDuration : 86400;
+
+        $scheduleUsageCalculation = Arr::boolean($config, 'stats.schedule_usage_calculation', true);
+
+        return new StatsConfig(
+            $enabled,
+            $statsCacheDuration,
+            $quotas,
+            $realtimeRemoteUsage,
+            $usageCacheDuration,
+            $scheduleUsageCalculation
+        );
     }
 }

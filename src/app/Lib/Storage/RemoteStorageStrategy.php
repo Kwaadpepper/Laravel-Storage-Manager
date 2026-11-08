@@ -345,6 +345,28 @@ readonly class RemoteStorageStrategy implements StorageDriverStrategy
         );
     }
 
+    #[\Override]
+    /**
+     * @return list<\League\Flysystem\StorageAttributes> | FileOperationException
+     */
+    public function listContents(Disk $disk, string $directory): array | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $relDir  = $directory === '' ? '' : ltrim($this->pathNormalizer->normalizePath($directory), '/');
+
+            return array_values(iterator_to_array($storage->getDriver()->listContents($relDir, false)));
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function hasSubdirectories(Disk $disk, string $path): bool
+    {
+        return true;
+    }
+
     private function getAdapter(Disk $disk): FilesystemAdapter
     {
         $storage = $this->filesystemFactory->disk($disk->name);

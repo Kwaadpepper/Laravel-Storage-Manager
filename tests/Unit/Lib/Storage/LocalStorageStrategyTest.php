@@ -145,4 +145,23 @@ describe('LocalStorageStrategy', function (): void {
         expect(Storage::disk('local')->exists('moved.txt'))->toBeTrue();
         expect(Storage::disk('local')->exists('moved_dir/inner.txt'))->toBeTrue();
     });
+
+    it('lists contents in batch and checks subdirectories', function (): void {
+        // GIVEN
+        Storage::disk('local')->put('batch_test/test.txt', 'batch content');
+        Storage::disk('local')->makeDirectory('batch_test/inner');
+        $strategy = resolve(LocalStorageStrategy::class);
+        $disk     = new Disk('local', 'local');
+
+        // WHEN
+        $listing      = $strategy->listContents($disk, 'batch_test');
+        $hasSubdirs   = $strategy->hasSubdirectories($disk, 'batch_test');
+        $emptySubdirs = $strategy->hasSubdirectories($disk, 'batch_test/inner');
+
+        // THEN
+        expect($listing)->toBeArray();
+        expect($listing)->not->toBeEmpty();
+        expect($hasSubdirs)->toBeTrue();
+        expect($emptySubdirs)->toBeFalse();
+    });
 })->covers(LocalStorageStrategy::class);

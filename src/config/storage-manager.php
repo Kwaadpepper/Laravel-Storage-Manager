@@ -59,9 +59,12 @@ return [
     ],
 
     'stats' => [
-        'enabled'        => filter_var(env('STORAGE_MANAGER_STATS_ENABLED', true), FILTER_VALIDATE_BOOL),
-        'cache_duration' => (int) env('STORAGE_MANAGER_STATS_CACHE_DURATION', 60),
-        'quotas'         => [
+        'enabled'                     => filter_var(env('STORAGE_MANAGER_STATS_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'cache_duration'              => (int) env('STORAGE_MANAGER_STATS_CACHE_DURATION', 60),
+        'realtime_remote_usage'       => filter_var(env('STORAGE_MANAGER_STATS_REALTIME_REMOTE_USAGE', false), FILTER_VALIDATE_BOOL),
+        'usage_cache_duration'        => (int) env('STORAGE_MANAGER_STATS_USAGE_CACHE_DURATION', 86400),
+        'schedule_usage_calculation'  => filter_var(env('STORAGE_MANAGER_STATS_SCHEDULE_USAGE_CALCULATION', true), FILTER_VALIDATE_BOOL),
+        'quotas'                      => [
             // 'local' => 10 * 1024 * 1024 * 1024,
         ],
     ],

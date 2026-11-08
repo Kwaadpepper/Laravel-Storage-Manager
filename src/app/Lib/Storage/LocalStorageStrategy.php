@@ -15,6 +15,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\DiskStorageStats;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use League\Flysystem\FileAttributes;
+use League\Flysystem\StorageAttributes;
 use Psr\Log\LoggerInterface;
 use Webmozart\Assert\Assert;
 
@@ -298,6 +299,59 @@ readonly class LocalStorageStrategy implements StorageDriverStrategy
             used: $used,
             percentage: null,
         );
+    }
+
+    #[\Override]
+    /**
+     * @return list<StorageAttributes> | FileOperationException
+     */
+    public function listContents(Disk $disk, string $directory): array | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $relDir  = $directory === '' ? '' : ltrim($this->pathNormalizer->normalizePath($directory), '/');
+
+            return array_values(iterator_to_array($storage->getDriver()->listContents($relDir, false)));
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function hasSubdirectories(Disk $disk, string $path): bool
+    {
+        try {
+            $storage       = $this->getAdapter($disk);
+            $normalized    = $this->pathNormalizer->normalizePath($path);
+            $relPath       = $normalized === '/' ? '' : ltrim($normalized, '/');
+            $fullLocalPath = $storage->path($relPath);
+
+            if (! is_dir($fullLocalPath)) {
+                return false;
+            }
+
+            $handle = opendir($fullLocalPath);
+            if ($handle === false) {
+                return false;
+            }
+
+            try {
+                while (($entry = readdir($handle)) !== false) {
+                    if ($entry === '.' || $entry === '..') {
+                        continue;
+                    }
+                    if (is_dir($fullLocalPath . DIRECTORY_SEPARATOR . $entry)) {
+                        return true;
+                    }
+                }
+            } finally {
+                closedir($handle);
+            }
+
+            return false;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function getAdapter(Disk $disk): FilesystemAdapter

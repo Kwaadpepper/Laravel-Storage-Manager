@@ -16,6 +16,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\DiskStorageStats;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use League\Flysystem\FileAttributes;
+use League\Flysystem\StorageAttributes;
 use Psr\Log\LoggerInterface;
 use Webmozart\Assert\Assert;
 
@@ -299,6 +300,28 @@ readonly class S3StorageStrategy implements StorageDriverStrategy
     public function getDiskStats(Disk $disk): DiskStorageStats | FileOperationException
     {
         return new DiskStorageStats(mode: 'unlimited');
+    }
+
+    #[\Override]
+    /**
+     * @return list<StorageAttributes> | FileOperationException
+     */
+    public function listContents(Disk $disk, string $directory): array | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $relDir  = $directory === '' ? '' : ltrim($this->pathNormalizer->normalizePath($directory), '/');
+
+            return array_values(iterator_to_array($storage->getDriver()->listContents($relDir, false)));
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function hasSubdirectories(Disk $disk, string $path): bool
+    {
+        return true;
     }
 
     private function getAdapter(Disk $disk): FilesystemAdapter

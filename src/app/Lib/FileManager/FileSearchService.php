@@ -7,18 +7,19 @@ namespace Kwaadpepper\LaravelStorageManager\Lib\FileManager;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
-use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\DirectoryPathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathVisibility;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeDirectory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Tree\PathTreeFile;
+use League\Flysystem\DirectoryAttributes;
+use League\Flysystem\FileAttributes;
 use Psr\Log\LoggerInterface;
 
 readonly class FileSearchService
 {
     public function __construct(
         private PathNormalizer $pathNormalizer,
-        private FilePropertyExtractor $filePropertyExtractor,
         private StorageGateway $storageGateway,
         private StorageManagerConfig $config,
         private LoggerInterface $logger,
@@ -62,11 +63,11 @@ readonly class FileSearchService
             }
 
             $scannedDirs[$directory] = true;
-            $entries                 = $this->listCleanDirectoryEntries($disk, $directory);
+            $cleanContents           = $this->listCleanContents($disk, $directory);
 
             $this->processDirectories(
                 $disk,
-                $entries['directories'],
+                $cleanContents['directories'],
                 $lowercasedQuery,
                 $hasFileSpecificFilters,
                 $directoriesToScan,
@@ -75,7 +76,7 @@ readonly class FileSearchService
 
             $this->processFiles(
                 $disk,
-                $entries['files'],
+                $cleanContents['files'],
                 $lowercasedQuery,
                 $lowercasedExtension,
                 $minSize,
@@ -88,7 +89,7 @@ readonly class FileSearchService
     }
 
     /**
-     * @param  list<string>  $directories
+     * @param  list<DirectoryAttributes>  $directories
      * @param  list<Path>  $directoriesToScan
      * @param  list<PathTreeDirectory>  $matchedDirectories
      */
@@ -100,8 +101,9 @@ readonly class FileSearchService
         array &$directoriesToScan,
         array &$matchedDirectories,
     ): void {
-        foreach ($directories as $dir) {
-            $path                = new Path($dir);
+        foreach ($directories as $dirAttr) {
+            $normalized          = $this->pathNormalizer->normalizePath($dirAttr->path());
+            $path                = new Path($normalized);
             $directoriesToScan[] = $path;
 
             if ($hasFileSpecificFilters) {
@@ -112,20 +114,19 @@ readonly class FileSearchService
                 continue;
             }
 
-            $properties = $this->filePropertyExtractor->directoryProperties($disk, $path);
+            $visibilityStr = $dirAttr->visibility();
+            $visibility    = $visibilityStr !== null ? PathVisibility::tryFrom($visibilityStr) : null;
 
-            if ($properties instanceof DirectoryPathProperties) {
-                $matchedDirectories[] = new PathTreeDirectory(
-                    $path,
-                    $this->hasSubdirectories((string) $path, $disk),
-                    $properties->visibility
-                );
-            }
+            $matchedDirectories[] = new PathTreeDirectory(
+                $path,
+                $this->hasSubdirectories((string) $path, $disk),
+                $visibility
+            );
         }
     }
 
     /**
-     * @param  list<string>  $files
+     * @param  list<FileAttributes>  $files
      * @param  list<PathTreeFile>  $matchedFiles
      */
     private function processFiles(
@@ -137,34 +138,34 @@ readonly class FileSearchService
         ?int $maxSize,
         array &$matchedFiles,
     ): void {
-        foreach ($files as $file) {
-            $path = new Path($file);
+        foreach ($files as $fileAttr) {
+            $normalized = $this->pathNormalizer->normalizePath($fileAttr->path());
+            $path       = new Path($normalized);
 
-            if (! $this->isExtensionMatching($file, $lowercasedExtension)) {
+            if (! $this->isExtensionMatching($normalized, $lowercasedExtension)) {
                 continue;
             }
 
-            if (! $this->isNameMatchingQuery($file, $lowercasedQuery)) {
+            if (! $this->isNameMatchingQuery($normalized, $lowercasedQuery)) {
                 continue;
             }
 
-            $properties = $this->filePropertyExtractor->fileProperties($disk, $path);
+            $size = $fileAttr->fileSize() ?? 0;
 
-            if (! ($properties instanceof FilePathProperties)) {
+            if (! $this->isSizeMatching($size, $minSize, $maxSize)) {
                 continue;
             }
 
-            if (! $this->isSizeMatching($properties->size, $minSize, $maxSize)) {
-                continue;
-            }
-
-            $publicUrl = $this->storageGateway->publicUrl($disk, $path);
+            $extension     = pathinfo($normalized, PATHINFO_EXTENSION);
+            $visibilityStr = $fileAttr->visibility();
+            $visibility    = $visibilityStr !== null ? PathVisibility::tryFrom($visibilityStr) : null;
+            $publicUrl     = $this->storageGateway->publicUrl($disk, $path);
 
             $matchedFiles[] = new PathTreeFile(
                 $path,
-                $properties->size,
-                $properties->extension,
-                $properties->visibility,
+                $size,
+                $extension,
+                $visibility,
                 $publicUrl
             );
         }
@@ -254,6 +255,10 @@ readonly class FileSearchService
 
     private function hasSubdirectories(string $path, Disk $disk): bool
     {
+        if (! $disk->isLocal()) {
+            return $this->storageGateway->hasSubdirectories($disk, new Path($path));
+        }
+
         $directories = $this->storageGateway->directories($disk, $path);
 
         return ! empty(array_filter(
@@ -263,25 +268,28 @@ readonly class FileSearchService
     }
 
     /**
-     * @return array{directories: list<string>, files: list<string>}
+     * @return array{directories: list<DirectoryAttributes>, files: list<FileAttributes>}
      */
-    private function listCleanDirectoryEntries(Disk $disk, string $directory): array
+    private function listCleanContents(Disk $disk, string $directory): array
     {
-        $rawDirectories = $this->storageGateway->directories($disk, $directory);
-        $rawFiles       = $this->storageGateway->files($disk, $directory);
+        $allAttributes = $this->storageGateway->listContents($disk, $directory);
 
-        $directories = array_map(
-            fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
-            $rawDirectories
-        );
+        $directories = [];
+        $files       = [];
 
-        $files = array_map(
-            fn (string $file): string => $this->pathNormalizer->normalizePath($file),
-            $rawFiles
-        );
+        foreach ($allAttributes as $attributes) {
+            $normalized = $this->pathNormalizer->normalizePath($attributes->path());
 
-        $directories = array_values(array_filter($directories, fn (string $dir): bool => ! $this->isTrashPath($dir)));
-        $files       = array_values(array_filter($files, fn (string $file): bool => ! $this->isTrashPath($file)));
+            if ($this->isTrashPath($normalized)) {
+                continue;
+            }
+
+            if ($attributes instanceof DirectoryAttributes) {
+                $directories[] = $attributes;
+            } elseif ($attributes instanceof FileAttributes) {
+                $files[] = $attributes;
+            }
+        }
 
         return [
             'directories' => $directories,

@@ -12,7 +12,10 @@ final readonly class StatsConfig
     public function __construct(
         public bool $enabled,
         public int $cacheDuration,
-        public array $quotas
+        public array $quotas,
+        public bool $realtimeRemoteUsage = false,
+        public int $usageCacheDuration = 86400,
+        public bool $scheduleUsageCalculation = true,
     ) {
     }
 

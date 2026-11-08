@@ -96,9 +96,34 @@ class DiskService
         $this->cache->forget("sm_disk_stats_{$disk->name}");
     }
 
-    public function calculateDiskUsedBytes(Disk $disk): int
+    public function clearDiskUsageCache(Disk $disk): void
     {
-        return $this->storageGateway->calculateDiskUsedBytes($disk);
+        $this->cache->forget("sm_disk_usage_{$disk->name}");
+    }
+
+    public function calculateDiskUsedBytes(Disk $disk, bool $fresh = false): int
+    {
+        $cacheKey = "sm_disk_usage_{$disk->name}";
+
+        if (! $fresh) {
+            $cached = $this->cache->get($cacheKey);
+            if (is_int($cached) && $cached >= 0) {
+                return $cached;
+            }
+        }
+
+        if ($disk->isRemote() && ! $this->config->stats->realtimeRemoteUsage && ! $fresh) {
+            return 0;
+        }
+
+        $used = $this->storageGateway->calculateDiskUsedBytes($disk);
+
+        $ttl = $this->config->stats->usageCacheDuration;
+        if ($ttl > 0) {
+            $this->cache->put($cacheKey, $used, $ttl);
+        }
+
+        return $used;
     }
 
     private function computeDiskStats(Disk $disk): DiskStatsDto
@@ -106,6 +131,23 @@ class DiskService
         $quota = $this->config->stats->getDiskQuota($disk->name);
 
         if ($quota !== null) {
+            $cacheKey = "sm_disk_usage_{$disk->name}";
+            $hasCache = $this->cache->has($cacheKey);
+            $isRemote = $disk->isRemote();
+
+            if ($isRemote && ! $this->config->stats->realtimeRemoteUsage && ! $hasCache) {
+                return new DiskStatsDto(
+                    disk: $disk->name,
+                    driver: $disk->driver,
+                    supported: true,
+                    total: $quota,
+                    free: null,
+                    used: null,
+                    percentage: null,
+                    mode: 'unlimited',
+                );
+            }
+
             $used       = $this->calculateDiskUsedBytes($disk);
             $free       = max(0, $quota - $used);
             $percentage = $quota > 0 ? round(($used / $quota) * 100, 1) : 0.0;

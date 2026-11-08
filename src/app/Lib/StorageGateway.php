@@ -23,6 +23,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathPropertyFactory;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\ResolvedFile;
+use League\Flysystem\StorageAttributes;
 use Psr\Log\LoggerInterface;
 
 readonly class StorageGateway
@@ -166,6 +167,41 @@ readonly class StorageGateway
         $directories = $this->disk($disk)->directories($relDir);
 
         return $directories;
+    }
+
+    /**
+     * @return list<StorageAttributes>
+     *
+     * @throws FileOperationException
+     * @throws StorageConnectionException
+     */
+    public function listContents(Disk $disk, string $directory = ''): array
+    {
+        $relDir = $directory === '' ? '' : ltrim($this->pathNormalizer->normalizePath($directory), '/');
+        $this->logger->debug('Listing contents with attributes', ['disk' => $disk->name, 'directory' => $relDir]);
+
+        $result = $this->strategyFor($disk)->listContents($disk, $relDir);
+
+        if ($result instanceof FileOperationException) {
+            if ($result->getDomainErrorCode() === FileOperationError::FILE_NOT_FOUND) {
+                return [];
+            }
+
+            $this->logger->error('Failed to list directory contents', [
+                'disk'      => $disk->name,
+                'directory' => $relDir,
+                'exception' => $result,
+            ]);
+
+            throw $result;
+        }
+
+        return $result;
+    }
+
+    public function hasSubdirectories(Disk $disk, Path $path): bool
+    {
+        return $this->strategyFor($disk)->hasSubdirectories($disk, $path->value);
     }
 
     /**

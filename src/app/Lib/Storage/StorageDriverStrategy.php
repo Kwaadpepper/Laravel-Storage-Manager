@@ -8,6 +8,7 @@ use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\DiskStorageStats;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
+use League\Flysystem\StorageAttributes;
 
 interface StorageDriverStrategy
 {
@@ -75,4 +76,16 @@ interface StorageDriverStrategy
      * Retrieve the driver-level disk space and capacity statistics.
      */
     public function getDiskStats(Disk $disk): DiskStorageStats | FileOperationException;
+
+    /**
+     * List contents of a directory with attributes in a single operation.
+     *
+     * @return list<StorageAttributes> | FileOperationException
+     */
+    public function listContents(Disk $disk, string $directory): array | FileOperationException;
+
+    /**
+     * Determine whether a directory has subdirectories without heavy overhead.
+     */
+    public function hasSubdirectories(Disk $disk, string $path): bool;
 }

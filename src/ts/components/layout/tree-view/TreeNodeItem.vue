@@ -23,11 +23,12 @@ const emit = defineEmits<{
 
 const isExpanded = computed(() => props.nodeState?.expanded ?? false);
 const isActive = computed(() => props.currentPath === props.directory.path);
-const hasChildren = computed(
-  () =>
-    props.directory.hasSubDirectories ||
-    (props.nodeState?.loaded === true && props.nodeState.children.length > 0)
-);
+const hasChildren = computed(() => {
+  if (props.nodeState?.loaded === true) {
+    return props.nodeState.children.length > 0;
+  }
+  return props.directory.hasSubDirectories;
+});
 </script>
 
 <template>

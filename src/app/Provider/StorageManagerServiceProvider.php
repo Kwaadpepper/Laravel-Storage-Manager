@@ -22,6 +22,7 @@ use Illuminate\Support\ServiceProvider;
 use Kwaadpepper\LaravelStorageManager\Acl\AclManager;
 use Kwaadpepper\LaravelStorageManager\ActivityLog\ActivityLogger;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
+use Kwaadpepper\LaravelStorageManager\Console\Commands\CalculateDiskUsage;
 use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanOrphanedUploads;
 use Kwaadpepper\LaravelStorageManager\Console\Commands\CleanTrash;
 use Kwaadpepper\LaravelStorageManager\Contract\Executor;
@@ -91,12 +92,19 @@ class StorageManagerServiceProvider extends ServiceProvider
             $this->commands([
                 CleanOrphanedUploads::class,
                 CleanTrash::class,
+                CalculateDiskUsage::class,
             ]);
 
             $this->app->booted(function (): void {
-                $schedule = $this->app->make(Schedule::class);
+                $schedule             = $this->app->make(Schedule::class);
+                $storageManagerConfig = $this->app->make(StorageManagerConfig::class);
+
                 $schedule->command('sm:clean-orphaned-uploads')->daily();
                 $schedule->command('sm:clean-trash')->daily();
+
+                if ($storageManagerConfig->stats->enabled && $storageManagerConfig->stats->scheduleUsageCalculation) {
+                    $schedule->command('sm:calculate-disk-usage')->daily();
+                }
             });
         }
     }
@@ -220,7 +228,6 @@ class StorageManagerServiceProvider extends ServiceProvider
             FileSearchService::class,
             fn (Application $app): FileSearchService => new FileSearchService(
                 $app->make(PathNormalizer::class),
-                $app->make(FilePropertyExtractor::class),
                 $app->make(StorageGateway::class),
                 $app->make(StorageManagerConfig::class),
                 $app->make(LoggerInterface::class)
