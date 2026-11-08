@@ -16,7 +16,6 @@ export class HttpClient {
   readonly #defautlHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'Accept-Language': 'fr',
   }
 
   readonly #endpointHost: URL

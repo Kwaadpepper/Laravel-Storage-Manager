@@ -34,4 +34,28 @@ describe('FileManagerView', function (): void {
         // THEN
         expect($rendered)->not->toContain('nonce=');
     });
+
+    it('injects english translations when locale is en', function (): void {
+        // GIVEN
+        App::setLocale('en');
+
+        // WHEN
+        $rendered = View::make('storage-manager::file-manager')->render();
+
+        // THEN
+        expect($rendered)->toContain('"locale":"en"');
+        expect($rendered)->toContain('Reload');
+    });
+
+    it('injects french translations when locale is fr', function (): void {
+        // GIVEN
+        App::setLocale('fr');
+
+        // WHEN
+        $rendered = View::make('storage-manager::file-manager')->render();
+
+        // THEN
+        expect($rendered)->toContain('"locale":"fr"');
+        expect($rendered)->toContain('Actualiser');
+    });
 })->covers(StorageManagerServiceProvider::class);

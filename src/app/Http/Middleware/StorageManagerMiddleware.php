@@ -6,6 +6,7 @@ namespace Kwaadpepper\LaravelStorageManager\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Service\ApiService;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,6 +14,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class StorageManagerMiddleware
 {
+    private const array SUPPORTED_LOCALES = ['en', 'fr'];
+
     public function __construct(
         private readonly ApiService $apiService,
         private readonly StorageManagerConfig $config
@@ -30,6 +33,8 @@ final class StorageManagerMiddleware
             throw new HttpException(403, 'Forbidden');
         }
 
+        App::setLocale($this->resolveLocale($request));
+
         $nonce = $this->config->frontend->getCspNonce();
         if ($nonce === null) {
             $nonce = base64_encode(random_bytes(16));
@@ -38,6 +43,42 @@ final class StorageManagerMiddleware
 
         $response = $next($request);
 
+        $csp = $this->buildCspHeader($nonce);
+
+        if (! $response->headers->has('Permissions-Policy')) {
+            $response->headers->set(
+                'Permissions-Policy',
+                'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'
+            );
+        }
+
+        if (! $response->headers->has('Content-Security-Policy')) {
+            $response->headers->set('Content-Security-Policy', $csp);
+        }
+
+        if (! $response->headers->has('X-Content-Type-Options')) {
+            $response->headers->set('X-Content-Type-Options', 'nosniff');
+        }
+
+        if (! $response->headers->has('Referrer-Policy')) {
+            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        }
+
+        return $response;
+    }
+
+    private function resolveLocale(Request $request): string
+    {
+        $requestedLang = $request->input('lang');
+        if (is_string($requestedLang) && in_array(strtolower($requestedLang), self::SUPPORTED_LOCALES, true)) {
+            return strtolower($requestedLang);
+        }
+
+        return $request->getPreferredLanguage(self::SUPPORTED_LOCALES) ?? 'en';
+    }
+
+    private function buildCspHeader(string $nonce): string
+    {
         $devOrigin = '';
         $devWs     = '';
 
@@ -64,27 +105,6 @@ final class StorageManagerMiddleware
             "frame-ancestors 'self'",
         ];
 
-        $csp = implode('; ', $cspDirectives);
-
-        if (! $response->headers->has('Permissions-Policy')) {
-            $response->headers->set(
-                'Permissions-Policy',
-                'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)'
-            );
-        }
-
-        if (! $response->headers->has('Content-Security-Policy')) {
-            $response->headers->set('Content-Security-Policy', $csp);
-        }
-
-        if (! $response->headers->has('X-Content-Type-Options')) {
-            $response->headers->set('X-Content-Type-Options', 'nosniff');
-        }
-
-        if (! $response->headers->has('Referrer-Policy')) {
-            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        }
-
-        return $response;
+        return implode('; ', $cspDirectives);
     }
 }

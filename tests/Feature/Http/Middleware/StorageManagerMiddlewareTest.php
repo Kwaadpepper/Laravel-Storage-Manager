@@ -71,4 +71,69 @@ describe('StorageManagerMiddleware', function (): void {
         expect($response->headers->get('Referrer-Policy'))
             ->toBe('strict-origin-when-cross-origin');
     });
+
+    it('defaults to English when no preferred language is sent', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        $url = '/sm';
+
+        // WHEN
+        $response = $this->get($url);
+
+        // THEN
+        $response->assertStatus(200);
+        expect(App::getLocale())->toBe('en');
+    });
+
+    it('uses preferred language from Accept-Language header when french is requested', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        $url = '/sm';
+
+        // WHEN
+        $response = $this->withHeaders(['Accept-Language' => 'fr-FR,fr;q=0.9,en;q=0.8'])->get($url);
+
+        // THEN
+        $response->assertStatus(200);
+        expect(App::getLocale())->toBe('fr');
+    });
+
+    it('switches to french when lang parameter is explicitly requested in query', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        $url = '/sm?lang=fr';
+
+        // WHEN
+        $response = $this->withHeaders(['Accept-Language' => 'en-US,en;q=0.9'])->get($url);
+
+        // THEN
+        $response->assertStatus(200);
+        expect(App::getLocale())->toBe('fr');
+    });
+
+    it('switches to english when lang parameter is explicitly requested in query', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        $url = '/sm?lang=en';
+
+        // WHEN
+        $response = $this->withHeaders(['Accept-Language' => 'fr-FR,fr;q=0.9'])->get($url);
+
+        // THEN
+        $response->assertStatus(200);
+        expect(App::getLocale())->toBe('en');
+    });
+
+    it('falls back to english when preferred language is not supported', function (): void {
+        assert($this instanceof TestCase);
+        // GIVEN
+        $url = '/sm';
+
+        // WHEN
+        $response = $this->withHeaders(['Accept-Language' => 'es-ES,es;q=0.9,de;q=0.8'])->get($url);
+
+        // THEN
+        $response->assertStatus(200);
+        expect(App::getLocale())->toBe('en');
+    });
 })->covers(StorageManagerMiddleware::class);
