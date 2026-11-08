@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Service;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Arr;
 use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Event\DiskSelected;
@@ -14,7 +12,6 @@ use Kwaadpepper\LaravelStorageManager\Http\Dto\Disk\DiskStatsDto;
 use Kwaadpepper\LaravelStorageManager\Lib\Event\EventDispatcher;
 use Kwaadpepper\LaravelStorageManager\Lib\StorageGateway;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
-use League\Flysystem\FileAttributes;
 
 class DiskService
 {
@@ -101,34 +98,7 @@ class DiskService
 
     public function calculateDiskUsedBytes(Disk $disk): int
     {
-        /** @var Filesystem $storage */
-        $storage    = $this->storageGateway->disk($disk);
-        $totalBytes = 0;
-
-        try {
-            if ($storage instanceof FilesystemAdapter) {
-                foreach ($storage->getDriver()->listContents('', true) as $item) {
-                    if ($item->isFile() && $item instanceof FileAttributes) {
-                        $totalBytes += $item->fileSize() ?? 0;
-                    }
-                }
-
-                return $totalBytes;
-            }
-
-            $files = $storage->allFiles();
-            foreach ($files as $file) {
-                try {
-                    $totalBytes += $storage->size($file);
-                } catch (\Throwable $fileEx) {
-                    unset($fileEx);
-                }
-            }
-        } catch (\Throwable $listEx) {
-            unset($listEx);
-        }
-
-        return $totalBytes;
+        return $this->storageGateway->calculateDiskUsedBytes($disk);
     }
 
     private function computeDiskStats(Disk $disk): DiskStatsDto
@@ -152,59 +122,17 @@ class DiskService
             );
         }
 
-        if ($disk->driver === 'local') {
-            try {
-                $localPath = $this->storageGateway->localPath($disk);
-
-                if ($localPath !== null && is_dir($localPath)) {
-                    $totalSpace = disk_total_space($localPath);
-                    $freeSpace  = disk_free_space($localPath);
-
-                    if ($totalSpace !== false && $freeSpace !== false && $totalSpace > 0) {
-                        $totalInt   = (int) $totalSpace;
-                        $freeInt    = (int) $freeSpace;
-                        $usedInt    = max(0, $totalInt - $freeInt);
-                        $percentage = round(($usedInt / $totalInt) * 100, 1);
-
-                        return new DiskStatsDto(
-                            disk: $disk->name,
-                            driver: $disk->driver,
-                            supported: true,
-                            total: $totalInt,
-                            free: $freeInt,
-                            used: $usedInt,
-                            percentage: $percentage,
-                            mode: 'partition',
-                        );
-                    }
-                }
-            } catch (\Throwable $diskEx) {
-                unset($diskEx);
-            }
-
-            $used = $this->calculateDiskUsedBytes($disk);
-
-            return new DiskStatsDto(
-                disk: $disk->name,
-                driver: $disk->driver,
-                supported: true,
-                total: null,
-                free: null,
-                used: $used,
-                percentage: null,
-                mode: 'folder',
-            );
-        }
+        $driverStats = $this->storageGateway->getDiskStats($disk);
 
         return new DiskStatsDto(
             disk: $disk->name,
             driver: $disk->driver,
             supported: true,
-            total: null,
-            free: null,
-            used: null,
-            percentage: null,
-            mode: 'unlimited',
+            total: $driverStats->total,
+            free: $driverStats->free,
+            used: $driverStats->used,
+            percentage: $driverStats->percentage,
+            mode: $driverStats->mode,
         );
     }
 

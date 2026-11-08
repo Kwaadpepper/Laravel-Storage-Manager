@@ -12,8 +12,6 @@ use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\PathPropertyFactory;
 
 class FilePropertyExtractor
 {
-    private const array DRIVERS_WITHOUT_DIR_METADATA = ['s3', 'ftp', 'sftp'];
-
     public function __construct(
         private readonly StorageGateway $storageGateway,
     ) {
@@ -50,7 +48,7 @@ class FilePropertyExtractor
         $dirname    = $rawDirname === '.' ? '' : $rawDirname;
         $basename   = $pathInfo['basename'] ?? '';
 
-        if (in_array($disk->driver, self::DRIVERS_WITHOUT_DIR_METADATA, true)) {
+        if (! $this->storageGateway->supportsDirectoryMetadata($disk)) {
             $timestamp  = null;
             $visibility = null;
         } else {

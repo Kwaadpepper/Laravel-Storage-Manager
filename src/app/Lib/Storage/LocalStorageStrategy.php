@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace Kwaadpepper\LaravelStorageManager\Lib\Storage;
 
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\DiskStorageStats;
 use Psr\Log\LoggerInterface;
 
-readonly class LocalStorageStrategy implements StorageDriverStrategy
+readonly class LocalStorageStrategy extends BaseStorageStrategy
 {
     public function __construct(
         private FilesystemFactory $filesystemFactory,
@@ -115,5 +117,61 @@ readonly class LocalStorageStrategy implements StorageDriverStrategy
             $targetFilePath = ltrim($destination . '/' . $relativePath, '/');
             $this->copyFile($disk, $file, $targetFilePath);
         }
+    }
+
+    #[\Override]
+    public function supportsDirectoryMetadata(Disk $disk): bool
+    {
+        return true;
+    }
+
+    #[\Override]
+    public function calculateDiskUsedBytes(Disk $disk): int
+    {
+        return $this->computeFlysystemUsedBytes($this->filesystemFactory->disk($disk->name));
+    }
+
+    #[\Override]
+    public function getDiskStats(Disk $disk): DiskStorageStats
+    {
+        $storage = $this->filesystemFactory->disk($disk->name);
+
+        if ($storage instanceof FilesystemAdapter) {
+            try {
+                $localPath = $storage->path('');
+
+                if (is_dir($localPath)) {
+                    $totalSpace = disk_total_space($localPath);
+                    $freeSpace  = disk_free_space($localPath);
+
+                    if ($totalSpace !== false && $freeSpace !== false && $totalSpace > 0) {
+                        $totalInt   = (int) $totalSpace;
+                        $freeInt    = (int) $freeSpace;
+                        $usedInt    = max(0, $totalInt - $freeInt);
+                        $percentage = round(($usedInt / $totalInt) * 100, 1);
+
+                        return new DiskStorageStats(
+                            mode: 'partition',
+                            total: $totalInt,
+                            free: $freeInt,
+                            used: $usedInt,
+                            percentage: $percentage,
+                        );
+                    }
+                }
+            } catch (\Throwable $diskEx) {
+                unset($diskEx);
+            }
+        }
+
+        $used = $this->calculateDiskUsedBytes($disk);
+
+        return new DiskStorageStats(
+            mode: 'folder',
+            total: null,
+            free: null,
+            used: $used,
+            percentage: null,
+        );
     }
 }

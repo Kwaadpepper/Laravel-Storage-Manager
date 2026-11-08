@@ -10,9 +10,10 @@ use Kwaadpepper\LaravelStorageManager\Enum\FileOperationError;
 use Kwaadpepper\LaravelStorageManager\Exception\FileOperationException;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathNormalizer;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\DiskStorageStats;
 use Psr\Log\LoggerInterface;
 
-readonly class S3StorageStrategy implements StorageDriverStrategy
+readonly class S3StorageStrategy extends BaseStorageStrategy
 {
     public function __construct(
         private FilesystemFactory $filesystemFactory,
@@ -155,5 +156,25 @@ readonly class S3StorageStrategy implements StorageDriverStrategy
                 return false;
             }
         }
+    }
+
+    #[\Override]
+    public function supportsDirectoryMetadata(Disk $disk): bool
+    {
+        return false;
+    }
+
+    #[\Override]
+    public function calculateDiskUsedBytes(Disk $disk): int
+    {
+        return $this->computeFlysystemUsedBytes($this->filesystemFactory->disk($disk->name));
+    }
+
+    #[\Override]
+    public function getDiskStats(Disk $disk): DiskStorageStats
+    {
+        return new DiskStorageStats(
+            mode: 'unlimited',
+        );
     }
 }

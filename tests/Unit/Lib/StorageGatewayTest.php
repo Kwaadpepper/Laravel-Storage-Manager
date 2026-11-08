@@ -450,4 +450,47 @@ describe('StorageGateway', function (): void {
         // THEN
         expect($result)->toBeTrue();
     });
+
+    it('delegates supportsDirectoryMetadata to resolved strategy', function (): void {
+        // GIVEN
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+        $s3Disk    = new Disk('s3', 's3');
+
+        // WHEN
+        $localSupported = $gateway->supportsDirectoryMetadata($localDisk);
+        $s3Supported    = $gateway->supportsDirectoryMetadata($s3Disk);
+
+        // THEN
+        expect($localSupported)->toBeTrue();
+        expect($s3Supported)->toBeFalse();
+    });
+
+    it('delegates calculateDiskUsedBytes to resolved strategy', function (): void {
+        // GIVEN
+        Storage::disk('local')->put('bytes_test.txt', '12345678');
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+
+        // WHEN
+        $usedBytes = $gateway->calculateDiskUsedBytes($localDisk);
+
+        // THEN
+        expect($usedBytes)->toBe(8);
+    });
+
+    it('delegates getDiskStats to resolved strategy', function (): void {
+        // GIVEN
+        $gateway   = resolve(StorageGateway::class);
+        $localDisk = new Disk('local', 'local');
+        $s3Disk    = new Disk('s3', 's3');
+
+        // WHEN
+        $localStats = $gateway->getDiskStats($localDisk);
+        $s3Stats    = $gateway->getDiskStats($s3Disk);
+
+        // THEN
+        expect($localStats->mode)->toBeIn(['partition', 'folder']);
+        expect($s3Stats->mode)->toBe('unlimited');
+    });
 })->covers(StorageGateway::class);

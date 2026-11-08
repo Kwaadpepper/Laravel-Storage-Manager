@@ -15,6 +15,7 @@ use Kwaadpepper\LaravelStorageManager\Lib\Storage\RemoteStorageStrategy;
 use Kwaadpepper\LaravelStorageManager\Lib\Storage\S3StorageStrategy;
 use Kwaadpepper\LaravelStorageManager\Lib\Storage\StorageDriverStrategy;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Disk;
+use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\DiskStorageStats;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\FileStream;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\FilePathProperties;
 use Kwaadpepper\LaravelStorageManager\Lib\ValueObjects\Path\Path;
@@ -493,6 +494,21 @@ readonly class StorageGateway
         }
 
         return new ResolvedFile($disk, $path, $properties);
+    }
+
+    public function supportsDirectoryMetadata(Disk $disk): bool
+    {
+        return $this->strategyFor($disk)->supportsDirectoryMetadata($disk);
+    }
+
+    public function calculateDiskUsedBytes(Disk $disk): int
+    {
+        return $this->strategyFor($disk)->calculateDiskUsedBytes($disk);
+    }
+
+    public function getDiskStats(Disk $disk): DiskStorageStats
+    {
+        return $this->strategyFor($disk)->getDiskStats($disk);
     }
 
     private function strategyFor(Disk $disk): StorageDriverStrategy
