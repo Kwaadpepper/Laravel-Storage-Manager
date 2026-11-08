@@ -85,6 +85,93 @@ interface StorageDriverStrategy
     public function listContents(Disk $disk, string $directory): array | FileOperationException;
 
     /**
+     * Write contents to a file on disk.
+     */
+    public function put(Disk $disk, string $path, string $contents): true | FileOperationException;
+
+    /**
+     * Delete a file on disk.
+     */
+    public function delete(Disk $disk, string $path): true | FileOperationException;
+
+    /**
+     * Delete a directory on disk.
+     */
+    public function deleteDirectory(Disk $disk, string $path): true | FileOperationException;
+
+    /**
+     * Create a directory on disk.
+     */
+    public function makeDirectory(Disk $disk, string $path): true | FileOperationException;
+
+    /**
+     * Check if a file or directory exists on disk.
+     */
+    public function exists(Disk $disk, Path $path): bool;
+
+    /**
+     * Check if the given path is a directory.
+     */
+    public function isDirectory(Disk $disk, Path $path): bool;
+
+    /**
+     * Check if the given path is a file.
+     */
+    public function isFile(Disk $disk, Path $path): bool;
+
+    /**
+     * Retrieve the size of a file in bytes.
+     */
+    public function size(Disk $disk, string $path): int | FileOperationException;
+
+    /**
+     * List all files in a directory (non-recursive).
+     *
+     * @return list<string> | FileOperationException
+     */
+    public function files(Disk $disk, string $directory = ''): array | FileOperationException;
+
+    /**
+     * List all directories in a directory (non-recursive).
+     *
+     * @return list<string> | FileOperationException
+     */
+    public function directories(Disk $disk, string $directory = ''): array | FileOperationException;
+
+    /**
+     * List all files in a directory recursively.
+     *
+     * @return list<string> | FileOperationException
+     */
+    public function allFiles(Disk $disk, string $directory = ''): array | FileOperationException;
+
+    /**
+     * List all directories in a directory recursively.
+     *
+     * @return list<string> | FileOperationException
+     */
+    public function allDirectories(Disk $disk, string $directory = ''): array | FileOperationException;
+
+    /**
+     * Open a read stream for a file.
+     *
+     * @return resource | FileOperationException
+     */
+    public function readStream(Disk $disk, Path $path): mixed;
+
+    /**
+     * Write a stream resource to a path.
+     *
+     * @param  resource  $resource
+     */
+    public function writeStream(Disk $disk, Path $path, mixed $resource): true | FileOperationException;
+
+    /**
+     * Return the local filesystem absolute path if supported by driver, or null.
+     */
+    public function localPath(Disk $disk, string $path = ''): ?string;
+
+    /**
      * Determine whether a directory has subdirectories without heavy overhead.
      */
     public function hasSubdirectories(Disk $disk, string $path): bool;

@@ -645,4 +645,25 @@ describe('StorageGateway', function (): void {
         // THEN
         expect($action)->toThrow(StorageConnectionException::class);
     });
+
+    it('performs allFiles, allDirectories, and putStream operations via gateway', function (): void {
+        // GIVEN
+        $gateway = resolve(StorageGateway::class);
+        $disk    = new Disk('local', 'local');
+        $stream  = fopen('php://temp', 'r+');
+        fwrite($stream, 'raw stream content');
+        rewind($stream);
+        $path = new Path('/nested/stream_file.txt');
+
+        // WHEN
+        $gateway->makeDirectory($disk, 'nested/level2');
+        $gateway->putStream($disk, $path, $stream);
+        $allFiles = $gateway->allFiles($disk, 'nested');
+        $allDirs  = $gateway->allDirectories($disk, 'nested');
+
+        // THEN
+        expect($allFiles)->toContain('nested/stream_file.txt');
+        expect($allDirs)->toContain('nested/level2');
+        expect($gateway->get($disk, 'nested/stream_file.txt'))->toBe('raw stream content');
+    });
 })->covers(StorageGateway::class);

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
@@ -46,7 +46,7 @@ describe('CreateFileAction', function (): void {
 
     it('throws FileOperationException when storageGateway put fails', function (): void {
         // GIVEN
-        $filesystem = \Mockery::mock(Filesystem::class);
+        $filesystem = \Mockery::mock(FilesystemAdapter::class);
         $filesystem->shouldReceive('exists')->andReturn(false);
         $filesystem->shouldReceive('directories')->andReturn([]);
         $filesystem->shouldReceive('put')->once()->andReturn(false);

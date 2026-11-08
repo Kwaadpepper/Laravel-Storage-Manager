@@ -425,7 +425,7 @@ class UploadSessionService
 
         $filter = stream_filter_append($stream, 'lsm_upload_progress', STREAM_FILTER_READ, $filterParams);
 
-        $this->storageGateway->disk($disk)->put($finalDestination->toRelative(), $stream);
+        $this->storageGateway->putStream($disk, $finalDestination, $stream);
 
         if ($filter !== false) {
             stream_filter_remove($filter);

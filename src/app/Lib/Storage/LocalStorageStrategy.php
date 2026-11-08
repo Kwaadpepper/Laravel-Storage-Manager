@@ -355,6 +355,264 @@ readonly class LocalStorageStrategy implements StorageDriverStrategy
         }
     }
 
+    #[\Override]
+    public function put(Disk $disk, string $path, string $contents): true | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $result  = (bool) $storage->put($path, $contents);
+
+            if (! $result) {
+                return new FileOperationException(FileOperationError::UNKNOWN_ERROR);
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function delete(Disk $disk, string $path): true | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $result  = (bool) $storage->delete($path);
+
+            if (! $result) {
+                return new FileOperationException(FileOperationError::UNKNOWN_ERROR);
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function deleteDirectory(Disk $disk, string $path): true | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $result  = (bool) $storage->deleteDirectory($path);
+
+            if (! $result) {
+                return new FileOperationException(FileOperationError::UNKNOWN_ERROR);
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function makeDirectory(Disk $disk, string $path): true | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $result  = (bool) $storage->makeDirectory($path);
+
+            if (! $result) {
+                return new FileOperationException(FileOperationError::UNKNOWN_ERROR);
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function exists(Disk $disk, Path $path): bool
+    {
+        $normalized = $this->pathNormalizer->normalizePath($path->value);
+
+        if ($normalized === '/') {
+            return true;
+        }
+
+        try {
+            $storage = $this->getAdapter($disk);
+            $relPath = ltrim($normalized, '/');
+
+            return $storage->exists($relPath) || $this->isDirectory($disk, $path);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    #[\Override]
+    public function isDirectory(Disk $disk, Path $path): bool
+    {
+        $normalized = $this->pathNormalizer->normalizePath($path->value);
+
+        if ($normalized === '/') {
+            return true;
+        }
+
+        try {
+            $storage = $this->getAdapter($disk);
+            $relPath = ltrim($normalized, '/');
+
+            try {
+                return $storage->directoryExists($relPath);
+            } catch (\Throwable $e) {
+                $this->logger->warning('Failed to check directoryExists via FilesystemAdapter, falling back to parent scanning', [
+                    'disk'      => $disk->name,
+                    'path'      => $path->value,
+                    'exception' => $e,
+                ]);
+            }
+
+            $parentDir = dirname($normalized);
+            $parentRel = $parentDir === '/' || $parentDir === '.' ? '' : ltrim($parentDir, '/');
+
+            /** @var list<string> $rawDirectories */
+            $rawDirectories = $storage->directories($parentRel);
+
+            /** @var list<string> $directories */
+            $directories = array_map(
+                fn (string $dir): string => $this->pathNormalizer->normalizePath($dir),
+                $rawDirectories
+            );
+
+            return in_array($normalized, $directories, true);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    #[\Override]
+    public function isFile(Disk $disk, Path $path): bool
+    {
+        if ($path->isRoot()) {
+            return false;
+        }
+
+        try {
+            $storage = $this->getAdapter($disk);
+
+            return $storage->exists($path->toRelative()) && ! $this->isDirectory($disk, $path);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    #[\Override]
+    public function size(Disk $disk, string $path): int | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+
+            return (int) $storage->size($path);
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function files(Disk $disk, string $directory = ''): array | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            /** @var list<string> $files */
+            $files = $storage->files($directory);
+
+            return $files;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function directories(Disk $disk, string $directory = ''): array | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            /** @var list<string> $dirs */
+            $dirs = $storage->directories($directory);
+
+            return $dirs;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function allFiles(Disk $disk, string $directory = ''): array | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            /** @var list<string> $allFiles */
+            $allFiles = $storage->allFiles($directory);
+
+            return $allFiles;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function allDirectories(Disk $disk, string $directory = ''): array | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            /** @var list<string> $allDirs */
+            $allDirs = $storage->allDirectories($directory);
+
+            return $allDirs;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function readStream(Disk $disk, Path $path): mixed
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $stream  = $storage->readStream($path->toRelative());
+
+            if (! is_resource($stream)) {
+                return new FileOperationException(FileOperationError::UNKNOWN_ERROR);
+            }
+
+            return $stream;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function writeStream(Disk $disk, Path $path, mixed $resource): true | FileOperationException
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+            $result  = $storage->writeStream($path->toRelative(), $resource);
+
+            if (! $result) {
+                return new FileOperationException(FileOperationError::UNKNOWN_ERROR);
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return $this->toFileOperationException($e);
+        }
+    }
+
+    #[\Override]
+    public function localPath(Disk $disk, string $path = ''): ?string
+    {
+        try {
+            $storage = $this->getAdapter($disk);
+
+            return $storage->path($path);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     private function getAdapter(Disk $disk): FilesystemAdapter
     {
         $storage = $this->filesystemFactory->disk($disk->name);
