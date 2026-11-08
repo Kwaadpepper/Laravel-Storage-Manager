@@ -44,6 +44,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: 'src/ts/main.ts',
+        'storage-manager-picker': 'src/ts/integrations/standalone.ts',
+        'storage-manager-ckeditor5': 'src/ts/integrations/ckeditor5.ts',
+        'storage-manager-tiptap': 'src/ts/integrations/tiptap.ts',
       },
       output: {
         entryFileNames: 'js/[name].js',

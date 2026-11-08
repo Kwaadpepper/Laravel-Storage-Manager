@@ -13,13 +13,47 @@ export const VALID_SCOPED_TYPES: readonly ScopedType[] = [
   'archive',
 ];
 
+export interface PickerFilePayload {
+  url: string;
+  name: string;
+  path: string;
+  size: number;
+  extension: string | null;
+  mimeType?: string | null;
+}
+
+export interface PickerMessageEventData {
+  sender: string;
+  message: string;
+  file: PickerFilePayload;
+}
+
 export const usePickerStore = defineStore('picker', () => {
   const isPickerMode = ref(false);
   const sender = ref('storage-manager');
   const scopedType = ref<ScopedType | null>(null);
+  const targetWindow = ref<unknown>(null);
+
+  function resolveTargetWindow(customTarget?: unknown): unknown {
+    if (customTarget !== undefined) {
+      return customTarget;
+    }
+    if (typeof globalThis === 'undefined') {
+      return null;
+    }
+    if (globalThis.opener) {
+      return globalThis.opener;
+    }
+    if (globalThis.parent && (globalThis.parent as unknown) !== (globalThis as unknown)) {
+      return globalThis.parent;
+    }
+    return null;
+  }
 
   function init(searchParamsString?: string, openerObj?: unknown): void {
-    const opener = openerObj !== undefined ? openerObj : (typeof globalThis !== 'undefined' ? globalThis.opener : null);
+    const target = resolveTargetWindow(openerObj);
+    targetWindow.value = target;
+
     const search = searchParamsString !== undefined
       ? searchParamsString
       : (typeof globalThis !== 'undefined' && globalThis.location ? globalThis.location.search : '');
@@ -29,7 +63,7 @@ export const usePickerStore = defineStore('picker', () => {
     const senderParam = params.get('sender');
     const hasSender = senderParam !== null && senderParam.trim() !== '';
 
-    isPickerMode.value = Boolean(opener) && (hasPicker || hasSender);
+    isPickerMode.value = Boolean(target) && (hasPicker || hasSender);
     sender.value = hasSender ? senderParam!.trim() : 'storage-manager';
 
     const typeParam = params.get('type')?.toLowerCase();
@@ -57,7 +91,8 @@ export const usePickerStore = defineStore('picker', () => {
   }
 
   function selectFile(file: TreeNodeFile): void {
-    if (!canSelectFile(file) || !globalThis.opener || !file.publicUrl) {
+    const target = (targetWindow.value ?? resolveTargetWindow()) as Window | null;
+    if (!canSelectFile(file) || !target || !file.publicUrl) {
       return;
     }
 
@@ -67,12 +102,24 @@ export const usePickerStore = defineStore('picker', () => {
 
     const resolvedUrl = new URL(file.publicUrl, origin).toString();
 
-    globalThis.opener.postMessage(
-      { sender: sender.value, message: resolvedUrl },
-      origin
-    );
+    const filePayload: PickerFilePayload = {
+      url: resolvedUrl,
+      name: file.name,
+      path: file.path,
+      size: file.size,
+      extension: file.extension ?? null,
+      mimeType: (file as { mimeType?: string | null }).mimeType ?? null,
+    };
 
-    if (typeof globalThis.close === 'function') {
+    const payload: PickerMessageEventData = {
+      sender: sender.value,
+      message: resolvedUrl,
+      file: filePayload,
+    };
+
+    target.postMessage(payload, origin);
+
+    if (globalThis.opener && typeof globalThis.close === 'function') {
       globalThis.close();
     }
   }
@@ -81,6 +128,7 @@ export const usePickerStore = defineStore('picker', () => {
     isPickerMode,
     sender,
     scopedType,
+    targetWindow,
     init,
     isFileAllowed,
     canSelectFile,
