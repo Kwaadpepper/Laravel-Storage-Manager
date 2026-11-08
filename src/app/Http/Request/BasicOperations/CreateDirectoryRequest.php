@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Kwaadpepper\LaravelStorageManager\Http\Request\BasicOperations;
 
-use Kwaadpepper\LaravelStorageManager\Config\StorageManagerConfig;
 use Kwaadpepper\LaravelStorageManager\Enum\FilenamePolicy;
 use Kwaadpepper\LaravelStorageManager\Http\Request\RequestWithPath;
 use Kwaadpepper\LaravelStorageManager\Lib\FileManager\PathSanitizer;
@@ -21,11 +20,8 @@ class CreateDirectoryRequest extends RequestWithPath
         parent::prepareForValidation();
         $this->pathSanitizer = resolve(PathSanitizer::class);
 
-        $diskName             = $this->input('disk');
-        $disk                 = is_string($diskName) && $diskName !== ''
-            ? resolve(StorageManagerConfig::class)->disks->getDisk($diskName)
-            : null;
-        $this->filenamePolicy = $disk->filenamePolicy ?? FilenamePolicy::STRICT;
+        $disk                 = $this->getDisk();
+        $this->filenamePolicy = $disk->filenamePolicy;
 
         $directoryName = $this->input('name', '');
 
